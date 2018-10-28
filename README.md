@@ -7,7 +7,7 @@ Gopher Game Server is a full-featured game server written in Go. Also comes with
 
  - JavaScript: [Gopher Client JS](https://github.com/hewiefreeman/GopherClientJS)
 
-A Java, C++, and C (possibly more with some help) client APIs will be made after completing the Go server and JavaScript client API.
+The Java, C++, and C (possibly more with some help) client APIs will be made after completing the Go server and JavaScript client API.
 
 ## Installing
 First install the server:
