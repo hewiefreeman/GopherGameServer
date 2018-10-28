@@ -13,7 +13,9 @@ Then install the dependencies:
      
 # Documentation
 
-[GoDoc.org Generated Documentation](https://godoc.org/github.com/hewiefreeman/GopherGameServer)
+[Package gopher](https://godoc.org/github.com/hewiefreeman/GopherGameServer)
+[Package rooms](https://godoc.org/github.com/hewiefreeman/GopherGameServer/rooms)
+[Package users](https://godoc.org/github.com/hewiefreeman/GopherGameServer/users)
 
 # Usage
 
