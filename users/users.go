@@ -71,8 +71,11 @@ func Login(userName string, dbID int64, isGuest bool, socket *websocket.Conn) (U
 
 	response := usersActionChan.Execute(loginUser, []interface{}{userName, databaseID, isGuest, socket});
 	if(response[1] != nil){
-		if(){
-
+		if(kickOnLogin){
+			DropUser(userName);
+			//TRY AGAIN
+			response = usersActionChan.Execute(loginUser, []interface{}{userName, databaseID, isGuest, socket});
+			if(response[1] != nil){ return User{}, errors.New("Unexpected error while logging in"); }
 		}else{
 			err = response[1].(error);
 		}
@@ -222,7 +225,8 @@ func logUserOut(p []interface{}) []interface{} {
 //   KICK A USER   ///////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
-func Kick(userName string) error {
+// Logs a User out by their name. Also used by KickDupOnLogin in ServerSettings.
+func DropUser(userName string) error {
 	if(len(userName) == 0){
 		return errors.New("users.Kick() requires a user name");
 	}
