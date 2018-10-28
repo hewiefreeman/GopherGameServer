@@ -4,7 +4,6 @@ import (
 	"github.com/hewiefreeman/GopherGameServer/users"
 	"github.com/mssola/user_agent"
 	"github.com/gorilla/websocket"
-	//"encoding/json"
 	"errors"
 )
 
