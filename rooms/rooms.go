@@ -14,7 +14,10 @@ import (
 type Room struct {
 	name string
 	rType string
+
 	private bool
+	owner string;
+	inviteList *[]string
 
 	usersMap *map[string]RoomUser
 	maxUsers int
@@ -59,20 +62,20 @@ func SetServerStarted(val bool){
 //  - rType (string): Room type name
 //  - isPrivate (bool): Indicates if the room is private or not
 //  - maxUsers (int): Maximum User capacity
-func New(name string, rType string, isPrivate bool, maxUsers int) (Room, error) {
+func New(name string, rType string, isPrivate bool, maxUsers int, owner string) (Room, error) {
 	//REJECT INCORRECT INPUT
 	if(len(name) == 0){ return Room{}, errors.New("rooms.New() requires a name"); }
 
 	var err error = nil;
 
-	response := roomsActionChan.Execute(newRoom, []interface{}{name, maxUsers, isPrivate, rType});
+	response := roomsActionChan.Execute(newRoom, []interface{}{name, maxUsers, isPrivate, rType, owner});
 	if(response[1] != nil){ err = response[1].(error); }
 
 	return response[0].(Room), err;
 }
 
 func newRoom(p []interface{}) []interface{} {
-	roomName, maxUsers, isPrivate, rt := p[0].(string), p[1].(int), p[2].(bool), p[3].(string);
+	roomName, maxUsers, isPrivate, rt, owner := p[0].(string), p[1].(int), p[2].(bool), p[3].(string), p[4].(string);
 	var room Room = Room{};
 	var err error = nil;
 
@@ -83,8 +86,9 @@ func newRoom(p []interface{}) []interface{} {
 		roomVars := make(map[string]interface{});
 		roomVarsActionChan := helpers.NewActionChannel();
 		roomUsersActionChan := helpers.NewActionChannel();
-		theRoom := Room{name: roomName, private: isPrivate, usersMap: &userMap, maxUsers: maxUsers, vars: &roomVars,
-					 rType: rt, roomVarsActionChannel: roomVarsActionChan, usersActionChannel: roomUsersActionChan};
+		invList := []string{};
+		theRoom := Room{name: roomName, private: isPrivate, inviteList: &invList, usersMap: &userMap, maxUsers: maxUsers, vars: &roomVars,
+					 owner: owner, rType: rt, roomVarsActionChannel: roomVarsActionChan, usersActionChannel: roomUsersActionChan};
 		rooms[roomName] = &theRoom;
 		room = *rooms[roomName];
 	}
@@ -180,7 +184,7 @@ func (r *Room) RemoveUser(userName string) error {
 
 	response := r.usersActionChannel.Execute(userLeave, []interface{}{userName, r});
 	if(len(response) == 0){
-		return errors.New("The room '"+r.name+"' does not exist")
+		return errors.New("The room '"+r.name+"' does not exist");
 	}else if(response[0] != nil){
 		return response[0].(error);
 	}
@@ -204,6 +208,110 @@ func userLeave(p []interface{}) []interface{} {
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//   ADD TO inviteList   //////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// WARNING: This is only meant for internal Gopher Game Server mechanics. If you want to invite a User to a private room,
+// use the *User.Invite() function instead.
+//
+// NOTE: You can still use this function safely, but remember that private rooms are designed to have an "owner",
+// and only the owner should be able to send an invite and revoke an invitation.
+func (r *Room) AddInvite(userName string) error {
+	if(!r.private){
+		return errors.New("Room is not private");
+	}else if(len(userName) == 0){
+		return errors.New("*Room.AddInvite() requires a userName");
+	}
+
+	response := r.roomVarsActionChannel.Execute(inviteUser, []interface{}{userName, r});
+	if(len(response) == 0){
+		return errors.New("The room '"+r.name+"' does not exist");
+	}else if(response[0] != nil){
+		return response[0].(error);
+	}
+
+	//
+	return nil;
+}
+
+func inviteUser(p []interface{}) []interface{} {
+	userName, room := p[0].(string), p[1].(*Room);
+
+	theList := *(*room).inviteList;
+	for i := 0; i < len(theList); i++ {
+		if(theList[i] == userName){
+			return []interface{}{errors.New("User '"+userName+"' is already on the invite list")}
+		}
+	}
+	*(*room).inviteList = append(*(*room).inviteList, userName);
+	//
+	return []interface{}{nil}
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//   REMOVE FROM inviteList   /////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// WARNING: This is only meant for internal Gopher Game Server mechanics. If you want to remove a User from the room's
+// private invite list, use the *User.RevokeInvite() function instead.
+//
+// NOTE: You can still use this function safely, but remember that private rooms are designed to have an "owner",
+// and only the owner should be able to send an invite and revoke an invitation.
+func (r *Room) RemoveInvite(userName string) error {
+	if(!r.private){
+		return errors.New("Room is not private");
+	}else if(len(userName) == 0){
+		return errors.New("*Room.RemoveInvite() requires a userName");
+	}
+
+	response := r.roomVarsActionChannel.Execute(uninviteUser, []interface{}{userName, r});
+	if(len(response) == 0){
+		return errors.New("The room '"+r.name+"' does not exist");
+	}else if(response[0] != nil){
+		return response[0].(error);
+	}
+
+	//
+	return nil;
+}
+
+func uninviteUser(p []interface{}) []interface{} {
+	userName, room := p[0].(string), p[1].(*Room);
+	theList := *(*room).inviteList;
+	for i := 0; i < len(theList); i++ {
+		if(theList[i] == userName){
+			*(*room).inviteList = append((*(*room).inviteList)[:i], (*(*room).inviteList)[i+1:]...)
+			break;
+		}
+		if(i == len(theList)-1){
+			return errors.New("User '"+userName+"' is not on the invite list");
+		}
+	}
+	//
+	return []interface{}{nil}
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//   GET A ROOM's inviteList   ////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// Get a private Room's invite list
+func (r *Room) InviteList() ([]string, error) {
+	response := r.roomVarsActionChannel.Execute(getInviteList, []interface{}{r});
+	if(len(response) == 0){
+		return nil, errors.New("The room '"+r.name+"' does not exist");
+	}
+
+	//
+	return response[0].([]string), nil;
+}
+
+func getInviteList(p []interface{}) []interface{} {
+	room := p[0].(*Room);
+	return []interface{}{*(*room).inviteList};
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //   GET A Room's usersMap   //////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -214,18 +322,18 @@ func (r *Room) GetUserMap() (map[string]RoomUser, error) {
 
 	response := r.usersActionChannel.Execute(userMapGet, []interface{}{r});
 	if(len(response) == 0){
-		err = errors.New("Room '"+r.name+"' does not exist")
+		err = errors.New("Room '"+r.name+"' does not exist");
 	}else{
-		userMap = response[0].(map[string]RoomUser)
+		userMap = response[0].(map[string]RoomUser);
 	}
 
 	return userMap, err;
 }
 
 func userMapGet(p []interface{}) []interface{} {
-	room := p[0].(*Room)
+	room := p[0].(*Room);
 
-	return []interface{}{*room.usersMap}
+	return []interface{}{*room.usersMap};
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -245,6 +353,11 @@ func (r *Room) Type() string {
 // Gets the type of the Room.
 func (r *Room) IsPrivate() bool {
 	return r.private;
+}
+
+// Gets the owner of the room
+func (r *Room) Owner() bool {
+	return r.owner;
 }
 
 // Gets the maximum User capacity of the Room.

@@ -103,6 +103,6 @@ func clientActionLeaveRoom(userName *string, roomIn *rooms.Room) (interface{}, e
 }
 
 func actionClientChatMessage(params interface{}, userName *string, roomIn *rooms.Room) (interface{}, error, bool) {
-	err := roomIn.ChatMessage(*userName, params);
+	roomIn.ChatMessage(*userName, params);
 	return nil, nil, false;
 }
