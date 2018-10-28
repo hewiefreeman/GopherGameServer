@@ -42,54 +42,55 @@ func socketInitializer(w http.ResponseWriter, r *http.Request){
 }
 
 func clientActionListener(conn *websocket.Conn, ua *user_agent.UserAgent) {
-	// CLIENT ACTION INPUT/OUTPUT FORMATS
+	// CLIENT ACTION INPUT
 	var action clientAction;
-	var response map[string]interface{};
 
 	// The User attached to this client
 	var userName string = "";
-	//var roomIn rooms.Room;
-
-	//
-	var responseVal interface{} = nil;
-	var err error = nil;
+	var roomIn rooms.Room = rooms.Room{};
 
 	for {
 		//READ INPUT BUFFER
-		err = conn.ReadJSON(&action);
-		if(err != nil || action.A == ""){
+		readErr := conn.ReadJSON(&action);
+		if(readErr != nil || action.A == ""){
 			//DISCONNECT USER
 			sockedDropped(userName);
-			return
+			return;
 		}
 
 		//TAKE ACTION
-		responseVal, err = clientActionHandler(action, &userName, conn, ua);
-		if(err != nil){
-			response = make(map[string]interface{});
-			response["cr"] = make(map[string]interface{});
-			response["cr"].(map[string]interface{})["a"] = action.A;
-			response["cr"].(map[string]interface{})["e"] = err.Error();
-		}else{
-			response = make(map[string]interface{});
-			response["cr"] = make(map[string]interface{});
-			response["cr"].(map[string]interface{})["a"] = action.A;
-			response["cr"].(map[string]interface{})["r"] = responseVal;
-		}
+		responseVal, actionErr, respond := clientActionHandler(action, &userName, &roomIn, conn, ua);
 
-		//SEND RESPONSE
-		if err = conn.WriteJSON(response); err != nil {
-			//DISCONNECT USER
-			sockedDropped(userName);
-			return
+		if(respond){
+			//SEND RESPONSE
+			if err = conn.WriteJSON(makeClientActionResponse(responseVal, actionErr)); err != nil {
+				//DISCONNECT USER
+				sockedDropped(userName);
+				return;
+			}
 		}
 
 		//
 		action = clientAction{};
-		response = nil;
-		responseVal = nil;
-		err = nil;
 	}
+}
+
+func makeClientActionResponse(action clientAction, responseVal interface{}, err error) map[string]interface{} {
+	var response map[string]interface{};
+	if(err != nil){
+		response = make(map[string]interface{});
+		response["cr"] = make(map[string]interface{});
+		response["cr"].(map[string]interface{})["a"] = action.A;
+		response["cr"].(map[string]interface{})["e"] = err.Error();
+	}else{
+		response = make(map[string]interface{});
+		response["cr"] = make(map[string]interface{});
+		response["cr"].(map[string]interface{})["a"] = action.A;
+		response["cr"].(map[string]interface{})["r"] = responseVal;
+	}
+
+	//
+	return response;
 }
 
 func sockedDropped(userName string) {
