@@ -9,13 +9,13 @@ Gopher uses WebSockets and JSON to pass messages between the clients and the ser
 
 **Note**: Gopher Game Server will be open for contributions as soon as version 1.0 is finished.
 
-## Client APIs
+# Client APIs
 
  - JavaScript: [Gopher Client JS](https://github.com/hewiefreeman/GopherClientJS)
 
 The Java, C++, and C (possibly more with some help) client APIs will be made after completing version 1.0 and the JavaScript client API.
 
-## Installing
+# Installing
 First install the server:
      
     go get github.com/hewiefreeman/GopherGameServer
