@@ -27,11 +27,11 @@ Then install the dependencies:
      
 # Documentation
 
-[Package gopher](https://godoc.org/github.com/hewiefreeman/GopherGameServer)
+[Package gopher](https://godoc.org/github.com/hewiefreeman/GopherGameServer) - Main server package for startup and settings
 
-[Package rooms](https://godoc.org/github.com/hewiefreeman/GopherGameServer/rooms)
+[Package rooms](https://godoc.org/github.com/hewiefreeman/GopherGameServer/rooms) - Package for using the Room type
 
-[Package users](https://godoc.org/github.com/hewiefreeman/GopherGameServer/users)
+[Package users](https://godoc.org/github.com/hewiefreeman/GopherGameServer/users) - Package for using the User type
 
 # Usage
 
