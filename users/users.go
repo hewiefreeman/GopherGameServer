@@ -1,4 +1,4 @@
-//
+// This package contains all the necessary tools to make and work with Users.
 package users
 
 import (
@@ -26,6 +26,7 @@ var (
 	users map[string]*User = make(map[string]*User)
 	usersActionChan *helpers.ActionChannel = helpers.NewActionChannel()
 	serverStarted bool = false;
+	serverName string = "";
 	kickOnLogin bool = false;
 )
 
@@ -43,9 +44,11 @@ func SetServerStarted(val bool){
 	}
 }
 
-func SettingsSet(kickDups bool){
+func SettingsSet(kickDups bool, name string){
 	if(!serverStarted){
 		kickOnLogin = kickDups;
+		serverName = name;
+		rooms.SettingsSet(name);
 	}
 }
 
@@ -59,6 +62,8 @@ func Login(userName string, dbID int64, isGuest bool, socket *websocket.Conn) (U
 	//REJECT INCORRECT INPUT
 	if(len(userName) == 0){
 		return User{}, errors.New("users.Login() requires a user name");
+	}else if(userName == serverName){
+		return User{}, errors.New("The name '"+userName+"' is unavailable");
 	}else if(dbID < -1){
 		return User{}, errors.New("users.Login() requires a database ID (or -1 for no ID)");
 	}else if(socket == nil){
@@ -219,6 +224,69 @@ func logUserOut(p []interface{}) []interface{} {
 	userName := p[0].(string);
 	delete(users, userName);
 	return []interface{}{};
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+//   INVITE TO User's PRIVATE ROOM   /////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// Sends an invite to the specified user by name, provided they are online, the Room is private, and this User
+// is the owner of the Room.
+func (u *User) Invite(userName string, room Room) error {
+	if(len(userName) == 0){
+		return errors.New("*User.Invite() requires a userName");
+	}else if(!room.IsPrivate()){
+		return errors.New("The room '"+room.Name()+"' is not private");
+	}else if(room.Owner() != u.name){
+		return errors.New("The user '"+u.name+"' is not the owner of the room '"+r.Name()+"'");
+	}
+
+	//GET THE USER
+	user, userErr := Get(userName);
+	if(userErr != nil){ return userErr; }
+
+	//ADD TO INVITE LIST
+	addErr := room.AddInvite(userName);
+	if(addErr != nil){ return addErr; }
+
+	//MAKE INVITE MESSAGE
+	invMessage := make(map[string]interface{});
+	invMessage["i"] = make(map[string]interface{}); // Room invites are labeled "d"
+	invMessage["i"].(map[string]interface{})["u"] = u.name;
+	invMessage["i"].(map[string]interface{})["r"] = room.Name();
+
+	//MARSHAL THE MESSAGE
+	jsonStr, marshErr := json.Marshal(invMessage);
+	if(marshErr != nil){ return marshErr; }
+
+	//SEND MESSAGE
+	user.socket.WriteJSON(jsonStr);
+
+	//
+	return nil;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+//   REVOKE INVITE TO User's PRIVATE ROOM   //////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// Revokes an invite to the specified user by name, provided they are online, the Room is private, and this User
+// is the owner of the Room.
+func (u *User) RevokeInvite(userName string, room Room) error {
+	if(len(userName) == 0){
+		return errors.New("*User.RevokeInvite() requires a userName");
+	}else if(!room.IsPrivate()){
+		return errors.New("The room '"+room.Name()+"' is not private");
+	}else if(room.Owner() != u.name){
+		return errors.New("The user '"+u.name+"' is not the owner of the room '"+r.Name()+"'");
+	}
+
+	//REMOVE FROM INVITE LIST
+	removeErr := room.RemoveInvite(userName);
+	if(removeErr != nil){ return removeErr; }
+
+	//
+	return nil;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////

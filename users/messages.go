@@ -16,9 +16,9 @@ func (u *User) PrivateMessage(userName string, message string) error {
 
 	//CONSTRUCT MESSAGE
 	theMessage := make(map[string]interface{});
-	theMessage["t"] = rooms.MessageTypePrivate;
-	theMessage["a"] = u.name;
-	theMessage["m"] = message;
+	theMessage["p"] = make(map[string]interface{});
+	theMessage["p"].(map[string]interface{})["a"] = u.name;
+	theMessage["p"].(map[string]interface{})["m"] = message;
 
 	//MARSHAL MESSAGE INTO JSON
 	jsonStr, marshErr := json.Marshal(theMessage);

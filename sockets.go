@@ -79,14 +79,14 @@ func makeClientActionResponse(action clientAction, responseVal interface{}, err 
 	var response map[string]interface{};
 	if(err != nil){
 		response = make(map[string]interface{});
-		response["cr"] = make(map[string]interface{});
-		response["cr"].(map[string]interface{})["a"] = action.A;
-		response["cr"].(map[string]interface{})["e"] = err.Error();
+		response["c"] = make(map[string]interface{}); // Client action responses are labeled "c"
+		response["c"].(map[string]interface{})["a"] = action.A;
+		response["c"].(map[string]interface{})["e"] = err.Error();
 	}else{
 		response = make(map[string]interface{});
-		response["cr"] = make(map[string]interface{});
-		response["cr"].(map[string]interface{})["a"] = action.A;
-		response["cr"].(map[string]interface{})["r"] = responseVal;
+		response["c"] = make(map[string]interface{});
+		response["c"].(map[string]interface{})["a"] = action.A;
+		response["c"].(map[string]interface{})["r"] = responseVal;
 	}
 
 	//

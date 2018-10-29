@@ -1,7 +1,7 @@
-/* This package is used to start and change the core settings for the Gopher Game Server. The
-type ServerSettings contains all the parameters for changing the core settings. You can either
-pass a ServerSettings when calling Server.Start() or nil if you want to use the default server
-settings.*/
+// This package is used to start and change the core settings for the Gopher Game Server. The
+// type ServerSettings contains all the parameters for changing the core settings. You can either
+// pass a ServerSettings when calling Server.Start() or nil if you want to use the default server
+// settings.
 package gopher
 
 import (
@@ -12,8 +12,10 @@ import (
 	"strconv"
 )
 
-// Settings for the Gopher Game Server
+// Core server settings for the Gopher Game Server
 type ServerSettings struct {
+	ServerName string // The server's name. Used for the server's ownership of private Rooms. (TO DO)
+
 	HostName string // Server's host name. Use 'https://' for TLS connections. (ex: 'https://example.com')
 	HostAlias string // Server's host alias name. Use 'https://' for TLS connections. (ex: 'https://www.example.com')
 	IP string // Server's IP address.
@@ -24,6 +26,8 @@ type ServerSettings struct {
 	PrivKeyFile string // SSL/TLS private key file location (starting from system's root folder).
 
 	OriginOnly bool // When enabled, the server declines connections made from outside the origin server. IMPORTANT: Enable this for web apps and LAN servers.
+
+	MultiConnect bool // Enabled multiple connections under the same User. When enabled, will override KickDupOnLogin's functionality. (TO DO)
 	KickDupOnLogin bool // When enabled, a logged in User will be disconnected from service when another User logs in with the same name.
 
 	EnableSqlAuth bool // Enables the built-in SQL User authentication. (TO DO)
@@ -34,6 +38,7 @@ type ServerSettings struct {
 	RecoveryLocation string // The folder location (starting from system's root folder) where you would like to store the recovery data. (TO DO)
 
 	EnableAdminTools bool // Enables the use of the Admin Tools (TO DO)
+	EnableRemoteAdmin bool // Enabled administration (only) from outside the origin server. When enabled, will override OriginOnly's functionality, but only for administrator connections. (TO DO)
 	AdminToolsLogin string // The login name for the Admin Tools (TO DO)
 	AdminToolsPassword string // The password for the Admin Tools (TO DO)
 }
@@ -43,9 +48,9 @@ var (
 )
 
 // Call with a pointer to your ServerSettings (or nil for defaults) to start the server. The default
-// settings are for local testing ONLY. There are security-related attributes in ServerSettings
+// settings are for local testing ONLY. There are security-related options in ServerSettings
 // for SSL/TLS, connection origin testing, Admin Tools, and more. It's highly recommended to look into
-// all ServerSettings attributes.
+// all ServerSettings options to tune the server for your desired functionality and security needs.
 func Start(s *ServerSettings){
 	//SET SERVER SETTINGS
 	if(s != nil){
@@ -53,6 +58,8 @@ func Start(s *ServerSettings){
 	}else{
 		//DEFAULT localhost SETTINGS
 		settings = &ServerSettings{
+					ServerName: "!server!"
+
 					HostName: "localhost",
 					HostAlias: "localhost",
 					IP: "localhost",
@@ -63,6 +70,8 @@ func Start(s *ServerSettings){
 					PrivKeyFile: "",
 
 					OriginOnly: false,
+
+					MultiConnect: false,
 					KickDupOnLogin: false,
 
 					EnableSqlAuth: false,
@@ -72,7 +81,8 @@ func Start(s *ServerSettings){
 					EnableRecovery: false,
 					RecoveryLocation: "C:/",
 
-					EnableAdminTools: false,
+					EnableAdminTools: true,
+					EnableRemoteAdmin: false,
 					AdminToolsLogin: "admin",
 					AdminToolsPassword: "password" }
 	}
@@ -81,7 +91,7 @@ func Start(s *ServerSettings){
 	rand.Seed(time.Now().UTC().UnixNano());
 
 	//UPDATE SETTINGS IN PACKAGES
-	users.SettingsSet((*settings).KickDupOnLogin);
+	users.SettingsSet((*settings).KickDupOnLogin, (*settings).ServerName);
 
 	//NOTIFY PACKAGES OF SERVER START
 	users.SetServerStarted(true);

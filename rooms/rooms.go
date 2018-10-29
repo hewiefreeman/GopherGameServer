@@ -1,7 +1,18 @@
 // This package contains all the necessary tools to make and work with Rooms. A Room represents
-// a place on the server where a User can join others Users. Rooms also have their own variables which
-// can be accessed and changed anytime. A Room variable can be anything compatible with interface{}, so
-// pretty much anything.
+// a place on the server where a User can join other Users.
+//
+// A Room can either be public or private. Private Rooms must be assigned an "owner", which is the name of a User, or the ServerName
+// from ServerSettings. The server's name that will be used for ownership of private Rooms can be set with the ServerSettings
+// option ServerName when starting the server. Though keep in mind, setting the ServerName in ServerSettings will prevent a User who wants to go by that name
+// from logging in. Public Rooms will accept a join request from any User, and private Rooms will only
+// accept a join request from someone who is on it's invite list. Only the owner of the Room or the server itself can invite
+// Users to a private Room. But remember, just because a User owns a private room doesn't mean the server cannot also invite
+// to the room via *Room.AddInvite() function.
+//
+// Rooms have their own variables which can be accessed and changed anytime. A Room variable can
+// be anything compatible with interface{}, so pretty much anything. Room variables should mainly be used
+// for things about the room itself that don't change very often (or, for instance, are absolutely needed for a joining
+// User).
 package rooms
 
 import (
@@ -42,13 +53,20 @@ type RoomUser struct {
 var (
 	rooms map[string]*Room = make(map[string]*Room)
 	roomsActionChan *helpers.ActionChannel = helpers.NewActionChannel()
-	serverStarted bool = false
+	serverStarted bool = false;
+	serverName string = "";
 )
 
 //SEVER START-UP FUNCTIONS
 func SetServerStarted(val bool){
 	if(!serverStarted){
 		serverStarted = val;
+	}
+}
+
+func SettingsSet(name string){
+	if(!serverStarted){
+		serverName = name;
 	}
 }
 
@@ -61,10 +79,16 @@ func SetServerStarted(val bool){
 //  - name (string): Name of the Room
 //  - rType (string): Room type name
 //  - isPrivate (bool): Indicates if the room is private or not
-//  - maxUsers (int): Maximum User capacity
+//  - maxUsers (int): Maximum User capacity (Note: 0 means no limit)
 func New(name string, rType string, isPrivate bool, maxUsers int, owner string) (Room, error) {
 	//REJECT INCORRECT INPUT
-	if(len(name) == 0){ return Room{}, errors.New("rooms.New() requires a name"); }
+	if(len(name) == 0){
+		return Room{}, errors.New("rooms.New() requires a name");
+	}else if(maxUsers < 0){
+		maxUsers = 0;
+	}else if(owner == ""){
+		owner = serverName;
+	}
 
 	var err error = nil;
 
@@ -159,9 +183,25 @@ func userJoin(p []interface{}) []interface{} {
 	var err error = nil;
 
 	//CHECK IF THE ROOM IS FULL
-	if(len(*room.usersMap) == room.maxUsers){ err = errors.New("The room '"+room.name+"' is full"); }
+	if(room.maxUsers != 0 && len(*room.usersMap) == room.maxUsers){ err = errors.New("The room '"+room.name+"' is full"); }
 
-	//
+	//CHECK IF THE ROOM IS PRIVATE, OWNER JOINS FREELY
+	if(room.private && userName != (*room).owner){
+		//IF SO, CHECK IF THIS USER IS ON THE INVITE LIST
+		theList := *(*room).inviteList;
+		for i := 0; i < len(theList); i++ {
+			if(theList[i] == userName){
+				//INVITED User HAS JOINED, SO REMOVE THEM FROM THE LIST
+				*(*room).inviteList = append((*(*room).inviteList)[:i], (*(*room).inviteList)[i+1:]...)
+				break;
+			}
+			if(i == len(theList)-1){
+				return []interface{}{errors.New("User '"+userName+"' is not on the invite list")}
+			}
+		}
+	}
+
+	//ADD User TO ROOM
 	if _, ok := (*room.usersMap)[*userName]; ok {
 		err = errors.New("User '"+*userName+"' is already in room '"+room.name+"'");
 	}else{
@@ -211,8 +251,9 @@ func userLeave(p []interface{}) []interface{} {
 //   ADD TO inviteList   //////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// WARNING: This is only meant for internal Gopher Game Server mechanics. If you want to invite a User to a private room,
-// use the *User.Invite() function instead.
+// WARNING: This is only meant for internal Gopher Game Server mechanics. If you want a User to invite someone to a private room,
+// use the *User.Invite() function instead. This is because *User.Invite() will also send an invite to the invited User that the
+// client API can recieve. Though if you wish to make your own implementations, don't hesitate!
 //
 // NOTE: You can still use this function safely, but remember that private rooms are designed to have an "owner",
 // and only the owner should be able to send an invite and revoke an invitation.
@@ -252,7 +293,7 @@ func inviteUser(p []interface{}) []interface{} {
 //   REMOVE FROM inviteList   /////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// WARNING: This is only meant for internal Gopher Game Server mechanics. If you want to remove a User from the room's
+// WARNING: This is only meant for internal Gopher Game Server mechanics. If you want a User to remove some from the room's
 // private invite list, use the *User.RevokeInvite() function instead.
 //
 // NOTE: You can still use this function safely, but remember that private rooms are designed to have an "owner",
@@ -356,7 +397,7 @@ func (r *Room) IsPrivate() bool {
 }
 
 // Gets the owner of the room
-func (r *Room) Owner() bool {
+func (r *Room) Owner() string {
 	return r.owner;
 }
 

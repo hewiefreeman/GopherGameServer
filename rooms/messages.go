@@ -5,14 +5,13 @@ import (
 	"errors"
 )
 
-//MESSAGE TYPES
+// These represent the types of room messages the server sends.
 const (
 	MessageTypeChat = iota
-	MessageTypePrivate
 	MessageTypeServer
 )
 
-//SERVER MESSAGE SUB-TYPES
+// These are the sub-types that a MessageTypeServer will come with. Ordered by their visible priority for your UI.
 const (
 	ServerMessageGame = iota
 	ServerMessageNotice
@@ -82,16 +81,20 @@ func (r *Room) DataMessage(message interface{}, recipients []string) error {
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 func (r *Room) sendMessage(mt int, st int, rec []string, a string, m interface{}) error {
+	if(mt != MessageTypeServer && len(a) == 0){
+		return errors.New("Chat messages require an author");
+	}
+
 	//GET USER MAP
 	userMap, err := r.GetUserMap();
 	if(err != nil){ return err; }
 
 	//CONSTRUCT MESSAGE
-	theMessage := make(map[string]interface{});
-	theMessage["t"] = mt; // Message type
-	if(mt == MessageTypeServer){ theMessage["st"] = st; } // Server messages come with a sub-type
-	if(len(a) > 0){ theMessage["a"] = a; } // Message has an author
-	theMessage["m"] = m; // The message
+	theMessageWrapper := make(map[string]interface{});
+	theMessageWrapper["m"] = make(map[string]interface{}); // Room messages are labeled "m"
+	if(mt == MessageTypeServer){ theMessageWrapper["m"].(map[string]interface{})["s"] = st; } // Server messages come with a sub-type
+	if(len(a) > 0 && mt != MessageTypeServer){ theMessageWrapper["m"].(map[string]interface{})["a"] = a; } // Non-server messages have authors
+	theMessageWrapper["m"].(map[string]interface{})["m"] = m; // The message
 
 	//MARSHAL THE MESSAGE
 	jsonStr, marshErr := json.Marshal(theMessage);
