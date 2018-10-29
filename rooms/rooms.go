@@ -19,6 +19,7 @@ import (
 	"github.com/hewiefreeman/GopherGameServer/helpers"
 	"github.com/gorilla/websocket"
 	"errors"
+	"fmt"
 )
 
 //
@@ -43,7 +44,7 @@ type Room struct {
 // are not the Users themselves. If you need to get a User type from one of these, use
 // users.RoomUser() to convert a RoomUser into a User.
 type RoomUser struct {
-	name *string
+	name string
 
 	vars map[string]interface{}
 
@@ -109,6 +110,62 @@ func newRoom(p []interface{}) []interface{} {
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//   DELETE A ROOM   //////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+func (r *Room) Delete() error {
+	//CONSUME THIS CHANNEL AND SET THE ROOM'S usersMap TO nil TO MAKE SURE NO MORE USERS ENTER
+	initResponse := r.usersActionChannel.Execute(deleteRoomInit, []interface{}{r});
+	if(len(initResponse) == 0){ return errors.New("The room '"+r.name+"' does not exist") }
+
+	//KILL CHANNELS
+	r.usersActionChannel.Kill();
+	r.roomVarsActionChannel.Kill();
+
+	//DELETE ROOM
+	response := roomsActionChan.Execute(deleteRoom, []interface{}{r.name});
+	if(response[0] != nil){
+		return response[0].(error);
+	}
+	userList := response[1].(map[string]RoomUser);
+
+	//MAKE LEAVE MESSAGE
+	leaveMessage := make(map[string]interface{});
+	leaveMessage["l"] = "";
+
+	//MARSHAL THE MESSAGE
+	jsonStr, marshErr := json.Marshal(leaveMessage);
+	if(marshErr != nil){ return marshErr; }
+
+	//SEND ROOM LEAVE MESSAGE TO Users IN ROOM
+	for _, v := range userList { v.socket.WriteJSON(jsonStr); }
+
+	//
+	return nil;
+}
+
+func deleteRoomInit(p []interface{}) []interface{} {
+	room := p[0].(*Room);
+	fmt.Println("nullifying:", *((*room).usersMap));//!!TESTING
+	*((*room).usersMap) = nil;
+	return []interface{}{nil};
+}
+
+func deleteRoom(p []interface{}) []interface{} {
+	room := p[0].(*Room);
+	var userList map[string]RoomUser = nil;
+	var err error = nil;
+	if _, ok := rooms[room.name]; ok {
+		userList = *((*room).usersMap);
+		delete(rooms, room.name);
+	}else{
+		err = errors.New("The room '"+room.name+"' does not exist");
+	}
+
+	return []interface{}{err, userList};
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //   GET A ROOM   /////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -120,7 +177,9 @@ func Get(roomName string) (Room, error) {
 	var err error = nil;
 
 	response := roomsActionChan.Execute(getRoom, []interface{}{roomName});
-	if(response[1] != nil){ err = response[1].(error) }
+	if(response[1] != nil){
+		err = response[1].(error);
+	}
 
 	//
 	return response[0].(Room), err;
@@ -131,8 +190,8 @@ func getRoom(p []interface{}) []interface{} {
 	var err error = nil;
 	var room Room = Room{}
 
-	if _, ok := rooms[roomName]; ok {
-		room = *rooms[roomName];
+	if r, ok := rooms[roomName]; ok {
+		room = *r;
 	}else{
 		err = errors.New("The room '"+roomName+"' does not exist");
 	}
@@ -147,9 +206,9 @@ func getRoom(p []interface{}) []interface{} {
 
 // WARNING: This is only meant for internal Gopher Game Server mechanics. If you want a User to join a Room, use
 // *User.Join() instead. Using this will break some server mechanics and potentially cause memory leaks.
-func (r *Room) AddUser(userName *string, socket *websocket.Conn) error {
+func (r *Room) AddUser(userName string, socket *websocket.Conn) error {
 	//REJECT INCORRECT INPUT
-	if(len(*userName) == 0){
+	if(len(userName) == 0){
 		return errors.New("*Room.AddUser() requires a user name")
 	}else if(socket == nil){
 		return errors.New("*Room.AddUser() requires a user socket")
@@ -167,11 +226,12 @@ func (r *Room) AddUser(userName *string, socket *websocket.Conn) error {
 }
 
 func userJoin(p []interface{}) []interface{} {
-	userName, socket, room := p[0].(*string), p[1].(*websocket.Conn), p[2].(*Room);
-	var err error = nil;
+	userName, socket, room := p[0].(string), p[1].(*websocket.Conn), p[2].(*Room);
+
+	if(*((*room).usersMap) == nil){ return []interface{}{errors.New("The room '"+room.name+"' does not exist")} }
 
 	//CHECK IF THE ROOM IS FULL
-	if(room.maxUsers != 0 && len(*room.usersMap) == room.maxUsers){ err = errors.New("The room '"+room.name+"' is full"); }
+	if(room.maxUsers != 0 && len(*((*room).usersMap)) == room.maxUsers){ return []interface{}{errors.New("The room '"+room.name+"' is full")}; }
 
 	//CHECK IF THE ROOM IS PRIVATE, OWNER JOINS FREELY
 	if(room.private && userName != (*room).owner){
@@ -184,20 +244,20 @@ func userJoin(p []interface{}) []interface{} {
 				break;
 			}
 			if(i == len(theList)-1){
-				return []interface{}{errors.New("User '"+userName+"' is not on the invite list")}
+				return []interface{}{errors.New("User '"+(userName)+"' is not on the invite list")}
 			}
 		}
 	}
 
 	//ADD User TO ROOM
-	if _, ok := (*room.usersMap)[*userName]; ok {
-		err = errors.New("User '"+*userName+"' is already in room '"+room.name+"'");
+	if _, ok := (*((*room).usersMap))[userName]; ok {
+		return []interface{}{errors.New("User '"+userName+"' is already in room '"+room.name+"'")};
 	}else{
-		(*room.usersMap)[*userName] = RoomUser{name: userName, socket: socket, vars: make(map[string]interface{})}
+		(*((*room).usersMap))[userName] = RoomUser{name: userName, socket: socket, vars: make(map[string]interface{})}
 	}
 
 	//
-	return []interface{}{err}
+	return []interface{}{nil}
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -225,8 +285,10 @@ func userLeave(p []interface{}) []interface{} {
 	userName, room := p[0].(string), p[1].(*Room);
 	var err error = nil;
 
-	if _, ok := (*room.usersMap)[userName]; ok {
-		delete(*room.usersMap, userName);
+	if(*((*room).usersMap) == nil){ return []interface{}{errors.New("The room '"+room.name+"' does not exist")} }
+
+	if _, ok := (*((*room).usersMap))[userName]; ok {
+		delete(*((*room).usersMap), userName);
 	}else{
 		err = errors.New("User '"+userName+"' is not in room '"+room.name+"'");
 	}
@@ -352,8 +414,10 @@ func (r *Room) GetUserMap() (map[string]RoomUser, error) {
 	response := r.usersActionChannel.Execute(userMapGet, []interface{}{r});
 	if(len(response) == 0){
 		err = errors.New("Room '"+r.name+"' does not exist");
+	}else if(response[0] != nil){
+		err = response[0].(error);
 	}else{
-		userMap = response[0].(map[string]RoomUser);
+		userMap = response[1].(map[string]RoomUser);
 	}
 
 	return userMap, err;
@@ -361,8 +425,16 @@ func (r *Room) GetUserMap() (map[string]RoomUser, error) {
 
 func userMapGet(p []interface{}) []interface{} {
 	room := p[0].(*Room);
+	var err error = nil;
+	var m map[string]interface = nil;
 
-	return []interface{}{*room.usersMap};
+	if(*((*room).usersMap) == nil){
+		err = errors.New("The room '"+room.name+"' does not exist")
+	}else{
+		m = *((*room).usersMap);
+	}
+
+	return []interface{}{err, m};
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -407,7 +479,7 @@ func (r *Room) NumUsers() int {
 
 // Gets the name of the RoomUser.
 func (u *RoomUser) Name() string {
-	return *(u.name);
+	return u.name;
 }
 
 // Gets a Map of the RoomUser's variables.

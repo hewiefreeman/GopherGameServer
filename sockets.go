@@ -47,7 +47,6 @@ func clientActionListener(conn *websocket.Conn, ua *user_agent.UserAgent) {
 
 	// The User attached to this client
 	var userName string = "";
-	var roomIn rooms.Room = rooms.Room{};
 
 	for {
 		//READ INPUT BUFFER
@@ -59,7 +58,7 @@ func clientActionListener(conn *websocket.Conn, ua *user_agent.UserAgent) {
 		}
 
 		//TAKE ACTION
-		responseVal, actionErr, respond := clientActionHandler(action, &userName, &roomIn, conn, ua);
+		responseVal, actionErr, respond := clientActionHandler(action, &userName, conn, ua);
 
 		if(respond){
 			//SEND RESPONSE

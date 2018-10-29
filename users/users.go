@@ -8,10 +8,14 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-//
+// The type User represents a client who has logged into the service. A User can
+// be a guest, join/leave/create rooms, and call any client action, including your
+// custom client actions. If you are not using the built-in authentication, be aware
+// that you will need to make sure any client who has not been authenticated can't simply
+// log themselves in through the clientAPI.
 type User struct {
 	name string
-	databaseID int64
+	databaseID int
 	isGuest bool
 
 	room string
@@ -22,7 +26,6 @@ type User struct {
 }
 
 var (
-	userCount int64 = 0
 	users map[string]*User = make(map[string]*User)
 	usersActionChan *helpers.ActionChannel = helpers.NewActionChannel()
 	serverStarted bool = false;
@@ -30,20 +33,20 @@ var (
 	kickOnLogin bool = false;
 )
 
-//USER STATUS LIST
+// These represent the four statuses a User could be.
 const (
 	StatusAvailable = iota // User is available
 	StatusInGame // User is in a game
 	StatusIdle // User is idle
+	StatusOffline // User is offline
 )
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 //   LOG A USER IN   /////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
-func Login(userName string, dbID int64, isGuest bool, socket *websocket.Conn) (User, error) {
-	var err error = nil;
-
+//Logs a User in to the service.
+func Login(userName string, dbID int, isGuest bool, socket *websocket.Conn) (User, error) {
 	//REJECT INCORRECT INPUT
 	if(len(userName) == 0){
 		return User{}, errors.New("users.Login() requires a user name");
@@ -54,6 +57,8 @@ func Login(userName string, dbID int64, isGuest bool, socket *websocket.Conn) (U
 	}else if(socket == nil){
 		return User{}, errors.New("users.Login() requires a socket");
 	}
+
+	var err error = nil;
 
 	//ALWAYS SET A GUEST'S id TO -1
 	databaseID := dbID
@@ -76,14 +81,13 @@ func Login(userName string, dbID int64, isGuest bool, socket *websocket.Conn) (U
 }
 
 func loginUser(p []interface{}) []interface{} {
-	userName, dbID, isGuest, socket := p[0].(string), p[1].(int64), p[2].(bool), p[3].(*websocket.Conn);
+	userName, dbID, isGuest, socket := p[0].(string), p[1].(int), p[2].(bool), p[3].(*websocket.Conn);
 	var userRef User = User{};
 	var err error = nil;
 
 	if _, ok := users[userName]; ok {
 		err = errors.New("User '"+userName+"' is already logged in");
 	}else{
-		userCount++;
 		newUser := User{name: userName, databaseID: dbID, isGuest: isGuest, socket: socket};
 		users[userName] = &newUser;
 		userRef = *users[userName];
@@ -93,9 +97,33 @@ func loginUser(p []interface{}) []interface{} {
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////
+//   LOG A USER OUT   ////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// Logs a User out from the service.
+func (u *User) LogOut() {
+	//REMOVE USER FROM THEIR ROOM
+	if(u.room != ""){
+		room, err := rooms.Get(u.room);
+		if(err == nil){
+			room.RemoveUser(u.name);
+		}
+	}
+	//LOG USER OUT
+	usersActionChan.Execute(logUserOut, []interface{}{u.name});
+}
+
+func logUserOut(p []interface{}) []interface{} {
+	userName := p[0].(string);
+	delete(users, userName);
+	return []interface{}{};
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////
 //   GET A USER   ////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
+// Gets a User by their name.
 func Get(userName string) (User, error) {
 	var err error = nil;
 
@@ -138,7 +166,7 @@ func RoomUser(ru rooms.RoomUser) (User, error) {
 //   MAKE A USER JOIN/LEAVE A ROOM   /////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
-//
+// Makes a User join a Room.
 func (u *User) Join(r rooms.Room) error {
 	if(u.room == r.Name()){
 		return errors.New("User '"+u.name+"' is already in room '"+r.Name()+"'");
@@ -152,10 +180,18 @@ func (u *User) Join(r rooms.Room) error {
 	if(response[0] != nil){ return response[0].(error); }
 
 	//ADD USER TO DESIGNATED ROOM
-	addErr := r.AddUser(&u.name, u.socket);
-	return addErr;
+	addErr := r.AddUser(u.name, u.socket);
+	if(addErr != nil){
+		//CHANGE User's ROOM NAME BACK
+		response = usersActionChan.Execute(changeUserRoomName, []interface{}{u, ""});
+		if(response[0] != nil){ return response[0].(error); }
+	}
+
+	//
+	return nil;
 }
 
+// Makes a User leave their current room.
 func (u *User) Leave() error {
 	if(u.room != ""){
 		room, roomErr := rooms.Get(u.room);
@@ -190,25 +226,15 @@ func changeUserRoomName(p []interface{}) []interface{} {
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////
-//   LOG A USER OUT   ////////////////////////////////////////////////////////////////////////////////
+//   GET THE STATUS OF A USER   //////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
-func (u *User) LogOut() {
-	//REMOVE USER FROM THEIR ROOM
-	if(u.room != ""){
-		room, err := rooms.Get(u.room);
-		if(err == nil){
-			room.RemoveUser(u.name);
-		}
-	}
-	//LOG USER OUT
-	usersActionChan.Execute(logUserOut, []interface{}{u.name});
-}
-
-func logUserOut(p []interface{}) []interface{} {
-	userName := p[0].(string);
-	delete(users, userName);
-	return []interface{}{};
+// Gets the current status of a User by their name.
+func GetStatus(userName string) int {
+	user, err := Get(userName);
+	if(err != nil){ return StatusOffline };
+	//
+	return user.status;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -281,13 +307,21 @@ func (u *User) RevokeInvite(userName string, room Room) error {
 // Logs a User out by their name. Also used by KickDupOnLogin in ServerSettings.
 func DropUser(userName string) error {
 	if(len(userName) == 0){
-		return errors.New("users.Kick() requires a user name");
+		return errors.New("users.DropUser() requires a user name");
 	}
 	//
 	user, err := Get(userName);
 	if(err != nil){
 		return err;
 	}
+	//MAKE DROP MESSAGE
+	dropMessage := make(map[string]interface{});
+	dropMessage["k"] = "";
+	//MARSHAL THE MESSAGE
+	jsonStr, marshErr := json.Marshal(dropMessage);
+	if(marshErr != nil){ return marshErr; }
+	//SEND MESSAGE
+	user.socket.WriteJSON(jsonStr);
 	//
 	user.LogOut();
 	//
@@ -298,22 +332,27 @@ func DropUser(userName string) error {
 //   User ATTRIBUTE READERS   ////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
+// Gets the name of the User.
 func (u *User) Name() string {
 	return u.name;
 }
 
-func (u *User) DatabaseID() int64 {
+// Gets the database table id of the User.
+func (u *User) DatabaseID() int {
 	return u.databaseID;
 }
 
+// Gets the name of the Room that the User is currently in.
 func (u *User) RoomName() string {
 	return u.room;
 }
 
+// Gets the WebSocket connection of a User.
 func (u *User) Socket() *websocket.Conn {
 	return u.socket;
 }
 
+// Checks whether or not a User is a guest.
 func (u *User) IsGuest() bool {
 	return u.isGuest;
 }

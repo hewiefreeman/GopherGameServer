@@ -14,7 +14,7 @@ import (
 
 // Core server settings for the Gopher Game Server
 type ServerSettings struct {
-	ServerName string // The server's name. Used for the server's ownership of private Rooms. (TO DO)
+	ServerName string // The server's name. Used for the server's ownership of private Rooms.
 
 	HostName string // Server's host name. Use 'https://' for TLS connections. (ex: 'https://example.com')
 	HostAlias string // Server's host alias name. Use 'https://' for TLS connections. (ex: 'https://www.example.com')
