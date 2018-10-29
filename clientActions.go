@@ -20,7 +20,7 @@ const (
 	actionClientChatMessage = "c"
 )
 
-func clientActionHandler(action clientAction, userName *string, conn *websocket.Conn, ua *user_agent.UserAgent) (interface{}, error, bool) {
+func clientActionHandler(action clientAction, userName *string, conn *websocket.Conn, ua *user_agent.UserAgent) (interface{}, bool, error) {
 	switch _action := action.A; _action {
 		case actionClientLogin:
 			return clientActionLogin(action.P, userName, conn);
@@ -41,7 +41,7 @@ func clientActionHandler(action clientAction, userName *string, conn *websocket.
 		case actionClientChatMessage:
 			return clientActionChatMessage(action.P);
 		default:
-			return nil, errors.New("Unrecognized client action"), true;
+			return nil, true, errors.New("Unrecognized client action");
 	}
 }
 
@@ -49,76 +49,76 @@ func clientActionHandler(action clientAction, userName *string, conn *websocket.
 //   BUILT-IN CLIENT ACTIONS   ///////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
-func clientActionLogin(params interface{}, userName *string, conn *websocket.Conn) (interface{}, error, bool) {
-	if(*userName != ""){ return nil, errors.New("Already logged in as '"+(*userName)+"'"), true; }
+func clientActionLogin(params interface{}, userName *string, conn *websocket.Conn) (interface{}, bool, error) {
+	if(*userName != ""){ return nil, true, errors.New("Already logged in as '"+(*userName)+"'"); }
 	//MAKE A MAP FROM PARAMS
 	pMap := params.(map[string]interface{});
 	//LOG IN
 	user, err := users.Login(pMap["n"].(string), -1, pMap["g"].(bool), conn);
-	if(err != nil){ return nil, err, true }
+	if(err != nil){ return nil, true, err; }
 	//CHANGE SOCKET'S userName
 	*userName = user.Name();
 
 	//
-	return user.Name(), nil, true;
+	return user.Name(), true, nil;
 }
 
-func clientActionLogout(userName *string) (interface{}, error, bool) {
-	if(*userName == ""){ return nil, errors.New("Already logged out"), true; }
+func clientActionLogout(userName *string) (interface{}, bool, error) {
+	if(*userName == ""){ return nil, true, errors.New("Already logged out"); }
 	//GET User
 	user, err := users.Get(*userName);
-	if(err != nil){ return nil, err, true }
+	if(err != nil){ return nil, true, err; }
 	//LOG User OUT AND RESET SOCKET'S userName
 	user.Logout();
 	*userName = "";
 
 	//
-	return nil, nil, true;
+	return nil, true, nil;
 }
 
-func clientActionJoinRoom(params interface{}, userName *string) (interface{}, error, bool) {
-	if(*userName == ""){ return nil, errors.New("Client not logged in"), true; }
+func clientActionJoinRoom(params interface{}, userName *string) (interface{}, bool, error) {
+	if(*userName == ""){ return nil, true, errors.New("Client not logged in"); }
 	//GET User
 	user, userErr := users.Get(*userName);
-	if(userErr != nil){ return nil, userErr, true; }
+	if(userErr != nil){ return nil, true, userErr; }
 	//GET ROOM NAME FROM PARAMS
 	roomName := params.(string);
 	//GET ROOM
 	room, roomErr := rooms.Get(roomName);
-	if(roomErr != nil){ return nil, roomErr, true; }
+	if(roomErr != nil){ return nil, true, roomErr; }
 	//MAKE User JOIN THE Room
 	joinErr := user.Join(room);
-	if(joinErr != nil){ return nil, joinErr, true; }
+	if(joinErr != nil){ return nil, true, joinErr; }
 
 	//
-	return roomName, nil, true;
+	return roomName, true, nil;
 }
 
-func clientActionLeaveRoom(userName *string) (interface{}, error, bool) {
-	if(*userName == ""){ return nil, errors.New("Client not logged in"), true; }
+func clientActionLeaveRoom(userName *string) (interface{}, bool, error) {
+	if(*userName == ""){ return nil, true, errors.New("Client not logged in"); }
 	//GET User
 	user, userErr := users.Get(*userName);
 	if(userErr != nil){
-		return nil, userErr, true;
+		return nil, true, userErr;
 	}else if(user.RoomName() == ""){
-		return nil, errors.New("User is not in a room"), true;
+		return nil, true, errors.New("User is not in a room");
 	}
 	//MAKE USER LEAVE ROOM
 	leaveErr := user.Leave();
-	if(leaveErr != nil){ return nil, leaveErr, true; }
+	if(leaveErr != nil){ return nil, true, leaveErr; }
 
 	//
-	return roomName, nil, true;
+	return roomName, true, nil;
 }
 
-func clientActionCreateRoom(params interface{}, userName *string) (interface{}, error, bool) {
-	if(*userName == ""){ return nil, errors.New("Client not logged in"), true; }
+func clientActionCreateRoom(params interface{}, userName *string) (interface{}, bool, error) {
+	if(*userName == ""){ return nil, true, errors.New("Client not logged in"); }
 	//GET User
 	user, userErr := users.Get(*userName);
 	if(userErr != nil){
-		return nil, userErr, true;
+		return nil, true, userErr;
 	}else if(user.RoomName() != ""){
-		return nil, errors.New("User is already in a room"), true;
+		return nil, true, errors.New("User is already in a room");
 	}
 	//GET PARAMS
 	p := params.(map[string]interface{});
@@ -128,84 +128,84 @@ func clientActionCreateRoom(params interface{}, userName *string) (interface{}, 
 	maxUsers := p["m"].(int);
 	//MAKE THE Room
 	room, roomErr := rooms.New(roomName, roomType, private, maxUsers, *userName);
-	if(roomErr != nil){ return nil, roomErr, true; }
+	if(roomErr != nil){ return nil, true, roomErr; }
 	//ADD THE User TO THE ROOM
 	joinErr := user.Join(room);
-	if(joinErr != nil){ return nil, joinErr, true; }
+	if(joinErr != nil){ return nil, true, joinErr; }
 
 	//
-	return roomName, nil, true;
+	return roomName, true, nil;
 }
 
-func clientActionDeleteRoom(params interface{}, userName *string) (interface{}, error, bool) {
-	if(*userName == ""){ return nil, errors.New("Client not logged in"), true; }
+func clientActionDeleteRoom(params interface{}, userName *string) (interface{}, bool, error) {
+	if(*userName == ""){ return nil, true, errors.New("Client not logged in"); }
 	roomName := params.(string);
 	//GET ROOM
 	room, roomErr := rooms.Get(roomName);
 	if(roomErr != nil){
-		return nil, roomErr, true;
+		return nil, true, roomErr;
 	}else if(room.Owner() != *userName){
-		return nil, errors.New("User is not the owner of room '"+roomName+"'"), true;
+		return nil, true, errors.New("User is not the owner of room '"+roomName+"'");
 	}
 	//DELETE ROOM
 	deleteErr := room.Delete();
-	if(deleteErr != nil){ return nil, deleteErr, true; }
+	if(deleteErr != nil){ return nil, true, deleteErr; }
 	//
-	return nil, nil, true;
+	return nil, true, nil;
 }
 
-func clientActionRoomInvite(params interface{}, userName *string) (interface{}, error, bool) {
-	if(*userName == ""){ return nil, errors.New("Client not logged in"), true; }
+func clientActionRoomInvite(params interface{}, userName *string) (interface{}, bool, error) {
+	if(*userName == ""){ return nil, true, errors.New("Client not logged in"); }
 	//GET User
 	user, userErr := users.Get(*userName);
 	if(userErr != nil){
-		return nil, userErr, true;
+		return nil, true, userErr;
 	}else if(user.RoomName() == ""){
-		return nil, errors.New("User is not in a room"), true;
+		return nil, true, errors.New("User is not in a room");
 	}
 	//GET ROOM
 	room, roomErr := rooms.Get(user.RoomName());
-	if(roomErr != nil){ return nil, roomErr, true; }
+	if(roomErr != nil){ return nil, true, roomErr; }
 	//GET PARAMS
 	userName := params.(string);
 	//INVITE
 	invErr := user.Invite(userName, room);
-	if(invErr != nil){ return nil, invErr, true; }
+	if(invErr != nil){ return nil, true, invErr; }
 	//
-	return nil, nil, true;
+	return nil, true, nil;
 }
 
-func clientActionRevokeInvite(params interface{}, userName *string) (interface{}, error, bool) {
-	if(*userName == ""){ return nil, errors.New("Client not logged in"), true; }
+func clientActionRevokeInvite(params interface{}, userName *string) (interface{}, bool, error) {
+	if(*userName == ""){ return nil, true, errors.New("Client not logged in"); }
 	//GET User
 	user, userErr := users.Get(*userName);
 	if(userErr != nil){
-		return nil, userErr, true;
+		return nil, true, userErr;
 	}else if(user.RoomName() == ""){
-		return nil, errors.New("User is not in a room"), true;
+		return nil, true, errors.New("User is not in a room");
 	}
 	//GET ROOM
 	room, roomErr := rooms.Get(user.RoomName());
-	if(roomErr != nil){ return nil, roomErr, true; }
+	if(roomErr != nil){ return nil, true, roomErr; }
 	//GET PARAMS
 	userName := params.(string);
 	//REVOKE INVITE
 	revokeErr := user.RevokeInvite(userName, room);
-	if(revokeErr != nil){ return nil, revokeErr, true; }
+	if(revokeErr != nil){ return nil, true, revokeErr; }
 	//
-	return nil, nil, true;
+	return nil, true, nil;
 }
 
-func clientActionChatMessage(params interface{}, userName *string) (interface{}, error, bool) {
-	if(*userName == ""){ return nil, errors.New("Client not logged in"), true; }
+func clientActionChatMessage(params interface{}, userName *string) (interface{}, bool, error) {
+	if(*userName == ""){ return nil, false, errors.New("Client not logged in"); }
 	//GET User
 	user, userErr := users.Get(*userName);
-	if(userErr != nil || user.RoomName() == ""){ return nil, nil, false; }
+	if(userErr != nil || user.RoomName() == ""){ return nil, false, nil; }
 	//GET ROOM
 	room, roomErr := rooms.Get(user.RoomName());
-	if(roomErr != nil){ return nil, nil, false; }
+	if(roomErr != nil){ return nil, false, nil; }
 	//SEND CHAT MESSAGE
 	room.ChatMessage(*userName, params);
 	//
-	return nil, nil, false;
+	return nil, false, nil;
 }

@@ -46,7 +46,7 @@ func clientActionListener(conn *websocket.Conn, ua *user_agent.UserAgent) {
 	var action clientAction;
 
 	// The User attached to this client
-	var userName string = "";
+	var userName string;
 
 	for {
 		//READ INPUT BUFFER
