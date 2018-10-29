@@ -6,6 +6,7 @@ package gopher
 
 import (
 	"github.com/hewiefreeman/GopherGameServer/rooms"
+	"github.com/hewiefreeman/GopherGameServer/users"
 	"math/rand"
 	"time"
 	"net/http"
@@ -30,7 +31,7 @@ type ServerSettings struct {
 	MultiConnect bool // Enabled multiple connections under the same User. When enabled, will override KickDupOnLogin's functionality. (TO DO)
 	KickDupOnLogin bool // When enabled, a logged in User will be disconnected from service when another User logs in with the same name.
 
-	UsersRoomControl bool // Enables Users to create Rooms, invite/uninvite(AKA revoke) other Users to their owned private rooms, and destroy their owned rooms. (TO DO)
+	UserRoomControl bool // Enables Users to create Rooms, invite/uninvite(AKA revoke) other Users to their owned private rooms, and destroy their owned rooms. (TO DO)
 	RoomDeleteOnLeave bool // When enabled, Rooms created by a User will be deleted when the owner leaves. (TO DO)
 
 	EnableSqlAuth bool // Enables the built-in SQL User authentication. (TO DO)
@@ -61,7 +62,7 @@ func Start(s *ServerSettings){
 	}else{
 		//DEFAULT localhost SETTINGS
 		settings = &ServerSettings{
-					ServerName: "!server!"
+					ServerName: "!server!",
 
 					HostName: "localhost",
 					HostAlias: "localhost",
@@ -76,6 +77,9 @@ func Start(s *ServerSettings){
 
 					MultiConnect: false,
 					KickDupOnLogin: false,
+
+					UserRoomControl: false,
+					RoomDeleteOnLeave: false,
 
 					EnableSqlAuth: false,
 					SqlIP: "localhost",

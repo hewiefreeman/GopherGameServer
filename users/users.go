@@ -6,6 +6,7 @@ import (
 	"github.com/hewiefreeman/GopherGameServer/rooms"
 	"github.com/hewiefreeman/GopherGameServer/helpers"
 	"github.com/gorilla/websocket"
+	"encoding/json"
 )
 
 // The type User represents a client who has logged into the service. A User can
@@ -243,13 +244,13 @@ func GetStatus(userName string) int {
 
 // Sends an invite to the specified user by name, provided they are online, the Room is private, and this User
 // is the owner of the Room.
-func (u *User) Invite(userName string, room Room) error {
+func (u *User) Invite(userName string, room rooms.Room) error {
 	if(len(userName) == 0){
 		return errors.New("*User.Invite() requires a userName");
 	}else if(!room.IsPrivate()){
 		return errors.New("The room '"+room.Name()+"' is not private");
 	}else if(room.Owner() != u.name){
-		return errors.New("The user '"+u.name+"' is not the owner of the room '"+r.Name()+"'");
+		return errors.New("The user '"+u.name+"' is not the owner of the room '"+room.Name()+"'");
 	}
 
 	//GET THE USER
@@ -283,13 +284,13 @@ func (u *User) Invite(userName string, room Room) error {
 
 // Revokes an invite to the specified user by name, provided they are online, the Room is private, and this User
 // is the owner of the Room.
-func (u *User) RevokeInvite(userName string, room Room) error {
+func (u *User) RevokeInvite(userName string, room rooms.Room) error {
 	if(len(userName) == 0){
 		return errors.New("*User.RevokeInvite() requires a userName");
 	}else if(!room.IsPrivate()){
 		return errors.New("The room '"+room.Name()+"' is not private");
 	}else if(room.Owner() != u.name){
-		return errors.New("The user '"+u.name+"' is not the owner of the room '"+r.Name()+"'");
+		return errors.New("The user '"+u.name+"' is not the owner of the room '"+room.Name()+"'");
 	}
 
 	//REMOVE FROM INVITE LIST

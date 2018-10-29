@@ -97,7 +97,7 @@ func (r *Room) sendMessage(mt int, st int, rec []string, a string, m interface{}
 	theMessageWrapper["m"].(map[string]interface{})["m"] = m; // The message
 
 	//MARSHAL THE MESSAGE
-	jsonStr, marshErr := json.Marshal(theMessage);
+	jsonStr, marshErr := json.Marshal(theMessageWrapper);
 	if(marshErr != nil){ return marshErr; }
 
 	//SEND MESSAGE TO USERS

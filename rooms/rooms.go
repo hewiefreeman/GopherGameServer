@@ -20,6 +20,7 @@ import (
 	"github.com/gorilla/websocket"
 	"errors"
 	"fmt"
+	"encoding/json"
 )
 
 //
@@ -375,7 +376,7 @@ func uninviteUser(p []interface{}) []interface{} {
 			break;
 		}
 		if(i == len(theList)-1){
-			return errors.New("User '"+userName+"' is not on the invite list");
+			return []interface{}{errors.New("User '"+userName+"' is not on the invite list")};
 		}
 	}
 	//
@@ -426,7 +427,7 @@ func (r *Room) GetUserMap() (map[string]RoomUser, error) {
 func userMapGet(p []interface{}) []interface{} {
 	room := p[0].(*Room);
 	var err error = nil;
-	var m map[string]interface = nil;
+	var m map[string]RoomUser = nil;
 
 	if(*((*room).usersMap) == nil){
 		err = errors.New("The room '"+room.name+"' does not exist")

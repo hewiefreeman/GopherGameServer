@@ -39,7 +39,7 @@ func clientActionHandler(action clientAction, userName *string, conn *websocket.
 		case actionClientRevokeInvite:
 			return clientActionRevokeInvite(action.P, userName);
 		case actionClientChatMessage:
-			return clientActionChatMessage(action.P);
+			return clientActionChatMessage(action.P, userName);
 		default:
 			return nil, true, errors.New("Unrecognized client action");
 	}
@@ -69,7 +69,7 @@ func clientActionLogout(userName *string) (interface{}, bool, error) {
 	user, err := users.Get(*userName);
 	if(err != nil){ return nil, true, err; }
 	//LOG User OUT AND RESET SOCKET'S userName
-	user.Logout();
+	user.LogOut();
 	*userName = "";
 
 	//
@@ -108,7 +108,7 @@ func clientActionLeaveRoom(userName *string) (interface{}, bool, error) {
 	if(leaveErr != nil){ return nil, true, leaveErr; }
 
 	//
-	return roomName, true, nil;
+	return nil, true, nil;
 }
 
 func clientActionCreateRoom(params interface{}, userName *string) (interface{}, bool, error) {
@@ -167,9 +167,9 @@ func clientActionRoomInvite(params interface{}, userName *string) (interface{}, 
 	room, roomErr := rooms.Get(user.RoomName());
 	if(roomErr != nil){ return nil, true, roomErr; }
 	//GET PARAMS
-	userName := params.(string);
+	name := params.(string);
 	//INVITE
-	invErr := user.Invite(userName, room);
+	invErr := user.Invite(name, room);
 	if(invErr != nil){ return nil, true, invErr; }
 	//
 	return nil, true, nil;
@@ -188,9 +188,9 @@ func clientActionRevokeInvite(params interface{}, userName *string) (interface{}
 	room, roomErr := rooms.Get(user.RoomName());
 	if(roomErr != nil){ return nil, true, roomErr; }
 	//GET PARAMS
-	userName := params.(string);
+	name := params.(string);
 	//REVOKE INVITE
-	revokeErr := user.RevokeInvite(userName, room);
+	revokeErr := user.RevokeInvite(name, room);
 	if(revokeErr != nil){ return nil, true, revokeErr; }
 	//
 	return nil, true, nil;

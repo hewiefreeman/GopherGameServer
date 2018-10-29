@@ -30,7 +30,7 @@ type roomTypeCallbacks struct {
 func NewRoomType(name string, userEnterCallback func(Room,string), userLeaveCallback func(Room,string)) error {
 	if(len(name) == 0){
 		return errors.New("rooms.RoomType() requires a name");
-	}else if(ServerStarted){
+	}else if(serverStarted){
 		return errors.New("Cannot add a Room type once the server has started");
 	}
 	rtc := roomTypeCallbacks{

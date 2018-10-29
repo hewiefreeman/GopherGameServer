@@ -1,7 +1,6 @@
 package users
 
 import (
-	"github.com/hewiefreeman/GopherGameServer/rooms"
 	"encoding/json"
 )
 

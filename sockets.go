@@ -58,11 +58,11 @@ func clientActionListener(conn *websocket.Conn, ua *user_agent.UserAgent) {
 		}
 
 		//TAKE ACTION
-		responseVal, actionErr, respond := clientActionHandler(action, &userName, conn, ua);
+		responseVal, respond, actionErr := clientActionHandler(action, &userName, conn, ua);
 
 		if(respond){
 			//SEND RESPONSE
-			if err = conn.WriteJSON(makeClientActionResponse(responseVal, actionErr)); err != nil {
+			if writeErr := conn.WriteJSON(makeClientActionResponse(action, responseVal, actionErr)); writeErr != nil {
 				//DISCONNECT USER
 				sockedDropped(userName);
 				return;
