@@ -57,19 +57,6 @@ var (
 	serverName string = "";
 )
 
-//SEVER START-UP FUNCTIONS
-func SetServerStarted(val bool){
-	if(!serverStarted){
-		serverStarted = val;
-	}
-}
-
-func SettingsSet(name string){
-	if(!serverStarted){
-		serverName = name;
-	}
-}
-
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //   MAKE A NEW ROOM   ////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -80,6 +67,7 @@ func SettingsSet(name string){
 //  - rType (string): Room type name
 //  - isPrivate (bool): Indicates if the room is private or not
 //  - maxUsers (int): Maximum User capacity (Note: 0 means no limit)
+//  - owner (string): The owner of the room. If provided a blank string, will set the owner to the ServerName from ServerSettings
 func New(name string, rType string, isPrivate bool, maxUsers int, owner string) (Room, error) {
 	//REJECT INCORRECT INPUT
 	if(len(name) == 0){
@@ -425,4 +413,22 @@ func (u *RoomUser) Name() string {
 // Gets a Map of the RoomUser's variables.
 func (u *RoomUser) Vars() map[string]interface{} {
 	return u.vars;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//   SERVER STARTUP FUNCTIONS   ///////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// For Gopher Game Server internal mechanics.
+func SetServerStarted(val bool){
+	if(!serverStarted){
+		serverStarted = val;
+	}
+}
+
+// For Gopher Game Server internal mechanics.
+func SettingsSet(name string){
+	if(!serverStarted){
+		serverName = name;
+	}
 }

@@ -37,21 +37,6 @@ const (
 	StatusIdle // User is idle
 )
 
-//SEVER START-UP FUNCTIONS
-func SetServerStarted(val bool){
-	if(!serverStarted){
-		serverStarted = val;
-	}
-}
-
-func SettingsSet(kickDups bool, name string){
-	if(!serverStarted){
-		kickOnLogin = kickDups;
-		serverName = name;
-		rooms.SettingsSet(name);
-	}
-}
-
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 //   LOG A USER IN   /////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -331,4 +316,24 @@ func (u *User) Socket() *websocket.Conn {
 
 func (u *User) IsGuest() bool {
 	return u.isGuest;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+//   SERVER STARTUP FUNCTIONS   //////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// For Gopher Game Server internal mechanics only. NOT SAFE.
+func SetServerStarted(val bool){
+	if(!serverStarted){
+		serverStarted = val;
+	}
+}
+
+// For Gopher Game Server internal mechanics only. NOT SAFE.
+func SettingsSet(kickDups bool, name string){
+	if(!serverStarted){
+		kickOnLogin = kickDups;
+		serverName = name;
+		rooms.SettingsSet(name);
+	}
 }
