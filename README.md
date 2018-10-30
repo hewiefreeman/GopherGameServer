@@ -16,11 +16,11 @@ Gopher uses WebSockets and JSON to pass messages between the clients and the ser
 The Java, C++, and C (possibly more with some help) client APIs will be made after completing version 1.0 and the JavaScript client API.
 
 # Installing
-First install the server:
+Installing the server:
      
     go get github.com/hewiefreeman/GopherGameServer
      
-Then install the dependencies:
+Installing the dependencies:
      
     go get github.com/gorilla/websocket
     go get github.com/mssola/user_agent
