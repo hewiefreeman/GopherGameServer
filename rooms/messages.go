@@ -22,13 +22,13 @@ const (
 //   CHAT MESSAGES   //////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// Sends a chat message to the Room.
+// Sends a chat message to all Users in the Room.
 func (r *Room) ChatMessage(author string, message interface{}) error {
 	//REJECT INCORRECT INPUT
 	if(len(author) == 0){
-		return errors.New("*Room.ChatMessage() requires an author")
+		return errors.New("*Room.ChatMessage() requires an author");
 	}else if(message == nil){
-		return errors.New("*Room.ChatMessage() requires a message")
+		return errors.New("*Room.ChatMessage() requires a message");
 	}
 
 	return r.sendMessage(MessageTypeChat, 0, nil, author, message);
@@ -38,9 +38,10 @@ func (r *Room) ChatMessage(author string, message interface{}) error {
 //   SERVER MESSAGES   ////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// Sends a server message to the Room.
+// Sends a server message to the specified recipients in the Room. The parameter recipients can be nil or an empty slice
+// of string. In which case, the server message will be sent to all Users in the Room.
 func (r *Room) ServerMessage(message interface{}, messageType int, recipients []string) error {
-	if(message == nil){ return errors.New("*Room.ServerMessage() requires a message") }
+	if(message == nil){ return errors.New("*Room.ServerMessage() requires a message"); }
 
 	return r.sendMessage(MessageTypeServer, messageType, recipients, "", message);
 }
@@ -49,7 +50,8 @@ func (r *Room) ServerMessage(message interface{}, messageType int, recipients []
 //   DATA MESSAGES   //////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// Sends a data message to the Room.
+// Sends a data message to the specified recipients in the Room. The parameter recipients can be nil or an empty slice
+// of string. In which case, the data message will be sent to all Users in the Room.
 func (r *Room) DataMessage(message interface{}, recipients []string) error {
 	//GET USER MAP
 	userMap, err := r.GetUserMap();

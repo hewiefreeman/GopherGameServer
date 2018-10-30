@@ -207,7 +207,7 @@ func getRoom(p []interface{}) []interface{} {
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // WARNING: This is only meant for internal Gopher Game Server mechanics. If you want a User to join a Room, use
-// *User.Join() instead. Using this will break some server mechanics and potentially cause memory leaks.
+// *User.Join() instead. Using this will break some server mechanics and potentially cause errors and/or memory leaks.
 func (r *Room) AddUser(userName string, socket *websocket.Conn) error {
 	//REJECT INCORRECT INPUT
 	if(len(userName) == 0){
@@ -267,7 +267,7 @@ func userJoin(p []interface{}) []interface{} {
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // WARNING: This is only meant for internal Gopher Game Server mechanics. If you want a User to leave a Room, use
-// *User.Leave() instead. Using this will break some server mechanics and potentially cause memory leaks.
+// *User.Leave() instead. Using this will break some server mechanics and potentially cause errors and/or memory leaks.
 func (r *Room) RemoveUser(userName string) error {
 	//REJECT INCORRECT INPUT
 	if(len(userName) == 0){ return errors.New("*Room.RemoveUser() requires a user name") }

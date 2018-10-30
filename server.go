@@ -7,6 +7,7 @@ package gopher
 import (
 	"github.com/hewiefreeman/GopherGameServer/rooms"
 	"github.com/hewiefreeman/GopherGameServer/users"
+	"github.com/hewiefreeman/GopherGameServer/actions"
 	"math/rand"
 	"time"
 	"net/http"
@@ -14,7 +15,6 @@ import (
 )
 
 /////////// TO DOs:
-///////////    - Custom client actions
 ///////////    - Room Types & (optional) callbacks & (optional) User enter/exit broadcasts
 ///////////    - Voice chat
 ///////////    - SQL Authorization
@@ -113,6 +113,7 @@ func Start(s *ServerSettings){
 	//NOTIFY PACKAGES OF SERVER START
 	users.SetServerStarted(true);
 	rooms.SetServerStarted(true);
+	actions.SetServerStarted(true);
 
 	//START HTTP/SOCKET LISTENER
 	if(settings.TLS){

@@ -3,6 +3,7 @@ package gopher
 import (
 	"github.com/hewiefreeman/GopherGameServer/users"
 	"github.com/hewiefreeman/GopherGameServer/rooms"
+	"github.com/hewiefreeman/GopherGameServer/actions"
 	"github.com/mssola/user_agent"
 	"github.com/gorilla/websocket"
 	"errors"
@@ -18,6 +19,7 @@ const (
 	actionClientRoomInvite = "i"
 	actionClientRevokeInvite = "ri"
 	actionClientChatMessage = "c"
+	actionClientCustomAction = "a"
 )
 
 func clientActionHandler(action clientAction, userName *string, conn *websocket.Conn, ua *user_agent.UserAgent) (interface{}, bool, error) {
@@ -40,6 +42,8 @@ func clientActionHandler(action clientAction, userName *string, conn *websocket.
 			return clientActionRevokeInvite(action.P, userName);
 		case actionClientChatMessage:
 			return clientActionChatMessage(action.P, userName);
+		case actionClientCustomAction:
+			return clientCustomAction(action.P, userName, conn);
 		default:
 			return nil, true, errors.New("Unrecognized client action");
 	}
@@ -223,5 +227,13 @@ func clientActionChatMessage(params interface{}, userName *string) (interface{},
 	//SEND CHAT MESSAGE
 	room.ChatMessage(*userName, params);
 	//
+	return nil, false, nil;
+}
+
+func clientCustomAction(params interface{}, userName *string, conn *websocket.Conn) (interface{}, bool, error) {
+	p := params.(map[string]interface{});
+	action := p["a"].(string);
+	data := p["d"];
+	actions.HandleCustomClientAction(action, data, *userName, conn);
 	return nil, false, nil;
 }
