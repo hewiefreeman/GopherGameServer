@@ -4,6 +4,7 @@ package actions
 import (
 	"github.com/gorilla/websocket"
 	"errors"
+	"encoding/json"
 )
 
 // A CustomClientAction is an action that you can handle on the server from
@@ -36,7 +37,7 @@ var (
 // of these when making a new CustomClientAction, or it will not work. If a client tries to send a type of data that doesnt
 // match the type specified for that action, the CustomClientAction will send an error back to the client and skip
 // executing your callback function.
-const {
+const (
 	DataTypeBool = iota // Boolean data type
 	DataTypeInt // int, int32, and int64 data types
 	DataTypeFloat // float32 and float64 data types
@@ -44,7 +45,7 @@ const {
 	DataTypeArray // []interface{} data type
 	DataTypeMap // map[string]interface{} data type
 	DataTypeNil // nil data type
-}
+)
 
 // Creates a new CustomClientAction with the cooresponding parameters:
 //  - actionType (string): The type of action
@@ -64,6 +65,7 @@ func New(actionType string, dataType int, callback func(interface{},Client)) err
 	customClientActions[actionType] = CustomClientAction{
 									dataType: dataType,
 									callback: callback };
+	return nil;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -90,7 +92,7 @@ func HandleCustomClientAction(action string, data interface{}, userName string, 
 
 //
 func typesMatch(data interface{}, theType int) bool {
-	switch v := data.(type){
+	switch data.(type){
 		case bool:
 			if(theType == DataTypeBool){ return true; }
 
@@ -116,10 +118,10 @@ func typesMatch(data interface{}, theType int) bool {
 			if(theType == DataTypeArray){ return true; }
 
 		case map[string]interface{}:
-			if(theType == DataTypeMap{ return true; }
+			if(theType == DataTypeMap){ return true; }
 
 		case nil:
-			if(theType == DataTypeNil{ return true; }
+			if(theType == DataTypeNil){ return true; }
 	}
 	//
 	return false;
@@ -153,7 +155,7 @@ func (c *Client) Respond(response interface{}, err error){
 
 	//MARSHAL THE MESSAGE
 	jsonStr, marshErr := json.Marshal(r);
-	if(marshErr != nil){ return marshErr; }
+	if(marshErr != nil){ return; }
 
 	//SEND MESSAGE TO CLIENT
 	(*c).socket.WriteJSON(jsonStr);

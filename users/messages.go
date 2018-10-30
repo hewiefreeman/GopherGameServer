@@ -44,4 +44,7 @@ func (u *User) DataMessage(data interface{}) error {
 
 	//SEND MESSAGE TO USERS
 	u.socket.WriteJSON(jsonStr);
+
+	//
+	return nil;
 }
