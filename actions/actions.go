@@ -48,8 +48,11 @@ const (
 )
 
 // Creates a new CustomClientAction with the cooresponding parameters:
+//
 // - actionType (string): The type of action
+//
 // - (*)callback (func(interface{},Client)): The function that will be executed concurrently when a client calls this actionType
+//
 // - dataType (int): The type of data this action accepts. Options are DataTypeBool, DataTypeInt, DataTypeFloat, DataTypeString, DataTypeArray, DataTypeMap, and DataTypeNil
 //
 // (*)Callback function format:
@@ -59,6 +62,7 @@ const (
 //     }
 //
 // - actionData: The data the client sent along with the action
+//
 // - client: A Client object representing the client that sent the action
 //
 // Note: This function can only be called BEFORE starting the server.

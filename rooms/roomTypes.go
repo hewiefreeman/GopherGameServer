@@ -33,10 +33,14 @@ type RoomType struct {
 // has the same parameter types as shown in the function.
 //
 // The callbacks work as such:
+//
 //  1) createCallback is called when that type of Room is created. The only parameter is a Room that is the created Room.
+//
 //  2) deleteCallback is called when that type of Room is deleted. The only parameter is a Room that is the deleted Room.
+//
 //  3) userEnterCallback is called when a User enters a Room of that type. The Room parameter is the Room the user entered, and
 // the string is the name of the user entering.
+//
 //  4) userLeaveCallback is called when a User leaves a Room of that type. The Room parameter is the Room the user left, and
 // the string is the name of the user leaving.
 //
