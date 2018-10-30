@@ -181,7 +181,7 @@ func (u *User) Join(r rooms.Room) error {
 	if(response[0] != nil){ return response[0].(error); }
 
 	//ADD USER TO DESIGNATED ROOM
-	addErr := r.AddUser(u.name, u.socket);
+	addErr := r.AddUser(u.name, u.isGuest, u.socket);
 	if(addErr != nil){
 		//CHANGE User's ROOM NAME BACK
 		response = usersActionChan.Execute(changeUserRoomName, []interface{}{u, ""});

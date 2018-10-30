@@ -50,6 +50,18 @@ func clientActionHandler(action clientAction, userName *string, conn *websocket.
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////
+//   CUSTOM CLIENT ACTIONS   /////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+
+func clientCustomAction(params interface{}, userName *string, conn *websocket.Conn) (interface{}, bool, error) {
+	p := params.(map[string]interface{});
+	action := p["a"].(string);
+	data := p["d"];
+	actions.HandleCustomClientAction(action, data, *userName, conn);
+	return nil, false, nil;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////
 //   BUILT-IN CLIENT ACTIONS   ///////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -121,6 +133,18 @@ func clientActionCreateRoom(params interface{}, userName *string) (interface{}, 
 	}else if(*userName == ""){
 		return nil, true, errors.New("Client not logged in");
 	}
+	//GET PARAMS
+	p := params.(map[string]interface{});
+	roomName := p["n"].(string);
+	roomType := p["t"].(string);
+	private := p["p"].(bool);
+	maxUsers := p["m"].(int);
+	//
+	if rType, ok := rooms.GetRoomTypes()[roomType]; !ok {
+		return nil, true, errors.New("Invalid room type");
+	}else if(rType.ServerOnly()){
+		return nil, true, errors.New("Only the server can manipulate that type of room");
+	}
 	//GET User
 	user, userErr := users.Get(*userName);
 	if(userErr != nil){
@@ -128,12 +152,6 @@ func clientActionCreateRoom(params interface{}, userName *string) (interface{}, 
 	}else if(user.RoomName() != ""){
 		return nil, true, errors.New("User is already in a room");
 	}
-	//GET PARAMS
-	p := params.(map[string]interface{});
-	roomName := p["n"].(string);
-	roomType := p["t"].(string);
-	private := p["p"].(bool);
-	maxUsers := p["m"].(int);
 	//MAKE THE Room
 	room, roomErr := rooms.New(roomName, roomType, private, maxUsers, *userName);
 	if(roomErr != nil){ return nil, true, roomErr; }
@@ -159,6 +177,11 @@ func clientActionDeleteRoom(params interface{}, userName *string) (interface{}, 
 	}else if(room.Owner() != *userName){
 		return nil, true, errors.New("User is not the owner of room '"+roomName+"'");
 	}
+	//
+	rType := rooms.GetRoomTypes()[room.Type()];
+	if(rType.ServerOnly()){
+		return nil, true, errors.New("Only the server can manipulate that type of room");
+	}
 	//DELETE ROOM
 	deleteErr := room.Delete();
 	if(deleteErr != nil){ return nil, true, deleteErr; }
@@ -182,6 +205,11 @@ func clientActionRoomInvite(params interface{}, userName *string) (interface{}, 
 	//GET ROOM
 	room, roomErr := rooms.Get(user.RoomName());
 	if(roomErr != nil){ return nil, true, roomErr; }
+	//
+	rType := rooms.GetRoomTypes()[room.Type()];
+	if(rType.ServerOnly()){
+		return nil, true, errors.New("Only the server can manipulate that type of room");
+	}
 	//GET PARAMS
 	name := params.(string);
 	//INVITE
@@ -207,6 +235,11 @@ func clientActionRevokeInvite(params interface{}, userName *string) (interface{}
 	//GET ROOM
 	room, roomErr := rooms.Get(user.RoomName());
 	if(roomErr != nil){ return nil, true, roomErr; }
+	//
+	rType := rooms.GetRoomTypes()[room.Type()];
+	if(rType.ServerOnly()){
+		return nil, true, errors.New("Only the server can manipulate that type of room");
+	}
 	//GET PARAMS
 	name := params.(string);
 	//REVOKE INVITE
@@ -227,13 +260,5 @@ func clientActionChatMessage(params interface{}, userName *string) (interface{},
 	//SEND CHAT MESSAGE
 	room.ChatMessage(*userName, params);
 	//
-	return nil, false, nil;
-}
-
-func clientCustomAction(params interface{}, userName *string, conn *websocket.Conn) (interface{}, bool, error) {
-	p := params.(map[string]interface{});
-	action := p["a"].(string);
-	data := p["d"];
-	actions.HandleCustomClientAction(action, data, *userName, conn);
 	return nil, false, nil;
 }

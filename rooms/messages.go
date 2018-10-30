@@ -67,7 +67,7 @@ func (r *Room) DataMessage(message interface{}, recipients []string) error {
 
 	//SEND MESSAGE TO USERS
 	if(recipients == nil || len(recipients) == 0){
-		for _, v := range userMap { v.socket.WriteJSON(jsonStr); }
+		for _, u := range userMap { u.socket.WriteJSON(jsonStr); }
 	}else{
 		for i := 0; i < len(recipients); i++ {
 			if u, ok := userMap[recipients[i]]; ok { u.socket.WriteJSON(jsonStr); }
@@ -100,7 +100,7 @@ func (r *Room) sendMessage(mt int, st int, rec []string, a string, m interface{}
 
 	//SEND MESSAGE TO USERS
 	if(rec == nil || len(rec) == 0){
-		for _, v := range userMap { v.socket.WriteJSON(jsonStr); }
+		for _, u := range userMap { u.socket.WriteJSON(jsonStr); }
 	}else{
 		for i := 0; i < len(rec); i++ {
 			if u, ok := userMap[rec[i]]; ok { u.socket.WriteJSON(jsonStr); }

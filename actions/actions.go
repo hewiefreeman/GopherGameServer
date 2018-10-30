@@ -60,6 +60,8 @@ const (
 //
 //  - actionData: The data the client sent along with the action
 //  - client: A Client object representing the client that sent the action
+//
+// Note: This function can only be called BEFORE starting the server.
 func New(actionType string, dataType int, callback func(interface{},Client)) error {
 	if(serverStarted){ return errors.New("Cannot make a new CustomClientAction once the server has started"); }
 	customClientActions[actionType] = CustomClientAction{
