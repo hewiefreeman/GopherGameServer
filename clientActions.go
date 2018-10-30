@@ -112,7 +112,11 @@ func clientActionLeaveRoom(userName *string) (interface{}, bool, error) {
 }
 
 func clientActionCreateRoom(params interface{}, userName *string) (interface{}, bool, error) {
-	if(*userName == ""){ return nil, true, errors.New("Client not logged in"); }
+	if(!(*settings).UserRoomControl){
+		return nil, true, errors.New("Clients do not have room control");
+	}else if(*userName == ""){
+		return nil, true, errors.New("Client not logged in");
+	}
 	//GET User
 	user, userErr := users.Get(*userName);
 	if(userErr != nil){
@@ -138,7 +142,11 @@ func clientActionCreateRoom(params interface{}, userName *string) (interface{}, 
 }
 
 func clientActionDeleteRoom(params interface{}, userName *string) (interface{}, bool, error) {
-	if(*userName == ""){ return nil, true, errors.New("Client not logged in"); }
+	if(!(*settings).UserRoomControl){
+		return nil, true, errors.New("Clients do not have room control");
+	}else if(*userName == ""){
+		return nil, true, errors.New("Client not logged in");
+	}
 	roomName := params.(string);
 	//GET ROOM
 	room, roomErr := rooms.Get(roomName);
@@ -155,7 +163,11 @@ func clientActionDeleteRoom(params interface{}, userName *string) (interface{}, 
 }
 
 func clientActionRoomInvite(params interface{}, userName *string) (interface{}, bool, error) {
-	if(*userName == ""){ return nil, true, errors.New("Client not logged in"); }
+	if(!(*settings).UserRoomControl){
+		return nil, true, errors.New("Clients do not have room control");
+	}else if(*userName == ""){
+		return nil, true, errors.New("Client not logged in");
+	}
 	//GET User
 	user, userErr := users.Get(*userName);
 	if(userErr != nil){
@@ -176,7 +188,11 @@ func clientActionRoomInvite(params interface{}, userName *string) (interface{}, 
 }
 
 func clientActionRevokeInvite(params interface{}, userName *string) (interface{}, bool, error) {
-	if(*userName == ""){ return nil, true, errors.New("Client not logged in"); }
+	if(!(*settings).UserRoomControl){
+		return nil, true, errors.New("Clients do not have room control");
+	}else if(*userName == ""){
+		return nil, true, errors.New("Client not logged in");
+	}
 	//GET User
 	user, userErr := users.Get(*userName);
 	if(userErr != nil){

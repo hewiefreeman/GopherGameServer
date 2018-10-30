@@ -55,8 +55,9 @@ type RoomUser struct {
 var (
 	rooms map[string]*Room = make(map[string]*Room)
 	roomsActionChan *helpers.ActionChannel = helpers.NewActionChannel()
-	serverStarted bool = false;
-	serverName string = "";
+	serverStarted bool = false
+	serverName string = ""
+	deleteRoomOnLeave bool = true
 )
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -276,6 +277,12 @@ func (r *Room) RemoveUser(userName string) error {
 		return errors.New("The room '"+r.name+"' does not exist");
 	}else if(response[0] != nil){
 		return response[0].(error);
+	}
+
+	//DELETE THE ROOM IF THE OWNER LEFT AND UserRoomControl IS ENABLED
+	if(deleteRoomOnLeave && userName == r.owner){
+		deleteErr := r.Delete();
+		if(deleteErr != nil){ return deleteErr; }
 	}
 
 	//
@@ -500,8 +507,9 @@ func SetServerStarted(val bool){
 }
 
 // For Gopher Game Server internal mechanics.
-func SettingsSet(name string){
+func SettingsSet(name string, deleteOnLeave bool){
 	if(!serverStarted){
 		serverName = name;
+		deleteRoomOnLeave = deleteOnLeave;
 	}
 }

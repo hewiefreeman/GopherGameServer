@@ -13,6 +13,16 @@ import (
 	"strconv"
 )
 
+/////////// TO DOs:
+///////////    - Custom client actions
+///////////    - Room Types & (optional) callbacks & (optional) User enter/exit broadcasts
+///////////    - Voice chat
+///////////    - SQL Authorization
+///////////    	- Initialization that checks if database is set-up and configured correctly, and if not configures it correctly.
+///////////    	- CRUD+ helpers
+///////////    	-
+
+
 // Core server settings for the Gopher Game Server
 type ServerSettings struct {
 	ServerName string // The server's name. Used for the server's ownership of private Rooms.
@@ -28,23 +38,23 @@ type ServerSettings struct {
 
 	OriginOnly bool // When enabled, the server declines connections made from outside the origin server. IMPORTANT: Enable this for web apps and LAN servers.
 
-	MultiConnect bool // Enabled multiple connections under the same User. When enabled, will override KickDupOnLogin's functionality. (TO DO)
+	MultiConnect bool // Enabled multiple connections under the same User. When enabled, will override KickDupOnLogin's functionality. (TO DO - THIRD TO LAST)
 	KickDupOnLogin bool // When enabled, a logged in User will be disconnected from service when another User logs in with the same name.
 
-	UserRoomControl bool // Enables Users to create Rooms, invite/uninvite(AKA revoke) other Users to their owned private rooms, and destroy their owned rooms. (TO DO)
-	RoomDeleteOnLeave bool // When enabled, Rooms created by a User will be deleted when the owner leaves. (TO DO)
+	UserRoomControl bool // Enables Users to create Rooms, invite/uninvite(AKA revoke) other Users to their owned private rooms, and destroy their owned rooms.
+	RoomDeleteOnLeave bool // When enabled, Rooms created by a User will be deleted when the owner leaves.
 
 	EnableSqlAuth bool // Enables the built-in SQL User authentication. (TO DO)
 	SqlIP string // SQL Database IP address. (TO DO)
 	SqlPort int // SQL Database port. (TO DO)
 
-	EnableRecovery bool // Enables the recovery of all Rooms, their settings, and their variables on start-up after terminating the server. (TO DO)
-	RecoveryLocation string // The folder location (starting from system's root folder) where you would like to store the recovery data. (TO DO)
+	EnableRecovery bool // Enables the recovery of all Rooms, their settings, and their variables on start-up after terminating the server. (TO DO - SECOND TO LAST)
+	RecoveryLocation string // The folder location (starting from system's root folder) where you would like to store the recovery data. (TO DO - SECOND TO LAST)
 
-	EnableAdminTools bool // Enables the use of the Admin Tools (TO DO)
-	EnableRemoteAdmin bool // Enabled administration (only) from outside the origin server. When enabled, will override OriginOnly's functionality, but only for administrator connections. (TO DO)
-	AdminToolsLogin string // The login name for the Admin Tools (TO DO)
-	AdminToolsPassword string // The password for the Admin Tools (TO DO)
+	EnableAdminTools bool // Enables the use of the Admin Tools (TO DO - LAST)
+	EnableRemoteAdmin bool // Enabled administration (only) from outside the origin server. When enabled, will override OriginOnly's functionality, but only for administrator connections. (TO DO - LAST)
+	AdminToolsLogin string // The login name for the Admin Tools (TO DO - LAST)
+	AdminToolsPassword string // The password for the Admin Tools (TO DO - LAST)
 }
 
 var (
@@ -78,8 +88,8 @@ func Start(s *ServerSettings){
 					MultiConnect: false,
 					KickDupOnLogin: false,
 
-					UserRoomControl: false,
-					RoomDeleteOnLeave: false,
+					UserRoomControl: true,
+					RoomDeleteOnLeave: true,
 
 					EnableSqlAuth: false,
 					SqlIP: "localhost",
@@ -98,7 +108,7 @@ func Start(s *ServerSettings){
 	rand.Seed(time.Now().UTC().UnixNano());
 
 	//UPDATE SETTINGS IN PACKAGES
-	users.SettingsSet((*settings).KickDupOnLogin, (*settings).ServerName);
+	users.SettingsSet((*settings).KickDupOnLogin, (*settings).ServerName, (*settings).RoomDeleteOnLeave);
 
 	//NOTIFY PACKAGES OF SERVER START
 	users.SetServerStarted(true);

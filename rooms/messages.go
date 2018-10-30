@@ -81,23 +81,19 @@ func (r *Room) DataMessage(message interface{}, recipients []string) error {
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 func (r *Room) sendMessage(mt int, st int, rec []string, a string, m interface{}) error {
-	if(mt != MessageTypeServer && len(a) == 0){
-		return errors.New("Chat messages require an author");
-	}
-
 	//GET USER MAP
 	userMap, err := r.GetUserMap();
 	if(err != nil){ return err; }
 
 	//CONSTRUCT MESSAGE
-	theMessageWrapper := make(map[string]interface{});
-	theMessageWrapper["m"] = make(map[string]interface{}); // Room messages are labeled "m"
-	if(mt == MessageTypeServer){ theMessageWrapper["m"].(map[string]interface{})["s"] = st; } // Server messages come with a sub-type
-	if(len(a) > 0 && mt != MessageTypeServer){ theMessageWrapper["m"].(map[string]interface{})["a"] = a; } // Non-server messages have authors
-	theMessageWrapper["m"].(map[string]interface{})["m"] = m; // The message
+	message := make(map[string]interface{});
+	message["m"] = make(map[string]interface{}); // Room messages are labeled "m"
+	if(mt == MessageTypeServer){ message["m"].(map[string]interface{})["s"] = st; } // Server messages come with a sub-type
+	if(len(a) > 0 && mt != MessageTypeServer){ message["m"].(map[string]interface{})["a"] = a; } // Non-server messages have authors
+	message["m"].(map[string]interface{})["m"] = m; // The message
 
 	//MARSHAL THE MESSAGE
-	jsonStr, marshErr := json.Marshal(theMessageWrapper);
+	jsonStr, marshErr := json.Marshal(message);
 	if(marshErr != nil){ return marshErr; }
 
 	//SEND MESSAGE TO USERS

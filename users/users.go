@@ -13,7 +13,7 @@ import (
 // be a guest, join/leave/create rooms, and call any client action, including your
 // custom client actions. If you are not using the built-in authentication, be aware
 // that you will need to make sure any client who has not been authenticated can't simply
-// log themselves in through the clientAPI.
+// log themselves in through the client API.
 type User struct {
 	name string
 	databaseID int
@@ -29,9 +29,9 @@ type User struct {
 var (
 	users map[string]*User = make(map[string]*User)
 	usersActionChan *helpers.ActionChannel = helpers.NewActionChannel()
-	serverStarted bool = false;
-	serverName string = "";
-	kickOnLogin bool = false;
+	serverStarted bool = false
+	serverName string = ""
+	kickOnLogin bool = false
 )
 
 // These represent the four statuses a User could be.
@@ -370,10 +370,10 @@ func SetServerStarted(val bool){
 }
 
 // For Gopher Game Server internal mechanics only. NOT SAFE.
-func SettingsSet(kickDups bool, name string){
+func SettingsSet(kickDups bool, name string, deleteOnLeave bool){
 	if(!serverStarted){
 		kickOnLogin = kickDups;
 		serverName = name;
-		rooms.SettingsSet(name);
+		rooms.SettingsSet(name, deleteOnLeave);
 	}
 }
