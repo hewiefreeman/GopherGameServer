@@ -66,11 +66,11 @@ var (
 
 // Adds a new room to the server. This can be called before or after starting the server.
 // Parameters:
-//  - name (string): Name of the Room
-//  - rType (string): Room type name (Note: must be a valid RoomType's name)
-//  - isPrivate (bool): Indicates if the room is private or not
-//  - maxUsers (int): Maximum User capacity (Note: 0 means no limit)
-//  - owner (string): The owner of the room. If provided a blank string, will set the owner to the ServerName from ServerSettings
+// - name (string): Name of the Room
+// - rType (string): Room type name (Note: must be a valid RoomType's name)
+// - isPrivate (bool): Indicates if the room is private or not
+// - maxUsers (int): Maximum User capacity (Note: 0 means no limit)
+// - owner (string): The owner of the room. If provided a blank string, will set the owner to the ServerName from ServerSettings
 func New(name string, rType string, isPrivate bool, maxUsers int, owner string) (Room, error) {
 	//REJECT INCORRECT INPUT
 	if(len(name) == 0){
