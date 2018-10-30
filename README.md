@@ -33,6 +33,8 @@ Installing the dependencies:
 
 [Package users](https://godoc.org/github.com/hewiefreeman/GopherGameServer/users) - Package for using the User type
 
+[Package actions](https://godoc.org/github.com/hewiefreeman/GopherGameServer/actions) - Package for making custom client actions
+
 # Usage
 
 (Coming soon...)
