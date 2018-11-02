@@ -4,7 +4,6 @@ package actions
 import (
 	"github.com/gorilla/websocket"
 	"errors"
-	"encoding/json"
 )
 
 // A CustomClientAction is an action that you can handle on the server from
@@ -47,6 +46,8 @@ const (
 	DataTypeNil // nil data type
 )
 
+// Note: This function can only be called BEFORE starting the server.
+//
 // Creates a new CustomClientAction with the cooresponding parameters:
 //
 // - actionType (string): The type of action
@@ -64,8 +65,6 @@ const (
 // - actionData: The data the client sent along with the action
 //
 // - client: A Client object representing the client that sent the action
-//
-// Note: This function can only be called BEFORE starting the server.
 func New(actionType string, dataType int, callback func(interface{},Client)) error {
 	if(serverStarted){ return errors.New("Cannot make a new CustomClientAction once the server has started"); }
 	customClientActions[actionType] = CustomClientAction{
@@ -159,19 +158,15 @@ func (c *Client) Respond(response interface{}, err error){
 		r["a"].(map[string]interface{})["r"] = response;
 	}
 
-	//MARSHAL THE MESSAGE
-	jsonStr, marshErr := json.Marshal(r);
-	if(marshErr != nil){ return; }
-
 	//SEND MESSAGE TO CLIENT
-	(*c).socket.WriteJSON(jsonStr);
+	(*c).socket.WriteJSON(r);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //   Client ATTRIBUTE READERS   ///////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// Gets the name of the Client, provided they are logged in. If their name is a blank string, you can assume they are
+// Gets the name of the Client, provided they are logged in. If their name is a empty string, you can assume they are
 // not logged in. You can, for instance, use this to get the User object of a logged in client with the users.Get() function,
 // or just to check if the Client is even logged in.
 func (c *Client) Name() string {

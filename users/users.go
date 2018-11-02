@@ -6,7 +6,6 @@ import (
 	"github.com/hewiefreeman/GopherGameServer/rooms"
 	"github.com/hewiefreeman/GopherGameServer/helpers"
 	"github.com/gorilla/websocket"
-	"encoding/json"
 )
 
 // The type User represents a client who has logged into the service. A User can
@@ -267,12 +266,8 @@ func (u *User) Invite(userName string, room rooms.Room) error {
 	invMessage["i"].(map[string]interface{})["u"] = u.name;
 	invMessage["i"].(map[string]interface{})["r"] = room.Name();
 
-	//MARSHAL THE MESSAGE
-	jsonStr, marshErr := json.Marshal(invMessage);
-	if(marshErr != nil){ return marshErr; }
-
 	//SEND MESSAGE
-	user.socket.WriteJSON(jsonStr);
+	user.socket.WriteJSON(invMessage);
 
 	//
 	return nil;
@@ -318,11 +313,8 @@ func DropUser(userName string) error {
 	//MAKE DROP MESSAGE
 	dropMessage := make(map[string]interface{});
 	dropMessage["k"] = "";
-	//MARSHAL THE MESSAGE
-	jsonStr, marshErr := json.Marshal(dropMessage);
-	if(marshErr != nil){ return marshErr; }
 	//SEND MESSAGE
-	user.socket.WriteJSON(jsonStr);
+	user.socket.WriteJSON(dropMessage);
 	//
 	user.LogOut();
 	//

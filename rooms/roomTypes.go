@@ -12,6 +12,8 @@ var (
 type RoomType struct {
 	serverOnly bool
 
+	voiceChat bool
+
 	broadcastUserEnter bool
 	broadcastUserLeave bool
 
@@ -26,11 +28,14 @@ type RoomType struct {
 // the same callback function at the same time. Though you don't need to worry about this if you are
 // only using built-in Gopher server functions (of course ones not labeled with a warning).
 //
-// A RoomType requires at least the name, serverOnly, and the broadcast parameters. The serverOnly option
-// disables clients from being able to manipulate (create/delete/invite) rooms of that type. When broadcastUserEnter is true, a broadcast
-// will be sent to all Users in the room notifying them of the entry. You can capture the broadcasts with the client API. Same goes for the
-// broadcastUserLeave parameter, but when a User leaves the room. The callbacks can either be set to nil or assigned a function that
-// has the same parameter types as shown in the function.
+// A RoomType requires at least the name, serverOnly, voiceChat, and the broadcast parameters. The serverOnly option
+// disables clients from being able to manipulate (create/delete/invite) rooms of that type. The voiceChat option
+// enables the built-in voice chat feature for rooms of that type.
+//
+// When broadcastUserEnter is true, a broadcast will be sent to all Users in the room notifying them of the entry.
+// You can capture the broadcasts with the client API. Same goes for the broadcastUserLeave parameter, but when a User
+// leaves the room. The callbacks can either be set to nil or assigned a function that has the same parameter types as
+// shown in the function.
 //
 // The callbacks work as such:
 //
@@ -45,7 +50,7 @@ type RoomType struct {
 // the string is the name of the user leaving.
 //
 // Note: This function can only be called BEFORE starting the server.
-func NewRoomType(name string, serverOnly bool, broadcastUserEnter bool, broadcastUserLeave bool, createCallback func(Room),
+func NewRoomType(name string, serverOnly bool, voiceChat bool, broadcastUserEnter bool, broadcastUserLeave bool, createCallback func(Room),
 				deleteCallback func(Room), userEnterCallback func(Room,string), userLeaveCallback func(Room,string)) error {
 	if(len(name) == 0){
 		return errors.New("rooms.RoomType() requires a name");
@@ -54,6 +59,8 @@ func NewRoomType(name string, serverOnly bool, broadcastUserEnter bool, broadcas
 	}
 	rt := RoomType{
 		serverOnly: serverOnly,
+
+		voiceChat: voiceChat,
 
 		broadcastUserEnter: broadcastUserEnter,
 		broadcastUserLeave: broadcastUserLeave,
@@ -88,6 +95,10 @@ func GetRoomTypes() map[string]RoomType {
 
 func (r *RoomType) ServerOnly() bool {
 	return r.serverOnly;
+}
+
+func (r *RoomType) VoiceChatEnabled() bool {
+	return r.voiceChat;
 }
 
 func (r *RoomType) BroadcastUserEnter() bool {

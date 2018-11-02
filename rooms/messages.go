@@ -1,7 +1,6 @@
 package rooms
 
 import (
-	"encoding/json"
 	"errors"
 )
 
@@ -61,16 +60,12 @@ func (r *Room) DataMessage(message interface{}, recipients []string) error {
 	theMessage := make(map[string]interface{});
 	theMessage["d"] = message; // Data messages are labeled "d"
 
-	//MARSHAL THE MESSAGE
-	jsonStr, marshErr := json.Marshal(theMessage);
-	if(marshErr != nil){ return marshErr; }
-
 	//SEND MESSAGE TO USERS
 	if(recipients == nil || len(recipients) == 0){
-		for _, u := range userMap { u.socket.WriteJSON(jsonStr); }
+		for _, u := range userMap { u.socket.WriteJSON(theMessage); }
 	}else{
 		for i := 0; i < len(recipients); i++ {
-			if u, ok := userMap[recipients[i]]; ok { u.socket.WriteJSON(jsonStr); }
+			if u, ok := userMap[recipients[i]]; ok { u.socket.WriteJSON(theMessage); }
 		}
 	}
 
@@ -94,16 +89,12 @@ func (r *Room) sendMessage(mt int, st int, rec []string, a string, m interface{}
 	if(len(a) > 0 && mt != MessageTypeServer){ message["m"].(map[string]interface{})["a"] = a; } // Non-server messages have authors
 	message["m"].(map[string]interface{})["m"] = m; // The message
 
-	//MARSHAL THE MESSAGE
-	jsonStr, marshErr := json.Marshal(message);
-	if(marshErr != nil){ return marshErr; }
-
 	//SEND MESSAGE TO USERS
 	if(rec == nil || len(rec) == 0){
-		for _, u := range userMap { u.socket.WriteJSON(jsonStr); }
+		for _, u := range userMap { u.socket.WriteJSON(message); }
 	}else{
 		for i := 0; i < len(rec); i++ {
-			if u, ok := userMap[rec[i]]; ok { u.socket.WriteJSON(jsonStr); }
+			if u, ok := userMap[rec[i]]; ok { u.socket.WriteJSON(message); }
 		}
 	}
 

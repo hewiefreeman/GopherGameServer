@@ -5,6 +5,16 @@ Gopher's aim is to provide all the tools necessary to make any type of online ga
 
 Gopher uses WebSockets and JSON to pass messages between the clients and the server. JSON enabled the server to be designed to let you pass any data type from client to server (or vice versa) without the need to worry about type conversions on either end. WebSockets makes the server as efficient as possible on the network, since the WebSocket protocol is newer and doesn't send nearly as much header and meta data that HTTP and most other protocols require.
 
+### Main features:
+
+ - Easy to use APIs for the server and client
+ - Built-in chat, private messaging, and voice chat
+ - Built-in optional client authentication using SQL databases
+ - 
+ - Supports multiple connections on the same login (*)
+ - Server can save state on shut-down and restore when rebooted
+ - Tools provided for administrating server while running
+
 -**PROJECT IN DEVELOPMENT**-
 
 **Note**: Gopher Game Server will be open for contributions as soon as version 1.0 is finished.

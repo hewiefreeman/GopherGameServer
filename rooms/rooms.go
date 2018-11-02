@@ -20,7 +20,6 @@ import (
 	"github.com/gorilla/websocket"
 	"errors"
 	"fmt"
-	"encoding/json"
 )
 
 //
@@ -151,12 +150,8 @@ func (r *Room) Delete() error {
 	leaveMessage := make(map[string]interface{});
 	leaveMessage["l"] = "";
 
-	//MARSHAL THE MESSAGE
-	jsonStr, marshErr := json.Marshal(leaveMessage);
-	if(marshErr != nil){ return marshErr; }
-
 	//SEND ROOM LEAVE MESSAGE TO Users IN ROOM
-	for _, v := range userList { v.socket.WriteJSON(jsonStr); }
+	for _, v := range userList { v.socket.WriteJSON(leaveMessage); }
 
 	//CALLBACK
 	rType := roomTypes[r.rType];
@@ -255,12 +250,7 @@ func (r *Room) AddUser(userName string, isGuest bool, socket *websocket.Conn) er
 		message["e"].(map[string]interface{})["u"] = userName;
 		message["e"].(map[string]interface{})["g"] = isGuest;
 
-		//MARSHAL THE MESSAGE
-		jsonStr, marshErr := json.Marshal(message);
-		if(marshErr == nil){
-			//SEND MESSAGE TO USERS
-			for _, u := range userList { u.socket.WriteJSON(jsonStr); }
-		}
+		for _, u := range userList { u.socket.WriteJSON(message); }
 	}
 
 	//CALLBACK
@@ -340,12 +330,9 @@ func (r *Room) RemoveUser(userName string) error {
 		message["x"] = make(map[string]interface{}); // User exit messages are labeled "x"
 		message["x"].(map[string]interface{})["u"] = userName;
 
-		//MARSHAL THE MESSAGE
-		jsonStr, marshErr := json.Marshal(message);
-		if(marshErr == nil){
-			//SEND MESSAGE TO USERS
-			for _, u := range userList { u.socket.WriteJSON(jsonStr); }
-		}
+
+		//SEND MESSAGE TO USERS
+		for _, u := range userList { u.socket.WriteJSON(message); }
 	}
 
 	//CALLBACK

@@ -15,13 +15,20 @@ import (
 )
 
 /////////// TO DOs:
-///////////    - Room Types & (optional) callbacks & (optional) User enter/exit broadcasts
 ///////////    - Voice chat
-///////////    - SQL Authorization
+///////////    	- Mutable Users
+///////////    - Change Users' roomNames when deleting a Room
+///////////    - SQL Authentication:
 ///////////    	- Initialization that checks if database is set-up and configured correctly, and if not configures it correctly.
 ///////////    	- CRUD+ helpers
-///////////    	-
-
+///////////    	- SQL Authentication
+///////////         - "Remember Me" login key pairs
+///////////         - Database helpers for developers
+///////////    - Multi-connect
+///////////    - SQLite Database:
+///////////    	- CRUD helpers
+///////////    	- Save state on shut-down
+///////////    - Admin tools
 
 // Core server settings for the Gopher Game Server
 type ServerSettings struct {

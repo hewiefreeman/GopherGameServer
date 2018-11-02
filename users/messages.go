@@ -1,7 +1,6 @@
 package users
 
 import (
-	"encoding/json"
 )
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -19,11 +18,7 @@ func (u *User) PrivateMessage(userName string, message string) error {
 	theMessage["p"].(map[string]interface{})["a"] = u.name;
 	theMessage["p"].(map[string]interface{})["m"] = message;
 
-	//MARSHAL MESSAGE INTO JSON
-	jsonStr, marshErr := json.Marshal(theMessage);
-	if(marshErr != nil){ return marshErr; }
-
-	sendErr := user.socket.WriteJSON(jsonStr);
+	sendErr := user.socket.WriteJSON(theMessage);
 	if(sendErr != nil){ return sendErr; }
 
 	return nil;
@@ -38,12 +33,8 @@ func (u *User) DataMessage(data interface{}) error {
 	message := make(map[string]interface{});
 	message["d"] = data; // Data messages are labeled "d"
 
-	//MARSHAL THE MESSAGE
-	jsonStr, marshErr := json.Marshal(message);
-	if(marshErr != nil){ return marshErr; }
-
 	//SEND MESSAGE TO USERS
-	u.socket.WriteJSON(jsonStr);
+	u.socket.WriteJSON(message);
 
 	//
 	return nil;

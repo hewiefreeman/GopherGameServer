@@ -2,12 +2,12 @@ package gopher
 
 import (
 	"github.com/hewiefreeman/GopherGameServer/users"
-	//"github.com/hewiefreeman/GopherGameServer/rooms"
+	"github.com/hewiefreeman/GopherGameServer/rooms"
 	"net/http"
 	"strconv"
 	"github.com/mssola/user_agent"
 	"github.com/gorilla/websocket"
-	//"fmt"
+	"fmt"
 )
 
 type clientAction struct {
@@ -47,6 +47,7 @@ func clientActionListener(conn *websocket.Conn, ua *user_agent.UserAgent) {
 
 	// The User attached to this client
 	var userName string;
+	var roomIn rooms.Room = rooms.Room{};
 
 	for {
 		//READ INPUT BUFFER
@@ -58,10 +59,11 @@ func clientActionListener(conn *websocket.Conn, ua *user_agent.UserAgent) {
 		}
 
 		//TAKE ACTION
-		responseVal, respond, actionErr := clientActionHandler(action, &userName, conn, ua);
+		responseVal, respond, actionErr := clientActionHandler(action, &userName, &roomIn, conn, ua);
 
 		if(respond){
 			//SEND RESPONSE
+			fmt.Println("sending response for:", action.A);
 			if writeErr := conn.WriteJSON(makeClientActionResponse(action, responseVal, actionErr)); writeErr != nil {
 				//DISCONNECT USER
 				sockedDropped(userName);
