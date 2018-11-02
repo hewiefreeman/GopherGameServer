@@ -15,8 +15,6 @@ import (
 )
 
 /////////// TO DOs:
-///////////    - Voice chat
-///////////    	- Mutable Users
 ///////////    - Change Users' roomNames when deleting a Room
 ///////////    - SQL Authentication:
 ///////////    	- Initialization that checks if database is set-up and configured correctly, and if not configures it correctly.

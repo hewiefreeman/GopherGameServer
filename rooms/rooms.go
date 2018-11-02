@@ -42,7 +42,7 @@ type Room struct {
 
 // A representation of a User in a Room. These store a User's variables. Note: These
 // are not the Users themselves. If you need to get a User type from one of these, use
-// users.RoomUser() to convert a RoomUser into a User.
+// users.Get() with the RoomUser's Name() function.
 type RoomUser struct {
 	name string
 
