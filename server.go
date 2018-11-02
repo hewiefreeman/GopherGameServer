@@ -41,7 +41,7 @@ type ServerSettings struct {
 	CertFile string // SSL/TLS certificate file location (starting from system's root folder).
 	PrivKeyFile string // SSL/TLS private key file location (starting from system's root folder).
 
-	OriginOnly bool // When enabled, the server declines connections made from outside the origin server. IMPORTANT: Enable this for web apps and LAN servers.
+	OriginOnly bool // When enabled, the server declines connections made from outside the origin server (Admin logins always check origin). IMPORTANT: Enable this for web apps and LAN servers.
 
 	MultiConnect bool // Enabled multiple connections under the same User. When enabled, will override KickDupOnLogin's functionality. (TO DO - THIRD TO LAST)
 	KickDupOnLogin bool // When enabled, a logged in User will be disconnected from service when another User logs in with the same name.
