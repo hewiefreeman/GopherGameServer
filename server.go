@@ -132,4 +132,6 @@ func Start(s *ServerSettings) error {
 		err := http.ListenAndServe(settings.IP+":"+strconv.Itoa(settings.Port), nil);
 		if(err != nil){ return err; }
 	}
+
+	return nil;
 }
