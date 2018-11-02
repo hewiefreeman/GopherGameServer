@@ -7,12 +7,12 @@ Gopher uses WebSockets and JSON to pass messages between the clients and the ser
 
 ### Main features:
 
- - Easy to use APIs for the server and client
- - Built-in chat, private messaging, and voice chat
- - Built-in optional client authentication using SQL databases
- - 
- - Supports multiple connections on the same login (*)
- - Server can save state on shut-down and restore when rebooted
+ - Super easy APIs for server and client coding
+ - Chat, private messaging, and voice chat
+ - Client authentication using SQL databases (optional)
+ - Friending
+ - Supports multiple connections using the same login
+ - Server can save state on shut-down and restore the state on reboot
  - Tools provided for administrating server while running
 
 -**PROJECT IN DEVELOPMENT**-
