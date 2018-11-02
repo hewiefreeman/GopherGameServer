@@ -9,11 +9,13 @@ Gopher uses WebSockets and JSON to pass messages between the clients and the ser
 
  - Super easy APIs for server and client coding
  - Chat, private messaging, and voice chat
- - Client authentication using SQL databases (optional)
- - Friending
+ - Client authentication (SQL database required*)
+ - Friending (SQL database required*)
  - Supports multiple connections using the same login
- - Server can save state on shut-down and restore the state on reboot
+ - Server saves state on shut-down and restores on reboot
  - Tools provided for administrating server while running
+
+(*) An SQL database is required for the authentication/friending feature, but both are optional (like most) features that can be enabled and disabled.
 
 -**PROJECT IN DEVELOPMENT**-
 
