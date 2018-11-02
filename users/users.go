@@ -210,7 +210,9 @@ func (u *User) Leave() error {
 	return nil;
 }
 
-func changeUserRoomName(p []interface{}) []interface{} {
+// WARNING: This is only meant for internal Gopher Game Server mechanics. If you want a User to leave a Room, use
+// *User.Leave() instead. Using this will break some server mechanics and potentially cause errors and/or memory leaks.
+func ChangeUserRoomName(p []interface{}) []interface{} {
 	theUser, roomName := p[0].(*User), p[1].(string);
 	var err error = nil;
 

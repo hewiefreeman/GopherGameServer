@@ -15,7 +15,6 @@ import (
 )
 
 /////////// TO DOs:
-///////////    - Change Users' roomNames when deleting a Room
 ///////////    - SQL Authentication:
 ///////////    	- Initialization that checks if database is set-up and configured correctly, and if not configures it correctly.
 ///////////    	- CRUD+ helpers

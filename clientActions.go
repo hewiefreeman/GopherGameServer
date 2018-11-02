@@ -205,16 +205,12 @@ func clientActionDeleteRoom(params interface{}, userName *string, roomIn *rooms.
 	}
 	//
 	rType := rooms.GetRoomTypes()[room.Type()];
-	if(rType.ServerOnly()){
-		return nil, true, errors.New("Only the server can manipulate that type of room");
-	}
+	if(rType.ServerOnly()){ return nil, true, errors.New("Only the server can manipulate that type of room"); }
 	//DELETE ROOM
 	deleteErr := room.Delete();
 	if(deleteErr != nil){ return nil, true, deleteErr; }
 	//
-	if(roomIn.Name() == roomName){
-		*roomIn = room;
-	}
+	if(roomIn.Name() == roomName){ *roomIn = room; }
 
 	return nil, true, nil;
 }
@@ -237,9 +233,7 @@ func clientActionRoomInvite(params interface{}, userName *string, roomIn *rooms.
 	}
 	//
 	rType := rooms.GetRoomTypes()[(*roomIn).Type()];
-	if(rType.ServerOnly()){
-		return nil, true, errors.New("Only the server can manipulate that type of room");
-	}
+	if(rType.ServerOnly()){ return nil, true, errors.New("Only the server can manipulate that type of room"); }
 	//GET PARAMS
 	name := params.(string);
 	//INVITE
@@ -267,9 +261,7 @@ func clientActionRevokeInvite(params interface{}, userName *string, roomIn *room
 	}
 	//
 	rType := rooms.GetRoomTypes()[(*roomIn).Type()];
-	if(rType.ServerOnly()){
-		return nil, true, errors.New("Only the server can manipulate that type of room");
-	}
+	if(rType.ServerOnly()){ return nil, true, errors.New("Only the server can manipulate that type of room"); }
 	//GET PARAMS
 	name := params.(string);
 	//REVOKE INVITE
@@ -288,6 +280,9 @@ func clientActionVoiceStream(params interface{}, userName *string, roomIn *rooms
 		*roomIn = rooms.Room{};
 		return nil, false, nil;
 	}
+	//CHECK IF VOICE CHAT ROOM
+	rType := rooms.GetRoomTypes()[(*roomIn).Type()];
+	if(!rType.VoiceChatEnabled()){ return nil, false, nil; }
 	//SEND VOICE STREAM
 	go (*roomIn).VoiceStream(*userName, conn, params);
 	//

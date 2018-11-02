@@ -159,13 +159,14 @@ func (r *Room) Delete() error {
 		go rType.DeleteCallback()(*r);
 	}
 
+	helpers.RoomDeleted(userList);
+
 	//
 	return nil;
 }
 
 func deleteRoomInit(p []interface{}) []interface{} {
 	room := p[0].(*Room);
-	fmt.Println("nullifying:", *((*room).usersMap));//!!TESTING
 	*((*room).usersMap) = nil;
 	return []interface{}{nil};
 }

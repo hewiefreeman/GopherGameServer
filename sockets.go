@@ -95,9 +95,9 @@ func makeClientActionResponse(action clientAction, responseVal interface{}, err 
 }
 
 func sockedDropped(userName string) {
-	user, err := users.Get(userName);
-	if(err == nil){
+	if(userName != ""){
 		//CLIENT WAS LOGGED IN. LOG THEM OUT
-		user.LogOut();
+		user, err := users.Get(userName);
+		if(err == nil){ user.LogOut(); }
 	}
 }
