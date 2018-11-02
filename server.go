@@ -72,7 +72,7 @@ var (
 // settings are for local testing ONLY. There are security-related options in ServerSettings
 // for SSL/TLS, connection origin testing, Admin Tools, and more. It's highly recommended to look into
 // all ServerSettings options to tune the server for your desired functionality and security needs.
-func Start(s *ServerSettings){
+func Start(s *ServerSettings) error {
 	//SET SERVER SETTINGS
 	if(s != nil){
 		settings = s;
@@ -125,9 +125,11 @@ func Start(s *ServerSettings){
 	//START HTTP/SOCKET LISTENER
 	if(settings.TLS){
 		http.HandleFunc("/wss", socketInitializer);
-		panic(http.ListenAndServeTLS(settings.IP+":"+strconv.Itoa(settings.Port), settings.CertFile, settings.PrivKeyFile, nil));
+		err := http.ListenAndServeTLS(settings.IP+":"+strconv.Itoa(settings.Port), settings.CertFile, settings.PrivKeyFile, nil);
+		if(err != nil){ return err; }
 	}else{
 		http.HandleFunc("/ws", socketInitializer);
-		panic(http.ListenAndServe(settings.IP+":"+strconv.Itoa(settings.Port), nil));
+		err := http.ListenAndServe(settings.IP+":"+strconv.Itoa(settings.Port), nil);
+		if(err != nil){ return err; }
 	}
 }
