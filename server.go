@@ -12,6 +12,7 @@ import (
 	"time"
 	"net/http"
 	"strconv"
+	"fmt"
 )
 
 /////////// TO DOs:
@@ -62,19 +63,25 @@ type ServerSettings struct {
 }
 
 var (
-	settings *ServerSettings
+	settings *ServerSettings = nil
+
+	//SERVER VERSION NUMBER
+	version string = "1.0 ALPHA"
 )
 
 // Call with a pointer to your ServerSettings (or nil for defaults) to start the server. The default
 // settings are for local testing ONLY. There are security-related options in ServerSettings
 // for SSL/TLS, connection origin testing, Admin Tools, and more. It's highly recommended to look into
 // all ServerSettings options to tune the server for your desired functionality and security needs.
-func Start(s *ServerSettings) error {
+func Start(s *ServerSettings, callback func()) error {
+	fmt.Println("Gopher Game Server v"+version);
+	fmt.Println("Starting...");
 	//SET SERVER SETTINGS
 	if(s != nil){
 		settings = s;
 	}else{
 		//DEFAULT localhost SETTINGS
+		fmt.Println("Using default settings...");
 		settings = &ServerSettings{
 					ServerName: "!server!",
 
@@ -122,10 +129,12 @@ func Start(s *ServerSettings) error {
 	//START HTTP/SOCKET LISTENER
 	if(settings.TLS){
 		http.HandleFunc("/wss", socketInitializer);
+		callback();
 		err := http.ListenAndServeTLS(settings.IP+":"+strconv.Itoa(settings.Port), settings.CertFile, settings.PrivKeyFile, nil);
 		if(err != nil){ return err; }
 	}else{
 		http.HandleFunc("/ws", socketInitializer);
+		callback();
 		err := http.ListenAndServe(settings.IP+":"+strconv.Itoa(settings.Port), nil);
 		if(err != nil){ return err; }
 	}

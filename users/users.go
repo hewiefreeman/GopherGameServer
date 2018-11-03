@@ -180,7 +180,7 @@ func (u *User) Join(r rooms.Room) error {
 	if(response[0] != nil){ return response[0].(error); }
 
 	//ADD USER TO DESIGNATED ROOM
-	addErr := r.AddUser(u.name, u.isGuest, u.socket);
+	addErr := r.AddUser(u.name, u.isGuest, u.socket, response[1].(*string));
 	if(addErr != nil){
 		//CHANGE User's ROOM NAME BACK
 		response = usersActionChan.Execute(changeUserRoomName, []interface{}{u, ""});
@@ -210,21 +210,21 @@ func (u *User) Leave() error {
 	return nil;
 }
 
-// WARNING: This is only meant for internal Gopher Game Server mechanics. If you want a User to leave a Room, use
-// *User.Leave() instead. Using this will break some server mechanics and potentially cause errors and/or memory leaks.
-func ChangeUserRoomName(p []interface{}) []interface{} {
+func changeUserRoomName(p []interface{}) []interface{} {
 	theUser, roomName := p[0].(*User), p[1].(string);
 	var err error = nil;
+	var roomIn *string = nil;
 
 	if _, ok := users[(*theUser).name]; ok {
 		(*users[(*theUser).name]).room = roomName;
 		(*theUser).room = roomName
+		roomIn = &(*users[(*theUser).name]).room;
 	}else{
 		err = errors.New("User '"+theUser.name+"' is not logged in");
 	}
 
 	//
-	return []interface{}{err}
+	return []interface{}{err, roomIn}
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -368,6 +368,6 @@ func SettingsSet(kickDups bool, name string, deleteOnLeave bool){
 	if(!serverStarted){
 		kickOnLogin = kickDups;
 		serverName = name;
-		rooms.SettingsSet(name, deleteOnLeave);
+		rooms.SettingsSet(name, deleteOnLeave, usersActionChan);
 	}
 }

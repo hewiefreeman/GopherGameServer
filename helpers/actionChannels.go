@@ -3,11 +3,12 @@
 package helpers
 
 import (
-
+	"sync"
 )
 
 type ActionChannel struct {
 	c *chan channelAction
+	mux sync.Mutex
 }
 
 type channelAction struct {
@@ -48,18 +49,28 @@ func NewActionChannel() *ActionChannel {
 }
 
 func (a *ActionChannel) Execute(action func([]interface{})[]interface{}, params []interface{}) []interface{} {
-	if(a.c == nil){
+	//
+	a.mux.Lock();
+	//
+	if((*a).c == nil){
 		return []interface{}{}
 	}
-
+	channel := *a.c;
+	//
+	a.mux.Unlock();
+	//
 	returnChan := make(chan []interface{});
-	*a.c <- channelAction{	Action: action,
+	channel <- channelAction{Action: action,
 						Params: params,
 						ReturnChan: returnChan};
+	//
 	return <- returnChan;
 }
 
 func (a *ActionChannel) Kill(){
+	(*a).mux.Lock();
+	defer (*a).mux.Unlock();
+	//
 	*a.c <- channelAction{ Kill: true };
-	a.c = nil;
+	(*a).c = nil;
 }

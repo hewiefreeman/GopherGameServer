@@ -19,7 +19,6 @@ import (
 	"github.com/hewiefreeman/GopherGameServer/helpers"
 	"github.com/gorilla/websocket"
 	"errors"
-	"fmt"
 )
 
 //
@@ -48,6 +47,8 @@ type RoomUser struct {
 
 	vars map[string]interface{}
 
+	roomIn *string;
+
 	socket *websocket.Conn
 }
 
@@ -57,6 +58,9 @@ var (
 	serverStarted bool = false
 	serverName string = ""
 	deleteRoomOnLeave bool = true
+
+	//FOR user PACKAGE COMMUNICATION
+	userActionChannelRef *helpers.ActionChannel = nil
 )
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -159,7 +163,8 @@ func (r *Room) Delete() error {
 		go rType.DeleteCallback()(*r);
 	}
 
-	helpers.RoomDeleted(userList);
+	//CONSUME users.usersActionChan TO CHANGE THE Users' room STRINGS TO NOTHING
+	userActionChannelRef.Execute(deleteRoomFinal, []interface{}{userList});
 
 	//
 	return nil;
@@ -172,10 +177,10 @@ func deleteRoomInit(p []interface{}) []interface{} {
 }
 
 func deleteRoom(p []interface{}) []interface{} {
-	room := p[0].(*Room);
+	roomName := p[0].(string);
 	var userList map[string]RoomUser = nil;
 	var err error = nil;
-	if _, ok := rooms[room.name]; ok {
+	if room, ok := rooms[roomName]; ok {
 		userList = *((*room).usersMap);
 		delete(rooms, room.name);
 	}else{
@@ -183,6 +188,15 @@ func deleteRoom(p []interface{}) []interface{} {
 	}
 
 	return []interface{}{err, userList};
+}
+
+func deleteRoomFinal(p []interface{}) []interface{} {
+	userList := p[0].(map[string]RoomUser);
+	for _, val := range userList {
+		*val.roomIn = "";
+	}
+
+	return []interface{}{nil}
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -224,9 +238,9 @@ func getRoom(p []interface{}) []interface{} {
 //   ADD A USER   /////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// WARNING: This is only meant for internal Gopher Game Server mechanics. If you want a User to join a Room, use
-// *User.Join() instead. Using this will break some server mechanics and potentially cause errors and/or memory leaks.
-func (r *Room) AddUser(userName string, isGuest bool, socket *websocket.Conn) error {
+// WARNING: This is only meant for internal Gopher Game Server mechanics. If you want to make a User to join a Room, use
+// *User.Join() instead. Using this will break some server mechanics and cause errors and/or memory leaks.
+func (r *Room) AddUser(userName string, isGuest bool, socket *websocket.Conn, roomIn *string) error {
 	//REJECT INCORRECT INPUT
 	if(len(userName) == 0){
 		return errors.New("*Room.AddUser() requires a user name")
@@ -234,7 +248,7 @@ func (r *Room) AddUser(userName string, isGuest bool, socket *websocket.Conn) er
 		return errors.New("*Room.AddUser() requires a user socket")
 	}
 
-	response := r.usersActionChannel.Execute(userJoin, []interface{}{userName, socket, r});
+	response := r.usersActionChannel.Execute(userJoin, []interface{}{userName, socket, r, roomIn});
 	if(len(response) == 0){
 		return errors.New("The room '"+r.name+"' does not exist")
 	}else if(response[0] != nil){
@@ -264,7 +278,7 @@ func (r *Room) AddUser(userName string, isGuest bool, socket *websocket.Conn) er
 }
 
 func userJoin(p []interface{}) []interface{} {
-	userName, socket, room := p[0].(string), p[1].(*websocket.Conn), p[2].(*Room);
+	userName, socket, room, roomIn := p[0].(string), p[1].(*websocket.Conn), p[2].(*Room), p[3].(*string);
 
 	usrMap := *((*room).usersMap);
 
@@ -293,7 +307,7 @@ func userJoin(p []interface{}) []interface{} {
 	if _, ok := usrMap[userName]; ok {
 		return []interface{}{errors.New("User '"+userName+"' is already in room '"+room.name+"'")};
 	}else{
-		(*((*room).usersMap))[userName] = RoomUser{name: userName, socket: socket, vars: make(map[string]interface{})}
+		(*((*room).usersMap))[userName] = RoomUser{name: userName, roomIn: roomIn, socket: socket, vars: make(map[string]interface{})}
 	}
 
 	//
@@ -565,9 +579,10 @@ func SetServerStarted(val bool){
 }
 
 // For Gopher Game Server internal mechanics.
-func SettingsSet(name string, deleteOnLeave bool){
+func SettingsSet(name string, deleteOnLeave bool, userRef *helpers.ActionChannel){
 	if(!serverStarted){
 		serverName = name;
 		deleteRoomOnLeave = deleteOnLeave;
+		userActionChannelRef = userRef;
 	}
 }
