@@ -284,7 +284,7 @@ func clientActionVoiceStream(params interface{}, userName *string, roomIn *rooms
 	rType := rooms.GetRoomTypes()[(*roomIn).Type()];
 	if(!rType.VoiceChatEnabled()){ return nil, false, nil; }
 	//SEND VOICE STREAM
-	go (*roomIn).VoiceStream(*userName, conn, params);
+	(*roomIn).VoiceStream(*userName, conn, params);
 	//
 	return nil, false, nil;
 }
@@ -299,7 +299,7 @@ func clientActionChatMessage(params interface{}, userName *string, roomIn *rooms
 		return nil, false, nil;
 	}
 	//SEND CHAT MESSAGE
-	go (*roomIn).ChatMessage(*userName, params);
+	(*roomIn).ChatMessage(*userName, params);
 	//
 	return nil, false, nil;
 }

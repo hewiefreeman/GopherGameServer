@@ -30,11 +30,16 @@ type RoomType struct {
 // A RoomType requires at least a name and the serverOnly option, which when set to true will prevent
 // the client API from being able to create, destroy, invite or revoke an invitation with that RoomType.
 // Though you can always make a CustomClientAction to create a Room, initialize it, send requests, etc.
-func NewRoomType(name string, serverOnly bool) (*RoomType, error) {
+// When making a new RoomType you can chain the broadcasts and callbacks you want for it like so:
+//
+//    rooms.NewRoomType("lobby", true).EnableBroadcastUserEnter().EnableBroadcastUserLeave().
+//         .SetCreateCallback(yourFunc).SetDeleteCallback(anotherFunc)
+//
+func NewRoomType(name string, serverOnly bool) *RoomType {
 	if(len(name) == 0){
-		return &RoomType{}, errors.New("rooms.RoomType() requires a name");
+		return &RoomType{};
 	}else if(serverStarted){
-		return &RoomType{}, errors.New("Cannot add a Room type once the server has started");
+		return &RoomType{};
 	}
 	rt := RoomType{
 		serverOnly: serverOnly,
@@ -52,7 +57,7 @@ func NewRoomType(name string, serverOnly bool) (*RoomType, error) {
 	roomTypes[name] = &rt;
 
 	//
-	return roomTypes[name], nil;
+	return roomTypes[name];
 }
 
 // Gets a map of all the RoomTypes.

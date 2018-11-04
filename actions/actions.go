@@ -89,7 +89,7 @@ func HandleCustomClientAction(action string, data interface{}, userName string, 
 			return;
 		}
 		//EXECUTE CALLBACK
-		go customAction.callback(data, client);
+		customAction.callback(data, client);
 	}else{
 		client.Respond(nil, errors.New("Unrecognized action"));
 	}

@@ -163,7 +163,7 @@ func (r *Room) Delete() error {
 	//CALLBACK
 	rType := roomTypes[r.rType];
 	if(rType.HasDeleteCallback()){
-		go rType.DeleteCallback()(*r);
+		rType.DeleteCallback()(*r);
 	}
 
 	//CONSUME users.usersActionChan TO CHANGE THE Users' room STRINGS TO NOTHING
@@ -273,7 +273,7 @@ func (r *Room) AddUser(userName string, isGuest bool, socket *websocket.Conn, ro
 
 	//CALLBACK
 	if(roomType.HasUserEnterCallback()){
-		go roomType.UserEnterCallback()(*r, userName);
+		roomType.UserEnterCallback()(*r, userName);
 	}
 
 	//
@@ -355,7 +355,7 @@ func (r *Room) RemoveUser(userName string) error {
 
 	//CALLBACK
 	if(roomType.HasUserLeaveCallback()){
-		go roomType.UserLeaveCallback()(*r, userName);
+		roomType.UserLeaveCallback()(*r, userName);
 	}
 
 	//

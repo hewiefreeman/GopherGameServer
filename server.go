@@ -16,9 +16,8 @@ import (
 )
 
 /////////// TO DOs:
+///////////    - Add checks for required ServerSettings
 ///////////    - SQL Authentication:
-///////////    	- Initialization that checks if database is set-up and configured correctly, and if not configures it correctly.
-///////////    	- CRUD+ helpers
 ///////////    	- SQL Authentication
 ///////////         - "Remember Me" login key pairs
 ///////////         - Database helpers for developers
@@ -54,6 +53,7 @@ type ServerSettings struct {
 	EnableSqlFeatures bool // Enables the built-in SQL User authentication and friending.
 	SqlIP string // SQL Database IP address.
 	SqlPort int // SQL Database port.
+	SqlProtocol string // The protocol to use while comminicating with the MySQL database. Most use either 'udp' or 'tcp'.
 	SqlUser string // SQL user name
 	SqlPassword string // SQL user password
 	SqlDatabase string // SQL database name
@@ -110,6 +110,7 @@ func Start(s *ServerSettings, callback func()) error {
 					EnableSqlFeatures: false,
 					SqlIP: "localhost",
 					SqlPort: 3306,
+					SqlProtocol: "tcp",
 					SqlUser: "user",
 					SqlPassword: "password",
 					SqlDatabase: "database",
