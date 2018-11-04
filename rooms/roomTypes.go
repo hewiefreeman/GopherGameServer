@@ -1,7 +1,7 @@
 package rooms
 
 import (
-	"errors"
+
 )
 
 var (

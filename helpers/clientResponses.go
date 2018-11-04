@@ -1,0 +1,52 @@
+package helpers
+
+import (
+
+)
+
+//BUILT-IN CLIENT ACTION/RESPONSE MESSAGE TYPES
+const (
+	ClientActionLogin = "li"
+	ClientActionLogout = "lo"
+	ClientActionJoinRoom = "j"
+	ClientActionLeaveRoom = "lr"
+	ClientActionCreateRoom = "r"
+	ClientActionDeleteRoom = "rd"
+	ClientActionRoomInvite = "i"
+	ClientActionRevokeInvite = "ri"
+	ClientActionChatMessage = "c"
+	ClientActionVoiceStream = "v"
+	ClientActionCustomAction = "a"
+)
+
+//BUILT-IN SERVER ACTION RESPONSES
+const (
+	ServerActionClientActionResponse = "c"
+	ServerActionCustomClientActionResponse = "a"
+	ServerActionDataMessage = "d"
+	ServerActionPrivateMessage = "p"
+	ServerActionRoomMessage = "m"
+	ServerActionUserEnter = "e"
+	ServerActionUserLeave = "x"
+	ServerActionVoiceStream = "v"
+	ServerActionVoicePing = "vp"
+	ServerActionRoomInvite = "i"
+)
+
+func MakeClientResponse(action string, responseVal interface{}, err error) map[string]interface{} {
+	var response map[string]interface{};
+	if(err != nil){
+		response = make(map[string]interface{});
+		response[ServerActionClientActionResponse] = make(map[string]interface{});
+		response[ServerActionClientActionResponse].(map[string]interface{})["a"] = action;
+		response[ServerActionClientActionResponse].(map[string]interface{})["e"] = err.Error();
+	}else{
+		response = make(map[string]interface{});
+		response[ServerActionClientActionResponse] = make(map[string]interface{});
+		response[ServerActionClientActionResponse].(map[string]interface{})["a"] = action;
+		response[ServerActionClientActionResponse].(map[string]interface{})["r"] = responseVal;
+	}
+
+	//
+	return response;
+}

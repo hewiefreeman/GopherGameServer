@@ -154,8 +154,7 @@ func (r *Room) Delete() error {
 	userList := response[1].(map[string]RoomUser);
 
 	//MAKE LEAVE MESSAGE
-	leaveMessage := make(map[string]interface{});
-	leaveMessage["l"] = "";
+	leaveMessage := helpers.MakeClientResponse(helpers.ClientActionLeaveRoom, nil, nil);
 
 	//SEND ROOM LEAVE MESSAGE TO Users IN ROOM
 	for _, v := range userList { v.socket.WriteJSON(leaveMessage); }
@@ -243,6 +242,7 @@ func getRoom(p []interface{}) []interface{} {
 
 // WARNING: This is only meant for internal Gopher Game Server mechanics. If you want to make a User to join a Room, use
 // *User.Join() instead. Using this will break some server mechanics and cause errors and/or memory leaks.
+// Also, the client API for the User entering will not have a way of knowing about the Room entrance using this function.
 func (r *Room) AddUser(userName string, isGuest bool, socket *websocket.Conn, roomIn *string) error {
 	//REJECT INCORRECT INPUT
 	if(len(userName) == 0){
@@ -264,9 +264,9 @@ func (r *Room) AddUser(userName string, isGuest bool, socket *websocket.Conn, ro
 		userList := response[1].(map[string]RoomUser);
 		//CONSTRUCT MESSAGE
 		message := make(map[string]interface{});
-		message["e"] = make(map[string]interface{}); // User enter messages are labeled "e"
-		message["e"].(map[string]interface{})["u"] = userName;
-		message["e"].(map[string]interface{})["g"] = isGuest;
+		message[helpers.ServerActionUserEnter] = make(map[string]interface{});
+		message[helpers.ServerActionUserEnter].(map[string]interface{})["u"] = userName;
+		message[helpers.ServerActionUserEnter].(map[string]interface{})["g"] = isGuest;
 
 		for _, u := range userList { u.socket.WriteJSON(message); }
 	}
@@ -323,6 +323,7 @@ func userJoin(p []interface{}) []interface{} {
 
 // WARNING: This is only meant for internal Gopher Game Server mechanics. If you want a User to leave a Room, use
 // *User.Leave() instead. Using this will break some server mechanics and potentially cause errors and/or memory leaks.
+// Also, the client API for the User leaving will not have a way of knowing about the Room leave using this function.
 func (r *Room) RemoveUser(userName string) error {
 	//REJECT INCORRECT INPUT
 	if(len(userName) == 0){ return errors.New("*Room.RemoveUser() requires a user name") }
@@ -345,8 +346,8 @@ func (r *Room) RemoveUser(userName string) error {
 		userList := response[1].(map[string]RoomUser);
 		//CONSTRUCT MESSAGE
 		message := make(map[string]interface{});
-		message["x"] = make(map[string]interface{}); // User exit messages are labeled "x"
-		message["x"].(map[string]interface{})["u"] = userName;
+		message[helpers.ServerActionUserLeave] = make(map[string]interface{});
+		message[helpers.ServerActionUserLeave].(map[string]interface{})["u"] = userName;
 
 
 		//SEND MESSAGE TO USERS
@@ -384,12 +385,13 @@ func userLeave(p []interface{}) []interface{} {
 //   ADD TO inviteList   //////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// WARNING: This is only meant for internal Gopher Game Server mechanics. If you want a User to invite someone to a private room,
-// use the *User.Invite() function instead. This is because *User.Invite() will also send an invite to the invited User that the
-// client API can recieve. Though if you wish to make your own implementations, don't hesitate!
+// NOTE: You can use this function safely, but remember that private rooms are designed to have an "owner",
+// and only the owner should be able to send an invite and revoke an invitation for their Rooms. Also, *User.Invite()
+// will send an invite message to the invited User that the client API can easily recieve. Though if you wish to make
+// your own implementations for this, don't hesitate!
 //
-// NOTE: You can still use this function safely, but remember that private rooms are designed to have an "owner",
-// and only the owner should be able to send an invite and revoke an invitation.
+// WARNING: This is only meant for internal Gopher Game Server mechanics. If you want a User to invite someone to a private room,
+// use the *User.Invite() function instead.
 func (r *Room) AddInvite(userName string) error {
 	if(!r.private){
 		return errors.New("Room is not private");
@@ -426,11 +428,12 @@ func inviteUser(p []interface{}) []interface{} {
 //   REMOVE FROM inviteList   /////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// WARNING: This is only meant for internal Gopher Game Server mechanics. If you want a User to remove some from the room's
-// private invite list, use the *User.RevokeInvite() function instead.
+// NOTE: You can use this function safely, but remember that private rooms are designed to have an "owner",
+// and only the owner should be able to send an invite and revoke an invitation for their Rooms. But if you find the
+// need to break the rules here, by all means do so!
 //
-// NOTE: You can still use this function safely, but remember that private rooms are designed to have an "owner",
-// and only the owner should be able to send an invite and revoke an invitation.
+// WARNING: This is only meant for internal Gopher Game Server mechanics. If you want a User to remove someone from the room's
+// private invite list, use the *User.RevokeInvite() function instead.
 func (r *Room) RemoveInvite(userName string) error {
 	if(!r.private){
 		return errors.New("Room is not private");

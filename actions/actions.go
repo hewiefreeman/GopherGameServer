@@ -2,6 +2,7 @@
 package actions
 
 import (
+	"github.com/hewiefreeman/GopherGameServer/helpers"
 	"github.com/gorilla/websocket"
 	"errors"
 )
@@ -150,12 +151,12 @@ func (c *Client) Respond(response interface{}, err error){
 	(*c).responded = true;
 	//CONSTRUCT MESSAGE
 	r := make(map[string]interface{});
-	r["a"] = make(map[string]interface{}); // CustomClientAction responses are lebeled "a"
+	r[helpers.ServerActionCustomClientActionResponse] = make(map[string]interface{});
 	if(err != nil){
-		r["a"].(map[string]interface{})["e"] = err.Error();
+		r[helpers.ServerActionCustomClientActionResponse].(map[string]interface{})["e"] = err.Error();
 	}else{
-		r["a"].(map[string]interface{})["a"] = (*c).action;
-		r["a"].(map[string]interface{})["r"] = response;
+		r[helpers.ServerActionCustomClientActionResponse].(map[string]interface{})["a"] = (*c).action;
+		r[helpers.ServerActionCustomClientActionResponse].(map[string]interface{})["r"] = response;
 	}
 
 	//SEND MESSAGE TO CLIENT

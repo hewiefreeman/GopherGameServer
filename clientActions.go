@@ -4,48 +4,35 @@ import (
 	"github.com/hewiefreeman/GopherGameServer/users"
 	"github.com/hewiefreeman/GopherGameServer/rooms"
 	"github.com/hewiefreeman/GopherGameServer/actions"
+	"github.com/hewiefreeman/GopherGameServer/helpers"
 	"github.com/mssola/user_agent"
 	"github.com/gorilla/websocket"
 	"errors"
 )
 
-const (
-	actionClientLogin = "li"
-	actionClientLogout = "lo"
-	actionClientJoinRoom = "j"
-	actionClientLeaveRoom = "lr"
-	actionClientCreateRoom = "r"
-	actionClientDeleteRoom = "rd"
-	actionClientRoomInvite = "i"
-	actionClientRevokeInvite = "ri"
-	actionClientChatMessage = "c"
-	actionClientVoiceStream = "v"
-	actionClientCustomAction = "a"
-)
-
 func clientActionHandler(action clientAction, userName *string, roomIn *rooms.Room, conn *websocket.Conn, ua *user_agent.UserAgent) (interface{}, bool, error) {
 	switch _action := action.A; _action {
-		case actionClientLogin:
+		case helpers.ClientActionLogin:
 			return clientActionLogin(action.P, userName, conn);
-		case actionClientLogout:
+		case helpers.ClientActionLogout:
 			return clientActionLogout(userName, roomIn);
-		case actionClientJoinRoom:
+		case helpers.ClientActionJoinRoom:
 			return clientActionJoinRoom(action.P, userName, roomIn);
-		case actionClientLeaveRoom:
+		case helpers.ClientActionLeaveRoom:
 			return clientActionLeaveRoom(userName, roomIn);
-		case actionClientCreateRoom:
+		case helpers.ClientActionCreateRoom:
 			return clientActionCreateRoom(action.P, userName, roomIn);
-		case actionClientDeleteRoom:
+		case helpers.ClientActionDeleteRoom:
 			return clientActionDeleteRoom(action.P, userName, roomIn);
-		case actionClientRoomInvite:
+		case helpers.ClientActionRoomInvite:
 			return clientActionRoomInvite(action.P, userName, roomIn);
-		case actionClientRevokeInvite:
+		case helpers.ClientActionRevokeInvite:
 			return clientActionRevokeInvite(action.P, userName, roomIn);
-		case actionClientChatMessage:
+		case helpers.ClientActionChatMessage:
 			return clientActionChatMessage(action.P, userName, roomIn);
-		case actionClientVoiceStream:
+		case helpers.ClientActionVoiceStream:
 			return clientActionVoiceStream(action.P, userName, roomIn, conn);
-		case actionClientCustomAction:
+		case helpers.ClientActionCustomAction:
 			return clientCustomAction(action.P, userName, conn);
 		default:
 			return nil, true, errors.New("Unrecognized client action");
@@ -79,7 +66,7 @@ func clientActionLogin(params interface{}, userName *string, conn *websocket.Con
 	*userName = user.Name();
 
 	//
-	return user.Name(), true, nil;
+	return nil, false, nil;
 }
 
 func clientActionLogout(userName *string, roomIn *rooms.Room) (interface{}, bool, error) {
@@ -97,7 +84,7 @@ func clientActionLogout(userName *string, roomIn *rooms.Room) (interface{}, bool
 	*roomIn = rooms.Room{};
 
 	//
-	return nil, true, nil;
+	return nil, false, nil;
 }
 
 func clientActionJoinRoom(params interface{}, userName *string, roomIn *rooms.Room) (interface{}, bool, error) {
@@ -121,7 +108,7 @@ func clientActionJoinRoom(params interface{}, userName *string, roomIn *rooms.Ro
 	*roomIn = room;
 
 	//
-	return roomName, true, nil;
+	return nil, false, nil;
 }
 
 func clientActionLeaveRoom(userName *string, roomIn *rooms.Room) (interface{}, bool, error) {
@@ -146,7 +133,7 @@ func clientActionLeaveRoom(userName *string, roomIn *rooms.Room) (interface{}, b
 	*roomIn = rooms.Room{};
 
 	//
-	return nil, true, nil;
+	return nil, false, nil;
 }
 
 func clientActionCreateRoom(params interface{}, userName *string, roomIn *rooms.Room) (interface{}, bool, error) {

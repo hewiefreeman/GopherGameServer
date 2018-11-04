@@ -1,6 +1,7 @@
 package users
 
 import (
+	"github.com/hewiefreeman/GopherGameServer/helpers"
 )
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -14,9 +15,9 @@ func (u *User) PrivateMessage(userName string, message string) error {
 
 	//CONSTRUCT MESSAGE
 	theMessage := make(map[string]interface{});
-	theMessage["p"] = make(map[string]interface{}); // Private messages are labeled "p"
-	theMessage["p"].(map[string]interface{})["a"] = u.name;
-	theMessage["p"].(map[string]interface{})["m"] = message;
+	theMessage[helpers.ServerActionPrivateMessage] = make(map[string]interface{});
+	theMessage[helpers.ServerActionPrivateMessage].(map[string]interface{})["a"] = u.name;
+	theMessage[helpers.ServerActionPrivateMessage].(map[string]interface{})["m"] = message;
 
 	sendErr := user.socket.WriteJSON(theMessage);
 	if(sendErr != nil){ return sendErr; }
@@ -31,7 +32,7 @@ func (u *User) PrivateMessage(userName string, message string) error {
 func (u *User) DataMessage(data interface{}) error {
 	//CONSTRUCT MESSAGE
 	message := make(map[string]interface{});
-	message["d"] = data; // Data messages are labeled "d"
+	message[helpers.ServerActionDataMessage] = data;
 
 	//SEND MESSAGE TO USERS
 	u.socket.WriteJSON(message);

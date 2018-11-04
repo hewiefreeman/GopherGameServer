@@ -16,8 +16,6 @@ import (
 )
 
 /////////// TO DOs:
-///////////    - Problem: If the server forces a client to leave/enter a Room or log in/out, client API has no way of telling!
-///////////    - Add checks for required ServerSettings
 ///////////    - SQL Authentication:
 ///////////    	- SQL Authentication
 ///////////         - "Remember Me" login key pairs
@@ -28,6 +26,7 @@ import (
 ///////////    	- CRUD helpers
 ///////////    	- Save state on shut-down
 ///////////         - Error handle server start-up and callback on true success
+///////////    - Add checks for required ServerSettings
 ///////////    - Admin tools
 
 // Core server settings for the Gopher Game Server

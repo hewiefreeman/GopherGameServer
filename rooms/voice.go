@@ -1,6 +1,7 @@
 package rooms
 
 import (
+	"github.com/hewiefreeman/GopherGameServer/helpers"
 	"github.com/gorilla/websocket"
 )
 
@@ -15,9 +16,9 @@ func (r *Room) VoiceStream(userName string, userSocket *websocket.Conn, stream i
 
 	//CONSTRUCT VOICE MESSAGE
 	theMessage := make(map[string]interface{});
-	theMessage["v"] = make(map[string]interface{}); // Voice streams are labeled "v"
-	theMessage["v"].(map[string]interface{})["u"] = userName;
-	theMessage["v"].(map[string]interface{})["d"] = stream;
+	theMessage[helpers.ServerActionVoiceStream] = make(map[string]interface{});
+	theMessage[helpers.ServerActionVoiceStream].(map[string]interface{})["u"] = userName;
+	theMessage[helpers.ServerActionVoiceStream].(map[string]interface{})["d"] = stream;
 
 	//REMOVE SENDING USER FROM userMap
 	//delete(userMap, userName); // COMMENTED OUT FOR ECHO TESTS
@@ -27,7 +28,7 @@ func (r *Room) VoiceStream(userName string, userSocket *websocket.Conn, stream i
 
 	//CONSTRUCT PING MESSAGE
 	pingMessage := make(map[string]interface{});
-	pingMessage["vp"] = nil;
+	pingMessage[helpers.ServerActionVoicePing] = nil;  // Voice chat pings are labeled "vp"
 
 	//SEND PING MESSAGE TO SENDING USER
 	userSocket.WriteJSON(pingMessage);

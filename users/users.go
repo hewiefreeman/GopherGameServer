@@ -76,6 +76,10 @@ func Login(userName string, dbID int, isGuest bool, socket *websocket.Conn) (Use
 		}
 	}
 
+	//SUCCESS, SEND RESPONSE TO CLIENT
+	clientResp := helpers.MakeClientResponse(helpers.ClientActionLogin, userName, nil);
+	socket.WriteJSON(clientResp);
+
 	//
 	return response[0].(User), err;
 }
@@ -109,6 +113,11 @@ func (u *User) LogOut() {
 			room.RemoveUser(u.name);
 		}
 	}
+
+	//SEND RESPONSE TO CLIENT
+	clientResp := helpers.MakeClientResponse(helpers.ClientActionLogout, nil, nil);
+	u.socket.WriteJSON(clientResp);
+
 	//LOG USER OUT
 	usersActionChan.Execute(logUserOut, []interface{}{u.name});
 }
@@ -176,6 +185,10 @@ func (u *User) Join(r rooms.Room) error {
 		if(response[0] != nil){ return response[0].(error); }
 	}
 
+	//SEND RESPONSE TO CLIENT
+	clientResp := helpers.MakeClientResponse(helpers.ClientActionJoinRoom, r.Name(), nil);
+	u.socket.WriteJSON(clientResp);
+
 	//
 	return nil;
 }
@@ -195,6 +208,10 @@ func (u *User) Leave() error {
 	//CHANGE User's ROOM NAME
 	response := usersActionChan.Execute(changeUserRoomName, []interface{}{u, ""});
 	if(response[0] != nil){ return response[0].(error) }
+
+	//SEND RESPONSE TO CLIENT
+	clientResp := helpers.MakeClientResponse(helpers.ClientActionLeaveRoom, nil, nil);
+	u.socket.WriteJSON(clientResp);
 
 	return nil;
 }
@@ -253,9 +270,9 @@ func (u *User) Invite(userName string, room rooms.Room) error {
 
 	//MAKE INVITE MESSAGE
 	invMessage := make(map[string]interface{});
-	invMessage["i"] = make(map[string]interface{}); // Room invites are labeled "d"
-	invMessage["i"].(map[string]interface{})["u"] = u.name;
-	invMessage["i"].(map[string]interface{})["r"] = room.Name();
+	invMessage[helpers.ServerActionRoomInvite] = make(map[string]interface{});
+	invMessage[helpers.ServerActionRoomInvite].(map[string]interface{})["u"] = u.name;
+	invMessage[helpers.ServerActionRoomInvite].(map[string]interface{})["r"] = room.Name();
 
 	//SEND MESSAGE
 	user.socket.WriteJSON(invMessage);
@@ -302,8 +319,7 @@ func DropUser(userName string) error {
 		return err;
 	}
 	//MAKE DROP MESSAGE
-	dropMessage := make(map[string]interface{});
-	dropMessage["k"] = "";
+	dropMessage := helpers.MakeClientResponse(helpers.ClientActionLogout, nil, nil);
 	//SEND MESSAGE
 	user.socket.WriteJSON(dropMessage);
 	//

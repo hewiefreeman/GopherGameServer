@@ -1,6 +1,7 @@
 package rooms
 
 import (
+	"github.com/hewiefreeman/GopherGameServer/helpers"
 	"errors"
 )
 
@@ -58,7 +59,7 @@ func (r *Room) DataMessage(message interface{}, recipients []string) error {
 
 	//CONSTRUCT MESSAGE
 	theMessage := make(map[string]interface{});
-	theMessage["d"] = message; // Data messages are labeled "d"
+	theMessage[helpers.ServerActionDataMessage] = message;
 
 	//SEND MESSAGE TO USERS
 	if(recipients == nil || len(recipients) == 0){
@@ -84,10 +85,10 @@ func (r *Room) sendMessage(mt int, st int, rec []string, a string, m interface{}
 
 	//CONSTRUCT MESSAGE
 	message := make(map[string]interface{});
-	message["m"] = make(map[string]interface{}); // Room messages are labeled "m"
-	if(mt == MessageTypeServer){ message["m"].(map[string]interface{})["s"] = st; } // Server messages come with a sub-type
-	if(len(a) > 0 && mt != MessageTypeServer){ message["m"].(map[string]interface{})["a"] = a; } // Non-server messages have authors
-	message["m"].(map[string]interface{})["m"] = m; // The message
+	message[helpers.ServerActionRoomMessage] = make(map[string]interface{});
+	if(mt == MessageTypeServer){ message[helpers.ServerActionRoomMessage].(map[string]interface{})["s"] = st; } // Server messages come with a sub-type
+	if(len(a) > 0 && mt != MessageTypeServer){ message[helpers.ServerActionRoomMessage].(map[string]interface{})["a"] = a; } // Non-server messages have authors
+	message[helpers.ServerActionRoomMessage].(map[string]interface{})["m"] = m; // The message
 
 	//SEND MESSAGE TO USERS
 	if(rec == nil || len(rec) == 0){

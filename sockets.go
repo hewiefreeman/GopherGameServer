@@ -3,6 +3,7 @@ package gopher
 import (
 	"github.com/hewiefreeman/GopherGameServer/users"
 	"github.com/hewiefreeman/GopherGameServer/rooms"
+	"github.com/hewiefreeman/GopherGameServer/helpers"
 	"net/http"
 	"strconv"
 	"github.com/mssola/user_agent"
@@ -65,7 +66,7 @@ func clientActionListener(conn *websocket.Conn, ua *user_agent.UserAgent) {
 		if(respond){
 			//SEND RESPONSE
 			fmt.Println("sending response for:", action.A);
-			if writeErr := conn.WriteJSON(makeClientActionResponse(action, responseVal, actionErr)); writeErr != nil {
+			if writeErr := conn.WriteJSON(helpers.MakeClientResponse(action.A, responseVal, actionErr)); writeErr != nil {
 				//DISCONNECT USER
 				sockedDropped(userName);
 				return;
@@ -75,24 +76,6 @@ func clientActionListener(conn *websocket.Conn, ua *user_agent.UserAgent) {
 		//
 		action = clientAction{};
 	}
-}
-
-func makeClientActionResponse(action clientAction, responseVal interface{}, err error) map[string]interface{} {
-	var response map[string]interface{};
-	if(err != nil){
-		response = make(map[string]interface{});
-		response["c"] = make(map[string]interface{}); // Client action responses are labeled "c"
-		response["c"].(map[string]interface{})["a"] = action.A;
-		response["c"].(map[string]interface{})["e"] = err.Error();
-	}else{
-		response = make(map[string]interface{});
-		response["c"] = make(map[string]interface{});
-		response["c"].(map[string]interface{})["a"] = action.A;
-		response["c"].(map[string]interface{})["r"] = responseVal;
-	}
-
-	//
-	return response;
 }
 
 func sockedDropped(userName string) {
