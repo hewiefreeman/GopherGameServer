@@ -33,9 +33,10 @@ Installing the server:
     go get github.com/hewiefreeman/GopherGameServer
      
 Installing the dependencies:
-     
+
     go get github.com/gorilla/websocket
     go get github.com/mssola/user_agent
+    go get github.com/go-sql-driver/mysql
      
 # Documentation
 
