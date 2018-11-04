@@ -37,6 +37,7 @@ Installing the dependencies:
     go get github.com/gorilla/websocket
     go get github.com/mssola/user_agent
     go get github.com/go-sql-driver/mysql
+    go get golang.org/x/crypto/bcrypt
      
 # Documentation
 
