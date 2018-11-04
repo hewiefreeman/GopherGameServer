@@ -18,7 +18,7 @@ type CustomClientAction struct {
 }
 
 // A Client object is created and sent along with your CustomClientAction callback function when a
-// client sends and action.
+// client sends an action.
 type Client struct {
 	name string
 	action string
