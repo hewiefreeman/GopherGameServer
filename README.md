@@ -19,8 +19,6 @@ Gopher uses WebSockets and JSON to pass messages between the clients and the ser
 
 (*) A MySQL database is required for the authentication/friending feature, but is an optional (like most) feature that can be enabled or disabled to use your own implementations.
 
-**Note**: Gopher Game Server will be open for contributions as soon as version 1.0 is finished.
-
 # Client APIs
 
  - JavaScript: [Gopher Client JS](https://github.com/hewiefreeman/GopherClientJS)
@@ -52,3 +50,7 @@ Installing the dependencies:
 # Usage
 
 (Coming soon...)
+
+# Contributions
+
+**Gopher Game Server will be open for contributions as soon as version 1.0 is finished. At that time, contribution information will be posted here.**
