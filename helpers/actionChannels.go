@@ -12,12 +12,12 @@ type ActionChannel struct {
 }
 
 type channelAction struct {
-	Action func([]interface{})[]interface{}
-	Params []interface{}
+	action func([]interface{})[]interface{}
+	params []interface{}
 
-	ReturnChan chan []interface{}
+	returnChan chan []interface{}
 
-	Kill bool
+	kill bool
 }
 
 func actionChannelListener(c *chan channelAction){
@@ -25,19 +25,19 @@ func actionChannelListener(c *chan channelAction){
 		value := <-*c
 
 		//
-		if(value.Kill){
-			value.ReturnChan <- []interface{}{}
-			close(value.ReturnChan)
+		if(value.kill){
+			value.returnChan <- []interface{}{}
+			close(value.returnChan)
 			close(*c);
 			break
 		}
 
 		//
-		returned := value.Action(value.Params)
+		returned := value.action(value.params)
 
-		value.ReturnChan <- returned
+		value.returnChan <- returned
 
-		close(value.ReturnChan)
+		close(value.returnChan)
 	}
 }
 
@@ -52,25 +52,24 @@ func (a *ActionChannel) Execute(action func([]interface{})[]interface{}, params 
 	//
 	a.mux.Lock();
 	//
-	if((*a).c == nil){
-		return []interface{}{}
-	}
+	if((*a).c == nil){ return []interface{}{} }
 	channel := *a.c;
 	//
 	a.mux.Unlock();
 	//
 	returnChan := make(chan []interface{});
-	channel <- channelAction{Action: action,
-						Params: params,
-						ReturnChan: returnChan};
+	channel <- channelAction{action: action,
+						params: params,
+						returnChan: returnChan};
 	//
 	return <- returnChan;
 }
 
 func (a *ActionChannel) Kill(){
 	(*a).mux.Lock();
-	defer (*a).mux.Unlock();
 	//
-	*a.c <- channelAction{ Kill: true };
+	*a.c <- channelAction{ kill: true };
 	(*a).c = nil;
+	//
+	(*a).mux.Unlock();
 }

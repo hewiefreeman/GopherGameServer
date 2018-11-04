@@ -53,8 +53,11 @@ type RoomUser struct {
 }
 
 var (
+	//THE Rooms AND Room ActionChannel
 	rooms map[string]*Room = make(map[string]*Room)
 	roomsActionChan *helpers.ActionChannel = helpers.NewActionChannel()
+
+	//SERVER SETTINGS
 	serverStarted bool = false
 	serverName string = ""
 	deleteRoomOnLeave bool = true

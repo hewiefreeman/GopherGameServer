@@ -23,9 +23,11 @@ import (
 ///////////         - "Remember Me" login key pairs
 ///////////         - Database helpers for developers
 ///////////    - Multi-connect
+///////////	- (maybe) User login/logout callbacks
 ///////////    - SQLite Database:
 ///////////    	- CRUD helpers
 ///////////    	- Save state on shut-down
+///////////         - Error handle server start-up and callback on true success
 ///////////    - Admin tools
 
 // Core server settings for the Gopher Game Server
@@ -43,23 +45,26 @@ type ServerSettings struct {
 
 	OriginOnly bool // When enabled, the server declines connections made from outside the origin server (Admin logins always check origin). IMPORTANT: Enable this for web apps and LAN servers.
 
-	MultiConnect bool // Enabled multiple connections under the same User. When enabled, will override KickDupOnLogin's functionality. (TO DO - THIRD TO LAST)
+	MultiConnect bool // Enables multiple connections under the same User. When enabled, will override KickDupOnLogin's functionality.
 	KickDupOnLogin bool // When enabled, a logged in User will be disconnected from service when another User logs in with the same name.
 
 	UserRoomControl bool // Enables Users to create Rooms, invite/uninvite(AKA revoke) other Users to their owned private rooms, and destroy their owned rooms.
-	RoomDeleteOnLeave bool // When enabled, Rooms created by a User will be deleted when the owner leaves.
+	RoomDeleteOnLeave bool // When enabled, Rooms created by a User will be deleted when the owner leaves. WARNING: If disabled, you must remember to at some point delete the rooms created by Users, or they will pile up endlessly!
 
-	EnableSqlAuth bool // Enables the built-in SQL User authentication. (TO DO)
-	SqlIP string // SQL Database IP address. (TO DO)
-	SqlPort int // SQL Database port. (TO DO)
+	EnableSqlFeatures bool // Enables the built-in SQL User authentication and friending.
+	SqlIP string // SQL Database IP address.
+	SqlPort int // SQL Database port.
+	SqlUser string // SQL user name
+	SqlPassword string // SQL user password
+	SqlDatabase string // SQL database name
 
-	EnableRecovery bool // Enables the recovery of all Rooms, their settings, and their variables on start-up after terminating the server. (TO DO - SECOND TO LAST)
-	RecoveryLocation string // The folder location (starting from system's root folder) where you would like to store the recovery data. (TO DO - SECOND TO LAST)
+	EnableRecovery bool // Enables the recovery of all Rooms, their settings, and their variables on start-up after terminating the server.
+	RecoveryLocation string // The folder location (starting from system's root folder) where you would like to store the recovery data.
 
-	EnableAdminTools bool // Enables the use of the Admin Tools (TO DO - LAST)
-	EnableRemoteAdmin bool // Enabled administration (only) from outside the origin server. When enabled, will override OriginOnly's functionality, but only for administrator connections. (TO DO - LAST)
-	AdminToolsLogin string // The login name for the Admin Tools (TO DO - LAST)
-	AdminToolsPassword string // The password for the Admin Tools (TO DO - LAST)
+	EnableAdminTools bool // Enables the use of the Admin Tools
+	EnableRemoteAdmin bool // Enabled administration (only) from outside the origin server. When enabled, will override OriginOnly's functionality, but only for administrator connections.
+	AdminToolsLogin string // The login name for the Admin Tools
+	AdminToolsPassword string // The password for the Admin Tools
 }
 
 var (
@@ -105,6 +110,9 @@ func Start(s *ServerSettings, callback func()) error {
 					EnableSqlAuth: false,
 					SqlIP: "localhost",
 					SqlPort: 3306,
+					SqlUser: "user",
+					SqlPassword: "password",
+					SqlDatabase: "database",
 
 					EnableRecovery: false,
 					RecoveryLocation: "C:/",

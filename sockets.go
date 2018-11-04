@@ -45,8 +45,9 @@ func clientActionListener(conn *websocket.Conn, ua *user_agent.UserAgent) {
 	// CLIENT ACTION INPUT
 	var action clientAction;
 
-	// The User attached to this client
+	// THE CLIENT'S User NAME
 	var userName string;
+	// Room THE CLIENT'S CURRENTLY IN
 	var roomIn rooms.Room = rooms.Room{};
 
 	for {

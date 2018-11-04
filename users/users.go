@@ -11,8 +11,8 @@ import (
 // The type User represents a client who has logged into the service. A User can
 // be a guest, join/leave/create rooms, and call any client action, including your
 // custom client actions. If you are not using the built-in authentication, be aware
-// that you will need to make sure any client who has not been authenticated can't simply
-// log themselves in through the client API.
+// that you will need to make sure any client who has not been authenticated by the server
+// can't simply log themselves in through the client API.
 type User struct {
 	name string
 	databaseID int
@@ -332,12 +332,13 @@ func (u *User) Name() string {
 	return u.name;
 }
 
-// Gets the database table id of the User.
+// Gets the database table index of the User.
 func (u *User) DatabaseID() int {
 	return u.databaseID;
 }
 
-// Gets the name of the Room that the User is currently in.
+// Gets the name of the Room that the User is currently in. If you get a blank string, this simply means
+// the User is not in a room.
 func (u *User) RoomName() string {
 	return u.room;
 }
@@ -347,7 +348,7 @@ func (u *User) Socket() *websocket.Conn {
 	return u.socket;
 }
 
-// Checks whether or not a User is a guest.
+// Returns true if the User is a guest.
 func (u *User) IsGuest() bool {
 	return u.isGuest;
 }
@@ -356,14 +357,14 @@ func (u *User) IsGuest() bool {
 //   SERVER STARTUP FUNCTIONS   //////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// For Gopher Game Server internal mechanics only. NOT SAFE.
+// For Gopher Game Server internal mechanics only.
 func SetServerStarted(val bool){
 	if(!serverStarted){
 		serverStarted = val;
 	}
 }
 
-// For Gopher Game Server internal mechanics only. NOT SAFE.
+// For Gopher Game Server internal mechanics only.
 func SettingsSet(kickDups bool, name string, deleteOnLeave bool){
 	if(!serverStarted){
 		kickOnLogin = kickDups;
