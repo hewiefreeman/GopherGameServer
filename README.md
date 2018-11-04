@@ -11,13 +11,13 @@ Gopher uses WebSockets and JSON to pass messages between the clients and the ser
 
  - Super easy APIs for server and client coding
  - Chat, private messaging, and voice chat
- - Client authentication (SQL database required*)
- - Friending (SQL database required*)
+ - Client authentication (MySQL database required*)
+ - Friending (MySQL database required*)
  - Supports multiple connections using the same login
  - Server saves state on shut-down and restores on reboot
  - Tools provided for administrating server while running
 
-(*) An SQL database is required for the authentication/friending feature, but both are optional (like most) features that can be enabled and disabled.
+(*) A MySQL database is required for the authentication/friending feature, but is an optional (like most) feature that can be enabled and disabled.
 
 **Note**: Gopher Game Server will be open for contributions as soon as version 1.0 is finished.
 
