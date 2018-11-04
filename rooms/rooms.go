@@ -92,7 +92,7 @@ func New(name string, rType string, isPrivate bool, maxUsers int, owner string) 
 		owner = serverName;
 	}
 
-	var roomType RoomType;
+	var roomType *RoomType;
 	var ok bool;
 	if roomType, ok = roomTypes[rType]; !ok {
 		return Room{}, errors.New("Invalid room type");
@@ -104,8 +104,8 @@ func New(name string, rType string, isPrivate bool, maxUsers int, owner string) 
 	if(response[1] != nil){ err = response[1].(error); }
 
 	//CALLBACK
-	if(roomType.CreateCallback() != nil){
-		go roomType.CreateCallback()(response[0].(Room));
+	if(roomType.HasCreateCallback()){
+		roomType.CreateCallback()(response[0].(Room));
 	}
 
 	return response[0].(Room), err;
@@ -162,7 +162,7 @@ func (r *Room) Delete() error {
 
 	//CALLBACK
 	rType := roomTypes[r.rType];
-	if(rType.DeleteCallback() != nil){
+	if(rType.HasDeleteCallback()){
 		go rType.DeleteCallback()(*r);
 	}
 
@@ -272,7 +272,7 @@ func (r *Room) AddUser(userName string, isGuest bool, socket *websocket.Conn, ro
 	}
 
 	//CALLBACK
-	if(roomType.UserEnterCallback() != nil){
+	if(roomType.HasUserEnterCallback()){
 		go roomType.UserEnterCallback()(*r, userName);
 	}
 
@@ -354,7 +354,7 @@ func (r *Room) RemoveUser(userName string) error {
 	}
 
 	//CALLBACK
-	if(roomType.UserLeaveCallback() != nil){
+	if(roomType.HasUserLeaveCallback()){
 		go roomType.UserLeaveCallback()(*r, userName);
 	}
 

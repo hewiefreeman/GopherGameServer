@@ -23,7 +23,7 @@ import (
 ///////////         - "Remember Me" login key pairs
 ///////////         - Database helpers for developers
 ///////////    - Multi-connect
-///////////	- (maybe) User login/logout callbacks
+///////////	- User login/logout callbacks
 ///////////    - SQLite Database:
 ///////////    	- CRUD helpers
 ///////////    	- Save state on shut-down
@@ -107,7 +107,7 @@ func Start(s *ServerSettings, callback func()) error {
 					UserRoomControl: true,
 					RoomDeleteOnLeave: true,
 
-					EnableSqlAuth: false,
+					EnableSqlFeatures: false,
 					SqlIP: "localhost",
 					SqlPort: 3306,
 					SqlUser: "user",
