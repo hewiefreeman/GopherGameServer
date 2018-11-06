@@ -8,6 +8,7 @@ import (
 	"github.com/hewiefreeman/GopherGameServer/rooms"
 	"github.com/hewiefreeman/GopherGameServer/users"
 	"github.com/hewiefreeman/GopherGameServer/actions"
+	"github.com/hewiefreeman/GopherGameServer/database"
 	"math/rand"
 	"time"
 	"net/http"
@@ -19,7 +20,7 @@ import (
 ///////////    - SQL Authentication:
 ///////////    	- SQL Authentication
 ///////////         - "Remember Me" login key pairs
-///////////         - Database helpers for developers
+///////////         - (possibly at request) Database helpers for developers
 ///////////    - Multi-connect
 ///////////	- User login/logout callbacks
 ///////////    - SQLite Database:
@@ -46,6 +47,7 @@ type ServerSettings struct {
 
 	MultiConnect bool // Enables multiple connections under the same User. When enabled, will override KickDupOnLogin's functionality.
 	KickDupOnLogin bool // When enabled, a logged in User will be disconnected from service when another User logs in with the same name.
+	MaxConnections int // The maximum amount of concurrent connections the server will accept. Setting this to 0 means infinite.
 
 	UserRoomControl bool // Enables Users to create Rooms, invite/uninvite(AKA revoke) other Users to their owned private rooms, and destroy their owned rooms.
 	RoomDeleteOnLeave bool // When enabled, Rooms created by a User will be deleted when the owner leaves. WARNING: If disabled, you must remember to at some point delete the rooms created by Users, or they will pile up endlessly!
@@ -79,7 +81,7 @@ var (
 // for SSL/TLS, connection origin testing, Admin Tools, and more. It's highly recommended to look into
 // all ServerSettings options to tune the server for your desired functionality and security needs.
 func Start(s *ServerSettings, callback func()) error {
-	fmt.Println("Gopher Game Server v"+version);
+	fmt.Println(" _____             _               _____\n|  __ \\           | |             /  ___|\n| |  \\/ ___  _ __ | |__   ___ _ __\\ `--.  ___ _ ____   _____ _ __\n| | __ / _ \\| '_ \\| '_ \\ / _ \\ '__|`--. \\/ _ \\ '__\\ \\ / / _ \\ '__|\n| |_\\ \\ (_) | |_) | | | |  __/ |  /\\__/ /  __/ |   \\ V /  __/ |\n \\____/\\___/| .__/|_| |_|\\___|_|  \\____/ \\___|_|    \\_/ \\___|_|\n            | |\n            |_|                                      v"+version+"\n\n");
 	fmt.Println("Starting...");
 	//SET SERVER SETTINGS
 	if(s != nil){
@@ -103,6 +105,7 @@ func Start(s *ServerSettings, callback func()) error {
 
 					MultiConnect: false,
 					KickDupOnLogin: false,
+					MaxConnections: 0,
 
 					UserRoomControl: true,
 					RoomDeleteOnLeave: true,
@@ -127,23 +130,38 @@ func Start(s *ServerSettings, callback func()) error {
 	//SEED THE rand LIBRARY
 	rand.Seed(time.Now().UTC().UnixNano());
 
-	//UPDATE SETTINGS IN PACKAGES
+	//UPDATE SETTINGS IN users/rooms PACKAGES
 	users.SettingsSet((*settings).KickDupOnLogin, (*settings).ServerName, (*settings).RoomDeleteOnLeave);
 
 	//NOTIFY PACKAGES OF SERVER START
 	users.SetServerStarted(true);
 	rooms.SetServerStarted(true);
 	actions.SetServerStarted(true);
+	database.SetServerStarted(true);
+
+	//START UP DATABASE
+	if((*settings).EnableSqlFeatures){
+		dbErr := database.Init((*settings).SqlUser, (*settings).SqlPassword, (*settings).SqlDatabase,
+							(*settings).SqlProtocol, (*settings).SqlIP, (*settings).SqlPort);
+		if(dbErr != nil){
+			return dbErr;
+		}
+		fmt.Println("Initialized Database...")
+	}
 
 	//START HTTP/SOCKET LISTENER
 	if(settings.TLS){
 		http.HandleFunc("/wss", socketInitializer);
-		callback();
+		if(callback != nil){
+			callback();
+		}
 		err := http.ListenAndServeTLS(settings.IP+":"+strconv.Itoa(settings.Port), settings.CertFile, settings.PrivKeyFile, nil);
 		if(err != nil){ return err; }
 	}else{
 		http.HandleFunc("/ws", socketInitializer);
-		callback();
+		if(callback != nil){
+			callback();
+		}
 		err := http.ListenAndServe(settings.IP+":"+strconv.Itoa(settings.Port), nil);
 		if(err != nil){ return err; }
 	}

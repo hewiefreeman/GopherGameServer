@@ -1,4 +1,4 @@
-package sql
+package database
 
 import (
 	"database/sql"
@@ -11,9 +11,12 @@ var (
 	//DATABASE VARIABLES
 	database *sql.DB = nil;
 	databaseName string = "";
+
+	//
+	serverStarted bool = false
 )
 
-//TABLE NAMES
+//TABLE & COLUMN NAMES
 const (
 	tableUsers = "users"
 	tableFriends = "friends"
@@ -30,7 +33,7 @@ const (
 )
 
 // WARNING: This is only meant for internal Gopher Game Server mechanics. If you want to enable SQL authorization
-// and friending, use the options in ServerSetting.
+// and friending, use the EnableSqlFeatures and cooresponding options in ServerSetting.
 func Init(userName string, password string, dbName string, protocol string, ip string, port int) error {
 	if(len(userName) == 0){
 		 return errors.New("sql.Start() requires a user name");
@@ -59,4 +62,15 @@ func Init(userName string, password string, dbName string, protocol string, ip s
 
 	//
 	return nil;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//   SERVER STARTUP FUNCTIONS   ///////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// For Gopher Game Server internal mechanics.
+func SetServerStarted(val bool){
+	if(!serverStarted){
+		serverStarted = val;
+	}
 }
