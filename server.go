@@ -9,7 +9,6 @@ import (
 	"github.com/hewiefreeman/GopherGameServer/users"
 	"github.com/hewiefreeman/GopherGameServer/actions"
 	"github.com/hewiefreeman/GopherGameServer/database"
-	"math/rand"
 	"time"
 	"net/http"
 	"strconv"
@@ -22,15 +21,16 @@ import (
 ///////////         - "Remember Me" login key pairs
 ///////////         - (possibly at request) Database helpers for developers
 ///////////    - Multi-connect
-///////////	- User login/logout callbacks
+///////////	- ServerCallbacks
 ///////////    - SQLite Database:
-///////////    	- CRUD helpers
 ///////////    	- Save state on shut-down
-///////////         - Error handle server start-up and callback on true success
+///////////         - Error handle server start-up and callback on successful launch
+///////////         - Above will be used to determine whether to save the state or not. If the server didn't start correctly, the sate should not be saved.
 ///////////    - Add checks for required ServerSettings
 ///////////    - Admin tools
 
-// Core server settings for the Gopher Game Server
+// Core server settings for the Gopher Game Server. You must fill one of these out to customize
+// the server's functionality for your liking.
 type ServerSettings struct {
 	ServerName string // The server's name. Used for the server's ownership of private Rooms.
 
@@ -69,8 +69,33 @@ type ServerSettings struct {
 	AdminToolsPassword string // The password for the Admin Tools
 }
 
+// The ServerCallbacks provide you with a way of calling a function when a client does a basic action on the server.
+// Here hare some descriptions on the callbacks' parameters:
+//
+// 1) ClientConnect: This one is for the more advanced gophers out there, but you can get the websocket connection
+// and user agent http information from a connecting client. It returns a boolean, which will prevent the client from connecting
+// if returns false. This can be used to, for instance, make a white/black list.
+//
+// 2) Login: The `string` is the user name. The `int` is the database index of the user in the database, provided you're
+// using SQL features (otherwise it is -1). The map[string]interface{} are your AccountInfoColumns if you are using the SQL features (otherwise
+// it is nil).
+//
+// 3) Logout: The `string` is the user name. The `int` is the database index of the user in the database, provided you're
+// using SQL features (otherwise it is -1).
+//
+// 4) Signup: The `string` is the user name. The `int` is the database index of the user in the database, provided you're
+// using SQL features (otherwise it is -1). The map[string]interface{} are your AccountInfoColumns if you are using the database package (otherwise
+// it is nil).
+type ServerCallbacks struct {
+	ClientConnect func(*websocket.Conn, *user_agent.UserAgent)bool // Triggers when a client connects to the server
+	Login func(string,int,map[string]interface{}) // Triggers when a client logs in as a User
+	Logout func(string,int) // Triggers when a client logs out
+	Signup func(string,int,map[string]interface{}) // Triggers when a client signs up using the built-in SQL features
+}
+
 var (
 	settings *ServerSettings = nil
+	callbacks *ServerCallbacks = nil
 
 	//SERVER VERSION NUMBER
 	version string = "1.0 ALPHA"
@@ -126,9 +151,6 @@ func Start(s *ServerSettings, callback func()) error {
 					AdminToolsLogin: "admin",
 					AdminToolsPassword: "password" }
 	}
-
-	//SEED THE rand LIBRARY
-	rand.Seed(time.Now().UTC().UnixNano());
 
 	//UPDATE SETTINGS IN users/rooms PACKAGES
 	users.SettingsSet((*settings).KickDupOnLogin, (*settings).ServerName, (*settings).RoomDeleteOnLeave);
