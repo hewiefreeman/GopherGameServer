@@ -9,7 +9,7 @@ Gopher uses WebSockets and JSON to pass messages between the clients and the ser
 
 ### Main features:
 
- - Super easy APIs for server and client coding
+ - Super easy and flexible APIs for server and client coding
  - Chat, private messaging, and voice chat
  - Client authentication (MySQL or similar SQL database required*)
  - Friending (MySQL or similar SQL database required*)
