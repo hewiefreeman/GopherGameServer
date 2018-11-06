@@ -1,3 +1,7 @@
+// This package contains helpers for customizing your database with the SQL features enabled.
+// It mostly contains a bunch of mixed Gopher Server only functions and customizing methods.
+// It would probably be easier to take a look at the database usage section on the Github page
+// for the project before looking through here for more info.
 package database
 
 import (
@@ -34,13 +38,17 @@ const (
 
 // WARNING: This is only meant for internal Gopher Game Server mechanics. If you want to enable SQL authorization
 // and friending, use the EnableSqlFeatures and cooresponding options in ServerSetting.
-func Init(userName string, password string, dbName string, protocol string, ip string, port int) error {
+func Init(userName string, password string, dbName string, protocol string, ip string, port int, encryptCost int) error {
 	if(len(userName) == 0){
 		 return errors.New("sql.Start() requires a user name");
 	}else if(len(password) == 0){
 		 return errors.New("sql.Start() requires a password");
 	}else if(len(userName) == 0){
 		 return errors.New("sql.Start() requires a database name");
+	}
+
+	if(encryptCost != 0){
+		encryptionCost = encryptCost;
 	}
 
 	var err error;

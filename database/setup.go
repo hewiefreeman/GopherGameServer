@@ -15,7 +15,7 @@ func setUp() error {
 								usersColumnName+" VARCHAR(255) NOT NULL, "+
 								usersColumnPassword+" VARCHAR(255) NOT NULL, ";
 
-		//APPEND custom AccountInfoColumns
+		//APPEND custom AccountInfoColumn ITEMS
 		for key, val := range customAccountInfo {
 			createQuery = createQuery+key+" "+dataTypes[val.dataType];
 			if(isSizeDataType(val.dataType)){
@@ -51,7 +51,7 @@ func setUp() error {
 
 
 	}else{
-		//CHECK IF THERE ARE ANY NEW customAccountInfo ITEMS
+		//CHECK IF THERE ARE ANY NEW custom AccountInfoColumn ITEMS
 		query := "ALTER TABLE "+tableUsers+" ";
 		var execQuery bool = false;
 		//
@@ -63,7 +63,7 @@ func setUp() error {
 			checkRows.Next();
 			_, colsErr := checkRows.Columns();
 			if(colsErr != nil){
-				//THIS customAccountInfo COLUMN DOES NOT EXIST... YET.
+				//THIS customAccountInfo COLUMN DOES NOT EXIST... YET, MY NERD.
 				query = query+"ADD COLUMN "+key+" "+dataTypes[val.dataType]+"("+strconv.Itoa(val.maxSize)+"), ";
 				execQuery = true;
 			}

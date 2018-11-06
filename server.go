@@ -59,6 +59,7 @@ type ServerSettings struct {
 	SqlUser string // SQL user name
 	SqlPassword string // SQL user password
 	SqlDatabase string // SQL database name
+	EncryptionCost int // The amount of encryption iterations the server will run when storing and checking passwords. The higher the number, the longer encryptions take, but are more secure. Default is 32.
 
 	EnableRecovery bool // Enables the recovery of all Rooms, their settings, and their variables on start-up after terminating the server.
 	RecoveryLocation string // The folder location (starting from system's root folder) where you would like to store the recovery data.
@@ -164,7 +165,7 @@ func Start(s *ServerSettings, callback func()) error {
 	//START UP DATABASE
 	if((*settings).EnableSqlFeatures){
 		dbErr := database.Init((*settings).SqlUser, (*settings).SqlPassword, (*settings).SqlDatabase,
-							(*settings).SqlProtocol, (*settings).SqlIP, (*settings).SqlPort);
+							(*settings).SqlProtocol, (*settings).SqlIP, (*settings).SqlPort, (*settings).EncryptionCost);
 		if(dbErr != nil){
 			return dbErr;
 		}
