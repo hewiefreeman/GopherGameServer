@@ -47,6 +47,8 @@ Installing the dependencies:
 
 [Package actions](https://godoc.org/github.com/hewiefreeman/GopherGameServer/actions) - Package for making custom client actions
 
+[Package database](https://godoc.org/github.com/hewiefreeman/GopherGameServer/database) - Package for customizing your database
+
 # Usage
 
 (Coming soon...)
