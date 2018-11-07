@@ -12,16 +12,23 @@ func setUp() error {
 		//MAKE THE users TABLE QUERY
 		createQuery := "CREATE TABLE "+tableUsers+" ("+
 								usersColumnID+" INTEGER NOT NULL AUTO_INCREMENT, "+
-								usersColumnName+" VARCHAR(255) NOT NULL, "+
+								usersColumnName+" VARCHAR(255) UNIQUE NOT NULL, "+
 								usersColumnPassword+" VARCHAR(255) NOT NULL, ";
 
 		//APPEND custom AccountInfoColumn ITEMS
 		for key, val := range customAccountInfo {
 			createQuery = createQuery+key+" "+dataTypes[val.dataType];
+			//CHECK IF NEEDS maxSize/precision
 			if(isSizeDataType(val.dataType)){
-				createQuery = createQuery+"("+strconv.Itoa(val.maxSize)+"), ";
+				createQuery = createQuery+"("+strconv.Itoa(val.maxSize)+")";
 			}else if(isPrecisionDataType(val.dataType)){
-				createQuery = createQuery+"("+strconv.Itoa(val.maxSize)+", "+strconv.Itoa(val.precision)+"), ";
+				createQuery = createQuery+"("+strconv.Itoa(val.maxSize)+", "+strconv.Itoa(val.precision)+")";
+			}
+			//CHECK IF UNIQUE
+			if(val.unique){
+				createQuery = createQuery+" UNIQUE, ";
+			}else{
+				createQuery = createQuery+", ";
 			}
 		}
 
@@ -50,7 +57,6 @@ func setUp() error {
 								");");
 		if(friendsErr != nil){ return friendsErr; }
 
-
 	}else{
 		//CHECK IF THERE ARE ANY NEW custom AccountInfoColumn ITEMS
 		query := "ALTER TABLE "+tableUsers+" ";
@@ -67,9 +73,15 @@ func setUp() error {
 				//THIS customAccountInfo COLUMN DOES NOT EXIST... YET, MY NERD.
 				query = query+"ADD COLUMN "+key+" "+dataTypes[val.dataType];
 				if(isSizeDataType(val.dataType)){
-					query = query+"("+strconv.Itoa(val.maxSize)+"), ";
+					query = query+"("+strconv.Itoa(val.maxSize)+")";
 				}else if(isPrecisionDataType(val.dataType)){
-					query = query+"("+strconv.Itoa(val.maxSize)+", "+strconv.Itoa(val.precision)+"), ";
+					query = query+"("+strconv.Itoa(val.maxSize)+", "+strconv.Itoa(val.precision)+")";
+				}
+				//CHECK IF UNIQUE
+				if(val.unique){
+					query = query+" UNIQUE, ";
+				}else{
+					query = query+", ";
 				}
 				execQuery = true;
 			}

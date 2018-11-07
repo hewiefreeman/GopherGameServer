@@ -8,10 +8,13 @@ import(
 )
 
 // An AccountInfoColumn is the representation of an extra column on the users table that you can define. You can define as many
-// as you want. The client APIs take in an optional parameter when signing up a client that you use
-// to set your AccountInfoColumn(s). When a client logs in, the server callback will provide you with a
-// map[string]interface{} of your AccountInfoColumn(s) where the key is the name of the column and the
-// interface is the data retrieved from the column.
+// as you want. These work with the ServerCallbacks and client APIs to provide you with information on data retrieved from
+// the database when the cooresponding callback is triggered.
+//
+// You can make an AccountInfoColumn unique, which means when someone tries to update or insert into a unique column, the server
+// will first check if any other row has that same value in that unique column. If a unique column cannot be updated because another
+// row has the same value, an error will be sent back to the client. Keep in mind, this is an expensive task and should be used lightly,
+// mainly for extra authentication.
 type AccountInfoColumn struct {
 	dataType int
 	maxSize int
@@ -151,7 +154,7 @@ var (
 )
 
 // Use this to make a new AccountInfoColumn. You can only make new AccountInfoColumns before starting the server.
-func NewAccountInfoColumn(name string, dataType int, maxSize int, precision int) error {
+func NewAccountInfoColumn(name string, dataType int, maxSize int, precision int, unique bool) error {
 	if(serverStarted){
 		return errors.New("You can't make a new AccountInfoColumn after the server has started");
 	}else if(len(name) == 0){
@@ -168,7 +171,7 @@ func NewAccountInfoColumn(name string, dataType int, maxSize int, precision int)
 		return errors.New("The data type '"+dataTypesSize[dataType]+"' requires a max size and precision");
 	}
 
-	customAccountInfo[name] = AccountInfoColumn{dataType: dataType, maxSize: maxSize, precision: precision};
+	customAccountInfo[name] = AccountInfoColumn{dataType: dataType, maxSize: maxSize, precision: precision, unique: unique};
 
 	//
 	return nil;

@@ -17,8 +17,7 @@ import (
 
 /////////// TO DOs:
 ///////////    - SQL Authentication:
-///////////    	- Make AccountInfoColumns able to be "unique" - meaning check on signup and update if there isn't already a user with that same custom column's data
-///////////         - "Remember Me" login key pairs
+///////////    	- "Remember Me" login key pairs
 ///////////         - Custom Login
 ///////////    - Multi-connect
 ///////////	- ServerCallbacks
@@ -60,6 +59,7 @@ type ServerSettings struct {
 	SqlPassword string // SQL user password
 	SqlDatabase string // SQL database name
 	EncryptionCost int // The amount of encryption iterations the server will run when storing and checking passwords. The higher the number, the longer encryptions take, but are more secure. Default is 32.
+	CustomLogin bool // When true, the authentication uses the CustomLoginClient function instead of the normal LoginClient.
 	RememberMe bool // Enables the "remember me" login feature.
 
 	EnableRecovery bool // Enables the recovery of all Rooms, their settings, and their variables on start-up after terminating the server.

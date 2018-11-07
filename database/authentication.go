@@ -4,7 +4,7 @@ import(
 	"errors"
 	"strconv"
 	"github.com/hewiefreeman/GopherGameServer/helpers"
-	//"fmt"
+	"fmt"
 )
 
 var(
@@ -25,18 +25,6 @@ func SignUpClient(userName string, password string, customCols map[string]interf
 	}else if(checkStringSQLInjection(userName)){
 		return errors.New("Malicious characters detected");
 	}
-
-	//CHECK IF USERNAME IS NOT TAKEN
-	checkRows, err := database.Query("Select "+usersColumnName+" FROM "+tableUsers+" WHERE "+usersColumnName+"='"+userName+"';");
-	if(err != nil){ return err; }
-	//
-	checkRows.Next();
-	_, colsErr := checkRows.Columns();
-	if(colsErr == nil){
-		checkRows.Close();
-		return errors.New("User name is taken");
-	}
-	checkRows.Close();
 
 	// CHECK FOR VALID COLUMNS IN customCols - ALSO PREVENTS INJECTIONS IN KEYS
 	if(customCols != nil){
@@ -129,7 +117,7 @@ func LoginClient(userName string, password string, customCols map[string]interfa
 			vals = append(vals, new(interface{}));
 		}
 	}
-	selectQuery = selectQuery[0:len(selectQuery)-2]+" FROM "+tableUsers+" WHERE "+usersColumnName+"='"+userName+"';";
+	selectQuery = selectQuery[0:len(selectQuery)-2]+" FROM "+tableUsers+" WHERE "+usersColumnName+"=\""+userName+"\";";
 
 	//EXECUTE SELECT QUERY
 	checkRows, err := database.Query(selectQuery);
@@ -138,7 +126,7 @@ func LoginClient(userName string, password string, customCols map[string]interfa
 	checkRows.Next();
 	if scanErr := checkRows.Scan(vals...); scanErr != nil {
 		checkRows.Close();
-		return errors.New("User name or password is incorrect");
+		return errors.New("Login or password is incorrect");
 	}
 	checkRows.Close();
 
@@ -148,8 +136,82 @@ func LoginClient(userName string, password string, customCols map[string]interfa
 
 	//COMPARE HASHED PASSWORDS
 	if(!helpers.CheckPasswordHash(password, dbPass.([]byte))){
-		return errors.New("User name or password is incorrect");
+		return errors.New("Login or password is incorrect");
 	}
+
+	//
+	return nil;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+//   CUSTOM LOGIN CLIENT   ///////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// WARNING: This is only meant for internal Gopher Game Server mechanics. Use the client APIs to log in a
+// client when using the SQL features.
+func CustomLoginClient(password string, customCols map[string]interface{}) error {
+	if(len(password) == 0){
+		return errors.New("A password is required to log in");
+	}
+
+	// CHECK FOR VALID COLUMNS IN customCols - ALSO PREVENTS INJECTIONS IN KEYS
+	if(customCols != nil){
+		if(len(customCols) == 0){
+			return errors.New("Custom data is required to log in");
+		}
+		for key, val := range customCols {
+			if info, ok := customAccountInfo[key]; !ok {
+				return errors.New("Incorrect data supplied!");
+			}else{
+				_, err := convertDataToString(dataTypes[info.dataType], val);
+				if(err != nil){ return err; }
+			}
+		}
+	}else{
+		return errors.New("Custom data is required to log in");
+	}
+
+	//FIRST THREE ARE id, userName, password IN THAT ORDER
+	var vals []interface{} = []interface{}{new(interface{}), new(interface{}), new(interface{})};
+	var customKeys []string = []string{};
+
+	//CONSTRUCT SELECT QUERY
+	selectQuery := "Select "+usersColumnID+", "+usersColumnName+", "+usersColumnPassword+", ";
+	for key, _ := range customCols {
+		selectQuery = selectQuery+key+", ";
+		//MAINTAIN THE ORDER IN WHICH THE COLUMNS WERE DECLARED VIA A SLICE
+		vals = append(vals, new(interface{}));
+		customKeys = append(customKeys, key);
+	}
+	selectQuery = selectQuery[0:len(selectQuery)-2]+" FROM "+tableUsers+" WHERE "+customKeys[0]+"=";
+	if(dataTypeNeedsQuotes(customAccountInfo[customKeys[0]].dataType)){
+		selectQuery = selectQuery+"\""+customCols[customKeys[0]].(string)+"\";";
+	}else{
+		selectQuery = selectQuery+customCols[customKeys[0]].(string)+";";
+	}
+
+
+	//EXECUTE SELECT QUERY
+	checkRows, err := database.Query(selectQuery);
+	if(err != nil){ return err; }
+	//
+	checkRows.Next();
+	if scanErr := checkRows.Scan(vals...); scanErr != nil {
+		checkRows.Close();
+		return errors.New("Login or password is incorrect");
+	}
+	checkRows.Close();
+
+	//
+	//dbIndex := *(vals[0]).(*int); // USE FOR SERVER CALLBACK & MAKE DATABASE RESPONSE MAP
+	dbPass := *(vals[2]).(*interface{});
+
+	//COMPARE HASHED PASSWORDS
+	if(!helpers.CheckPasswordHash(password, dbPass.([]byte))){
+		return errors.New("Login or password is incorrect");
+	}
+
+	fmt.Println("logging in as:", string((*(vals[1]).(*interface{})).([]byte)));
 
 	//
 	return nil;
@@ -172,8 +234,8 @@ func ChangePassword(userName string, password string, customCols map[string]inte
 
 	// CHECK FOR VALID COLUMNS IN customCols - ALSO PREVENTS INJECTIONS IN KEYS
 	if(customCols != nil){
-		for key, val := range customCols {
-			if info, ok := customAccountInfo[key]; !ok {
+		for key, _ := range customCols {
+			if _, ok := customAccountInfo[key]; !ok {
 				return errors.New("Incorrect data supplied!");
 			}
 		}
@@ -195,7 +257,7 @@ func ChangePassword(userName string, password string, customCols map[string]inte
 			valsList = append(valsList, []interface{}{val, customAccountInfo[key].dataType, key});
 		}
 	}
-	selectQuery = selectQuery[0:len(selectQuery)-2]+" FROM "+tableUsers+" WHERE "+usersColumnName+"='"+userName+"';";
+	selectQuery = selectQuery[0:len(selectQuery)-2]+" FROM "+tableUsers+" WHERE "+usersColumnName+"=\""+userName+"\";";
 
 	//EXECUTE SELECT QUERY
 	checkRows, err := database.Query(selectQuery);
@@ -218,7 +280,7 @@ func ChangePassword(userName string, password string, customCols map[string]inte
 	}
 
 	//UPDATE THE PASSWORD
-	_, updateErr := database.Exec("UPDATE "+tableUsers+" SET "+usersColumnPassword+" WHERE "+usersColumnID+"="+strconv.Itoa(dbIndex)+";");
+	_, updateErr := database.Exec("UPDATE "+tableUsers+" SET "+usersColumnPassword+" WHERE "+usersColumnID+"="+strconv.Itoa(dbIndex.(int))+";");
 	if(updateErr != nil){ return updateErr; }
 
 	//
@@ -271,7 +333,7 @@ func ChangeAccountInfo(userName string, password string, customCols map[string]i
 		vals = append(vals, new(interface{}));
 		valsList = append(valsList, []interface{}{val, customAccountInfo[key].dataType, key});
 	}
-	selectQuery = selectQuery[0:len(selectQuery)-2]+" FROM "+tableUsers+" WHERE "+usersColumnName+"='"+userName+"';";
+	selectQuery = selectQuery[0:len(selectQuery)-2]+" FROM "+tableUsers+" WHERE "+usersColumnName+"=\""+userName+"\";";
 
 	//EXECUTE SELECT QUERY
 	checkRows, err := database.Query(selectQuery);
@@ -304,12 +366,12 @@ func ChangeAccountInfo(userName string, password string, customCols map[string]i
 		if(valueErr != nil){ return valueErr; }
 		//CHECK IF DATA TYPE NEEDS QUOTES
 		if(dataTypeNeedsQuotes(dt)){
-			queryPart2 = queryPart2+valsList[i].([]interface{})[2].(string)+"=\""+value+"\", ";
+			updateQuery = updateQuery+valsList[i].([]interface{})[2].(string)+"=\""+value+"\", ";
 		}else{
-			queryPart2 = queryPart2+valsList[i].([]interface{})[2].(string)+"="+value+", ";
+			updateQuery = updateQuery+valsList[i].([]interface{})[2].(string)+"="+value+", ";
 		}
 	}
-	updateQuery = updateQuery[0:len(updateQuery)-2]+" WHERE "+usersColumnID+"="+strconv.Itoa(dbIndex)+";";
+	updateQuery = updateQuery[0:len(updateQuery)-2]+" WHERE "+usersColumnID+"="+strconv.Itoa(dbIndex.(int))+";";
 
 	//EXECUTE THE UPDATE QUERY
 	_, updateErr := database.Exec(updateQuery);
@@ -358,7 +420,7 @@ func DeleteAccount(userName string, password string, customCols map[string]inter
 			vals = append(vals, new(interface{}));
 		}
 	}
-	selectQuery = selectQuery[0:len(selectQuery)-2]+" FROM "+tableUsers+" WHERE "+usersColumnName+"='"+userName+"';";
+	selectQuery = selectQuery[0:len(selectQuery)-2]+" FROM "+tableUsers+" WHERE "+usersColumnName+"=\""+userName+"\";";
 
 	//EXECUTE SELECT QUERY
 	checkRows, err := database.Query(selectQuery);
