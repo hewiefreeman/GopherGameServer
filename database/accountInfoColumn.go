@@ -16,6 +16,7 @@ type AccountInfoColumn struct {
 	dataType int
 	maxSize int
 	precision int
+	unique bool
 }
 
 var(

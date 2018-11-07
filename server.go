@@ -17,9 +17,9 @@ import (
 
 /////////// TO DOs:
 ///////////    - SQL Authentication:
-///////////    	- SQL Authentication
 ///////////    	- Make AccountInfoColumns able to be "unique" - meaning check on signup and update if there isn't already a user with that same custom column's data
 ///////////         - "Remember Me" login key pairs
+///////////         - Custom Login
 ///////////    - Multi-connect
 ///////////	- ServerCallbacks
 ///////////    - SQLite Database:
@@ -60,6 +60,7 @@ type ServerSettings struct {
 	SqlPassword string // SQL user password
 	SqlDatabase string // SQL database name
 	EncryptionCost int // The amount of encryption iterations the server will run when storing and checking passwords. The higher the number, the longer encryptions take, but are more secure. Default is 32.
+	RememberMe bool // Enables the "remember me" login feature.
 
 	EnableRecovery bool // Enables the recovery of all Rooms, their settings, and their variables on start-up after terminating the server.
 	RecoveryLocation string // The folder location (starting from system's root folder) where you would like to store the recovery data.
@@ -73,16 +74,15 @@ type ServerSettings struct {
 // The ServerCallbacks provide you with a way of calling a function when a client does a basic action on the server.
 // Here hare some descriptions on the callbacks' parameters:
 //
-// 1) ClientConnect: This one is for the more advanced gophers out there, but you can get the websocket connection
-// and user agent http information from a connecting client. It returns a boolean, which will prevent the client from connecting
-// if it returns false. This can be used to, for instance, make a white/black list.
+// 1) ClientConnect: You can get the websocket connection and user agent http information from a connecting client. It returns a
+// boolean, which will prevent the client from connecting if it returns false. This can be used to, for instance, make a white/black list.
 //
 // 2) Login: The `string` is the user name. The `int` is the database index of the user in the database, provided you're
 // using SQL features (otherwise it is -1). The first map[string]interface{} are your AccountInfoColumns retrieved from the server
 // if you are using the SQL features (otherwise it is nil). The second map[string]interface{} are the client's input from the client API
 // that made the first map retrieve items from the database. You can use these maps to compare the client's input against the result columns from
 // the database. Ex: the client API sends a map that has the key 'email' with the email address attached as the value. The database
-// will retrieve the column 'email' from the users table, and insert the result into the first map. Then you could for instance check if
+// will retrieve the column 'email' from the users table, and put the result into the first map. Then you could for instance check if
 // the emails match. The Login callback returns a boolean, which will prevent the client from logging in if it returns false, so you could
 // use this with the email example to prevent a user from logging in without a correct email attached to that user's account.
 //
@@ -92,11 +92,35 @@ type ServerSettings struct {
 // 4) Signup: The `string` is the user name. The `int` is the database index of the user in the database, provided you're
 // using SQL features (otherwise it is -1). The map[string]interface{} are your AccountInfoColumns if you are using the database package (otherwise
 // it is nil). It returns a boolean, which will prevent the client from signing up if it returns false.
+//
+// 5) DeleteAccount: The `string` is the user name. The `int` is the database index of the user in the database, provided you're
+// using SQL features (otherwise it is -1). The first map[string]interface{} are your AccountInfoColumns retrieved from the server
+// if you are using the SQL features (otherwise it is nil). The second map[string]interface{} are the client's input from the client API
+// that made the first map retrieve items from the database. You can use these maps to compare the client's input against the result columns from
+// the database. Ex: the client API sends a map that has the key 'email' with the email address attached as the value. The database
+// will retrieve the column 'email' from the users table, and put the result into the first map. Then you could for instance check if
+// the emails match. The DeleteAccount callback returns a boolean, which will prevent the client from deleting the account if it returns false, so you could
+// use this with the email example to prevent a user from deleting an account without a correct email attached to that user's account.
+//
+// 5) AccountInfoChange: The `string` is the user name. The `int` is the database index of the user in the database, provided you're
+// using SQL features (otherwise it is -1). The first map[string]interface{} are your AccountInfoColumns retrieved from the server
+// if you are using the SQL features (otherwise it is nil). The second map[string]interface{} are the client's input from the client API
+// that made the first map retrieve items from the database. You can use these maps to compare the client's input against the result columns from
+// the database. Works exactly the same as the DeleteAccount callback, but updates a row instead (of course).
+//
+// 5) PasswordChange: The `string` is the user name. The `int` is the database index of the user in the database, provided you're
+// using SQL features (otherwise it is -1). The first map[string]interface{} are your AccountInfoColumns retrieved from the server
+// if you are using the SQL features (otherwise it is nil). The second map[string]interface{} are the client's input from the client API
+// that made the first map retrieve items from the database. You can use these maps to compare the client's input against the result columns from
+// the database. Works exactly the same as the DeleteAccount callback, but updates only the password in a row (of course).
 type ServerCallbacks struct {
-	ClientConnect func(*websocket.Conn, *user_agent.UserAgent)bool // Triggers when a client connects to the server
-	Login func(string,int,map[string]interface{},map[string]interface{})bool // Triggers when a client logs in as a User
+	ClientConnect func(*websocket.Conn, *user_agent.UserAgent)bool // Triggers when a client tries to connect to the server
+	Login func(string,int,map[string]interface{},map[string]interface{})bool // Triggers when a client tries to log in as a User
 	Logout func(string,int) // Triggers when a client logs out
-	Signup func(string,int,map[string]interface{})bool // Triggers when a client signs up using the built-in SQL features
+	Signup func(string,int,map[string]interface{})bool // Triggers when a client tries to sign up using the built-in SQL features
+	DeleteAccount func(string,int,map[string]interface{},map[string]interface{})bool // Triggers when a client tries to delete an account using the built-in SQL features
+	AccountInfoChange func(string,int,map[string]interface{},map[string]interface{})bool // Triggers when a client tries to change an AccountInfoColumn for an account
+	PasswordChange func(string,int,map[string]interface{},map[string]interface{})bool // Triggers when a client tries to change the password for an account
 }
 
 var (
@@ -148,6 +172,8 @@ func Start(s *ServerSettings, callback func()) error {
 					SqlUser: "user",
 					SqlPassword: "password",
 					SqlDatabase: "database",
+					EncryptionCost: 32,
+					RememberMe: false,
 
 					EnableRecovery: false,
 					RecoveryLocation: "C:/",
@@ -158,7 +184,7 @@ func Start(s *ServerSettings, callback func()) error {
 					AdminToolsPassword: "password" }
 	}
 
-	//UPDATE SETTINGS IN users/rooms PACKAGES
+	//UPDATE SETTINGS IN users PACKAGE, THEN users WILL UPDATE SETTINGS FOR rooms PACKAGE
 	users.SettingsSet((*settings).KickDupOnLogin, (*settings).ServerName, (*settings).RoomDeleteOnLeave);
 
 	//NOTIFY PACKAGES OF SERVER START

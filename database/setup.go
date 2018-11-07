@@ -19,11 +19,10 @@ func setUp() error {
 		for key, val := range customAccountInfo {
 			createQuery = createQuery+key+" "+dataTypes[val.dataType];
 			if(isSizeDataType(val.dataType)){
-				createQuery = createQuery+"("+strconv.Itoa(val.maxSize)+")";
+				createQuery = createQuery+"("+strconv.Itoa(val.maxSize)+"), ";
 			}else if(isPrecisionDataType(val.dataType)){
-				createQuery = createQuery+"("+strconv.Itoa(val.maxSize)+", "+strconv.Itoa(val.precision)+")";
+				createQuery = createQuery+"("+strconv.Itoa(val.maxSize)+", "+strconv.Itoa(val.precision)+"), ";
 			}
-			createQuery = createQuery+", ";
 		}
 
 		createQuery = createQuery+"PRIMARY KEY ("+usersColumnID+"));";
@@ -66,7 +65,12 @@ func setUp() error {
 			_, colsErr := checkRows.Columns();
 			if(colsErr != nil){
 				//THIS customAccountInfo COLUMN DOES NOT EXIST... YET, MY NERD.
-				query = query+"ADD COLUMN "+key+" "+dataTypes[val.dataType]+"("+strconv.Itoa(val.maxSize)+"), ";
+				query = query+"ADD COLUMN "+key+" "+dataTypes[val.dataType];
+				if(isSizeDataType(val.dataType)){
+					query = query+"("+strconv.Itoa(val.maxSize)+"), ";
+				}else if(isPrecisionDataType(val.dataType)){
+					query = query+"("+strconv.Itoa(val.maxSize)+", "+strconv.Itoa(val.precision)+"), ";
+				}
 				execQuery = true;
 			}
 			checkRows.Close();
