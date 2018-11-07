@@ -3,6 +3,7 @@ package database
 import(
 	"errors"
 	"strconv"
+	"strings"
 	"fmt"
 )
 
@@ -14,6 +15,7 @@ import(
 type AccountInfoColumn struct {
 	dataType int
 	maxSize int
+	precision int
 }
 
 var(
@@ -22,17 +24,17 @@ var(
 
 // MySQL database data types. Use one of these when making a new AccountInfoColumn or
 // CustomTable's columns. The parentheses next to a type indicate it requires a maximum
-// size when making a column of that type.
+// size when making a column of that type. Two pairs of parentheses means it requires a
+// decimal precision number as well a max size.
 const (
 	//NUMERIC TYPES
 	DataTypeTinyInt = iota // TINYINT()
 	DataTypeSmallInt // SMALLINT()
-	DataTypeReal // REAL
 	DataTypeMediumInt // MEDIUMINT()
 	DataTypeInt // INT()
-	DataTypeFloat // FLOAT
-	DataTypeDouble // DOUBLE
-	DataTypeDecimal // DECIMAL
+	DataTypeFloat // FLOAT()()
+	DataTypeDouble // DOUBLE()()
+	DataTypeDecimal // DECIMAL()()
 	DataTypeBigInt // BIGINT()
 
 	//CHARACTER TYPES
@@ -91,6 +93,12 @@ var (
 					"ENUM",
 					"SET"}
 
+	//DATA TYPES THAT REQUIRE A SIZE AND PRECISION
+	dataTypesPrecision []string = []string{
+					"FLOAT",
+					"DOUBLE",
+					"DECIMAL"}
+
 	//DATA TYPES THAT REQUIRE QUOTES
 	dataTypesQuotes []string = []string{
 					"CHAR",
@@ -111,7 +119,6 @@ var (
 	dataTypes []string = []string{
 					"TINYINT",
 					"SMALLINT",
-					"REAL",
 					"MEDIUMINT",
 					"INT",
 					"FLOAT",
@@ -143,20 +150,24 @@ var (
 )
 
 // Use this to make a new AccountInfoColumn. You can only make new AccountInfoColumns before starting the server.
-func NewAccountInfoColumn(name string, dataType int, maxSize int) error {
+func NewAccountInfoColumn(name string, dataType int, maxSize int, precision int) error {
 	if(serverStarted){
 		return errors.New("You can't make a new AccountInfoColumn after the server has started");
 	}else if(len(name) == 0){
 		return errors.New("database.NewAccountInfoColumn() requires a name");
 	}else if(dataType < 0 || dataType > len(dataTypes)-1){
 		return errors.New("Incorrect data type");
+	}else if(checkStringSQLInjection(name)){
+		return errors.New("Malicious characters detected");
 	}
 
 	if(isSizeDataType(dataType) && maxSize == 0){
 		return errors.New("The data type '"+dataTypesSize[dataType]+"' requires a max size");
+	}else if(isPrecisionDataType(dataType) && (maxSize == 0 || precision == 0)){
+		return errors.New("The data type '"+dataTypesSize[dataType]+"' requires a max size and precision");
 	}
 
-	customAccountInfo[name] = AccountInfoColumn{dataType: dataType, maxSize: maxSize};
+	customAccountInfo[name] = AccountInfoColumn{dataType: dataType, maxSize: maxSize, precision: precision};
 
 	//
 	return nil;
@@ -166,6 +177,16 @@ func NewAccountInfoColumn(name string, dataType int, maxSize int) error {
 func isSizeDataType(dataType int) bool {
 	for i := 0; i < len(dataTypesSize); i++ {
 		if(dataTypes[dataType] == dataTypesSize[i]){
+			return true;
+		}
+	}
+	return false;
+}
+
+//CHECKS IF THE DATA TYPE REQUIRES A MAX SIZE
+func isPrecisionDataType(dataType int) bool {
+	for i := 0; i < len(dataTypesPrecision); i++ {
+		if(dataTypes[dataType] == dataTypesPrecision[i]){
 			return true;
 		}
 	}
@@ -208,10 +229,17 @@ func convertDataToString(dataType string, data interface{}) (string, error) {
 						dataType != "TINYTEXT" && dataType != "MEDIUMTEXT" && dataType != "LONGTEXT" && dataType != "DATE" &&
 						dataType != "DATETIME" && dataType != "TIME" && dataType != "TIMESTAMP" && dataType != "YEAR"){
 				return "", errors.New("Mismatched data types");
+			}else if(checkStringSQLInjection(data.(string))){
+				return "", errors.New("Malicious characters detected");
 			}
 			return data.(string), nil;
 
 		default:
 			return "", errors.New("Data type provided isn't supported yet. You can open a ticket at Gopher Game Server's project on GitHub to request SQL support for a data type.");
 	}
+}
+
+func checkStringSQLInjection(inputStr string) bool {
+	return (strings.Contains(inputStr, "\"") || strings.Contains(inputStr, "'") || strings.Contains(inputStr, ")") ||
+			strings.Contains(inputStr, "(") || strings.Contains(inputStr, ",") || strings.Contains(inputStr, "="));
 }

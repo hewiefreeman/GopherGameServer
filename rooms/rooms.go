@@ -137,7 +137,7 @@ func newRoom(p []interface{}) []interface{} {
 //   DELETE A ROOM   //////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// Deletes the Room the the server. Will also send a room leave message to all the Users in the Room that you can
+// Deletes the Room from the server. Will also send a room leave message to all the Users in the Room that you can
 // capture with the client APIs.
 func (r *Room) Delete() error {
 	//CONSUME THIS CHANNEL AND SET THE ROOM'S usersMap TO nil TO MAKE SURE NO MORE USERS ENTER

@@ -18,8 +18,8 @@ import (
 /////////// TO DOs:
 ///////////    - SQL Authentication:
 ///////////    	- SQL Authentication
+///////////    	- Make AccountInfoColumns able to be "unique" - meaning check on signup and update if there isn't already a user with that same custom column's data
 ///////////         - "Remember Me" login key pairs
-///////////         - (possibly at request) Database helpers for developers
 ///////////    - Multi-connect
 ///////////	- ServerCallbacks
 ///////////    - SQLite Database:
@@ -75,23 +75,28 @@ type ServerSettings struct {
 //
 // 1) ClientConnect: This one is for the more advanced gophers out there, but you can get the websocket connection
 // and user agent http information from a connecting client. It returns a boolean, which will prevent the client from connecting
-// if returns false. This can be used to, for instance, make a white/black list.
+// if it returns false. This can be used to, for instance, make a white/black list.
 //
 // 2) Login: The `string` is the user name. The `int` is the database index of the user in the database, provided you're
-// using SQL features (otherwise it is -1). The map[string]interface{} are your AccountInfoColumns if you are using the SQL features (otherwise
-// it is nil).
+// using SQL features (otherwise it is -1). The first map[string]interface{} are your AccountInfoColumns retrieved from the server
+// if you are using the SQL features (otherwise it is nil). The second map[string]interface{} are the client's input from the client API
+// that made the first map retrieve items from the database. You can use these maps to compare the client's input against the result columns from
+// the database. Ex: the client API sends a map that has the key 'email' with the email address attached as the value. The database
+// will retrieve the column 'email' from the users table, and insert the result into the first map. Then you could for instance check if
+// the emails match. The Login callback returns a boolean, which will prevent the client from logging in if it returns false, so you could
+// use this with the email example to prevent a user from logging in without a correct email attached to that user's account.
 //
 // 3) Logout: The `string` is the user name. The `int` is the database index of the user in the database, provided you're
 // using SQL features (otherwise it is -1).
 //
 // 4) Signup: The `string` is the user name. The `int` is the database index of the user in the database, provided you're
 // using SQL features (otherwise it is -1). The map[string]interface{} are your AccountInfoColumns if you are using the database package (otherwise
-// it is nil).
+// it is nil). It returns a boolean, which will prevent the client from signing up if it returns false.
 type ServerCallbacks struct {
 	ClientConnect func(*websocket.Conn, *user_agent.UserAgent)bool // Triggers when a client connects to the server
-	Login func(string,int,map[string]interface{}) // Triggers when a client logs in as a User
+	Login func(string,int,map[string]interface{},map[string]interface{})bool // Triggers when a client logs in as a User
 	Logout func(string,int) // Triggers when a client logs out
-	Signup func(string,int,map[string]interface{}) // Triggers when a client signs up using the built-in SQL features
+	Signup func(string,int,map[string]interface{})bool // Triggers when a client signs up using the built-in SQL features
 }
 
 var (

@@ -20,6 +20,8 @@ func setUp() error {
 			createQuery = createQuery+key+" "+dataTypes[val.dataType];
 			if(isSizeDataType(val.dataType)){
 				createQuery = createQuery+"("+strconv.Itoa(val.maxSize)+")";
+			}else if(isPrecisionDataType(val.dataType)){
+				createQuery = createQuery+"("+strconv.Itoa(val.maxSize)+", "+strconv.Itoa(val.precision)+")";
 			}
 			createQuery = createQuery+", ";
 		}
