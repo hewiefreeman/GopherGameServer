@@ -1,5 +1,5 @@
 # <div style="height:100px;line-height:100px;text-align:center;vertical-align:center;"><img src="https://github.com/hewiefreeman/GopherGameServer/blob/master/Server%20Gopher.png" width="100px" height="100px">Gopher Game Server</div>
-Gopher Game Server is a full-featured game server written in Go. Also comes with a client API for JavaScript (and eventually Java, C++, and C)
+Gopher Game Server is a full-featured game server written in Go. Comes with a client API for JavaScript as well (and eventually Java, C++, and C)
 
 -**PROJECT IN DEVELOPMENT**-
 
@@ -7,9 +7,11 @@ Gopher's aim is to provide all the tools necessary to make any type of online ga
 
 Gopher uses WebSockets and JSON to pass messages between the clients and the server. JSON enabled the server to be designed to let you pass any data type from client to server (or vice versa) without the need to worry about type conversions on either end. WebSockets makes the server as efficient as possible on the network, since the WebSocket protocol is newer and doesn't send nearly as much header and meta data that HTTP and most other protocols require.
 
+Gopher also has a built-in MySQL client authentication mechanism that manages your users' accounts for you. It even ties in a friending tool, so your users can befriend and invite one another to groups, check each other's status, and more. All easily configurable and customizable for your project's needs.
+
 ### Main features:
 
- - Super easy and flexible APIs for server and client coding
+ - Super easy and flexible APIs for server, database, and client coding
  - Chat, private messaging, and voice chat
  - Client authentication (MySQL or similar SQL database required*)
  - Friending (MySQL or similar SQL database required*)
