@@ -26,6 +26,8 @@ Gopher uses WebSockets and JSON to pass messages between the clients and the ser
 The Java, C++, and C (possibly more with some help) client APIs will be made after completing version 1.0 and the JavaScript client API.
 
 # Installing
+Gopher Game Server requires at least **Go v1.8+**, and **MySQL v5.7+** for the authentication and friending features.
+
 Installing the server:
      
     go get github.com/hewiefreeman/GopherGameServer
