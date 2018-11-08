@@ -7,14 +7,14 @@ Gopher's aim is to provide all the tools necessary to make any type of online ga
 
 Gopher uses WebSockets and JSON to pass messages between the clients and the server. JSON enabled the server to be designed to let you pass any data type from client to server (or vice versa) without the need to worry about type conversions on either end. WebSockets makes the server as efficient as possible on the network, since the WebSocket protocol is newer and doesn't send nearly as much header and meta data that HTTP and most other protocols require.
 
-Gopher also has a built-in MySQL client authentication mechanism that manages your users' accounts for you. It even ties in a friending tool, so your users can befriend and invite one another to groups, check each other's status, and more. All easily configurable and customizable for your project's needs.
+Gopher also has a built-in, fully customizable MySQL client authentication mechanism that manages your users' accounts for you. It even ties in a friending tool, so your users can befriend and invite one another to groups, check each other's status, and more. All easily configurable and customizable for your project's needs.
 
 ### Main features:
 
  - Super easy and flexible APIs for server, database, and client coding
  - Chat, private messaging, and voice chat
- - Client authentication (MySQL or similar SQL database required*)
- - Friending (MySQL or similar SQL database required*)
+ - Customizable client authentication (MySQL or similar SQL database required*)
+ - Built-in Friending (MySQL or similar SQL database required*)
  - Supports multiple connections using the same login
  - Server saves state on shut-down and restores on reboot
  - Tools provided for administrating server while running
