@@ -103,22 +103,6 @@ var (
 					"DOUBLE",
 					"DECIMAL"}
 
-	//DATA TYPES THAT REQUIRE QUOTES
-	dataTypesQuotes []string = []string{
-					"CHAR",
-					"VARCHAR",
-					"NVARCHAR",
-					"JSON",
-					"TINYTEXT",
-					"MEDIUMTEXT",
-					"TEXT",
-					"LONGTEXT",
-					"DATE",
-					"DATETIME",
-					"TIME",
-					"TIMESTAMP",
-					"YEAR"}
-
 	//DATA TYPE LITERAL NAME LIST
 	dataTypes []string = []string{
 					"TINYINT",
@@ -197,16 +181,6 @@ func isPrecisionDataType(dataType int) bool {
 	return false;
 }
 
-//CHECKS IF THE DATA TYPE REQUIRES QUOTES ON INSERT
-func dataTypeNeedsQuotes(dataType int) bool {
-	for i := 0; i < len(dataTypesQuotes); i++ {
-		if(dataTypes[dataType] == dataTypesQuotes[i]){
-			return true;
-		}
-	}
-	return false;
-}
-
 //CONVERTS DATA TYPE TO STRING
 func convertDataToString(dataType string, data interface{}) (string, error) {
 	switch data.(type) {
@@ -236,7 +210,7 @@ func convertDataToString(dataType string, data interface{}) (string, error) {
 			}else if(checkStringSQLInjection(data.(string))){
 				return "", errors.New("Malicious characters detected");
 			}
-			return data.(string), nil;
+			return "\""+data.(string)+"\"", nil;
 
 		default:
 			return "", errors.New("Data type provided isn't supported yet. You can open a ticket at Gopher Game Server's project on GitHub to request SQL support for a data type.");

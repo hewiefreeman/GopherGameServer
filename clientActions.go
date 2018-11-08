@@ -14,50 +14,63 @@ import (
 func clientActionHandler(action clientAction, userName *string, roomIn *rooms.Room, conn *websocket.Conn, ua *user_agent.UserAgent) (interface{}, bool, error) {
 	switch _action := action.A; _action {
 
+		// DATABASE
+
 		case helpers.ClientActionSignup:
 			return clientActionSignup(action.P);
-
 		case helpers.ClientActionDeleteAccount:
 			return clientActionDeleteAccount(action.P);
-
 		case helpers.ClientActionChangePassword:
 			return clientActionChangePassword(action.P, userName);
-
 		case helpers.ClientActionChangeAccountInfo:
 			return clientActionChangeAccountInfo(action.P, userName);
 
+		// LOGIN/LOGOUT
+
 		case helpers.ClientActionLogin:
 			return clientActionLogin(action.P, userName, conn);
-
 		case helpers.ClientActionLogout:
 			return clientActionLogout(userName, roomIn);
 
+		// ROOM ACTIONS
+
 		case helpers.ClientActionJoinRoom:
 			return clientActionJoinRoom(action.P, userName, roomIn);
-
 		case helpers.ClientActionLeaveRoom:
 			return clientActionLeaveRoom(userName, roomIn);
-
 		case helpers.ClientActionCreateRoom:
 			return clientActionCreateRoom(action.P, userName, roomIn);
-
 		case helpers.ClientActionDeleteRoom:
 			return clientActionDeleteRoom(action.P, userName, roomIn);
-
 		case helpers.ClientActionRoomInvite:
 			return clientActionRoomInvite(action.P, userName, roomIn);
-
 		case helpers.ClientActionRevokeInvite:
 			return clientActionRevokeInvite(action.P, userName, roomIn);
 
+		// CHAT+VOICE
+
 		case helpers.ClientActionChatMessage:
 			return clientActionChatMessage(action.P, userName, roomIn);
-
 		case helpers.ClientActionVoiceStream:
 			return clientActionVoiceStream(action.P, userName, roomIn, conn);
 
+		// CUSTOM ACTIONS
+
 		case helpers.ClientActionCustomAction:
 			return clientCustomAction(action.P, userName, conn);
+
+		// FRIENDING
+
+		case helpers.ClientActionFriendRequest:
+			return clientActionFriendRequest(action.P, userName);
+		case helpers.ClientActionAcceptFriend:
+			return clientActionAcceptFriend(action.P, userName);
+		case helpers.ClientActionDeclineFriend:
+			return clientActionDeclineFriend(action.P, userName);
+		case helpers.ClientActionRemoveFriend:
+			return clientActionRemoveFriend(action.P, userName);
+
+		// INVALID CLIENT ACTION
 
 		default:
 			return nil, true, errors.New("Unrecognized client action");
@@ -69,23 +82,33 @@ func clientActionHandler(action clientAction, userName *string, roomIn *rooms.Ro
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
 func clientCustomAction(params interface{}, userName *string, conn *websocket.Conn) (interface{}, bool, error) {
-	p := params.(map[string]interface{});
-	action := p["a"].(string);
-	data := p["d"];
-	actions.HandleCustomClientAction(action, data, *userName, conn);
+	var ok bool;
+	var pMap map[string]interface{};
+	var action string;
+	if pMap, ok = params.(map[string]interface{}); !ok { return nil, true, errors.New("Incorrect data format"); }
+	if action, ok = pMap["a"].(string); !ok { return nil, true, errors.New("Incorrect data format"); }
+	actions.HandleCustomClientAction(action, pMap["d"], *userName, conn);
 	return nil, false, nil;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////
-//   BUILT-IN CLIENT ACTIONS   ///////////////////////////////////////////////////////////////////////
+//   ACCOUNT/DATABASE ACTIONS   //////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
 func clientActionSignup(params interface{}) (interface{}, bool, error) {
+	if(!(*settings).EnableSqlFeatures){
+		return nil, true, errors.New("SQL Features are not enabled");
+	}
 	//GET ITEMS FROM PARAMS
-	pMap := params.(map[string]interface{});
-	customCols := pMap["c"].(map[string]interface{});
-	userName := pMap["n"].(string);
-	pass := pMap["p"].(string);
+	var ok bool;
+	var pMap map[string]interface{};
+	var customCols map[string]interface{};
+	var userName string;
+	var pass string;
+	if pMap, ok = params.(map[string]interface{}); !ok { return nil, true, errors.New("Incorrect data format"); }
+	if customCols, ok = pMap["c"].(map[string]interface{}); !ok { return nil, true, errors.New("Incorrect data format"); }
+	if userName, ok = pMap["n"].(string); !ok { return nil, true, errors.New("Incorrect data format"); }
+	if pass, ok = pMap["p"].(string); !ok { return nil, true, errors.New("Incorrect data format"); }
 	//SIGN CLIENT UP
 	signupErr := database.SignUpClient(userName, pass, customCols);
 	if(signupErr != nil){ return nil, true, signupErr; }
@@ -95,16 +118,27 @@ func clientActionSignup(params interface{}) (interface{}, bool, error) {
 }
 
 func clientActionDeleteAccount(params interface{}) (interface{}, bool, error) {
+	if(!(*settings).EnableSqlFeatures){
+		return nil, true, errors.New("SQL Features are not enabled");
+	}
 	//GET ITEMS FROM PARAMS
-	pMap := params.(map[string]interface{});
-	customCols := pMap["c"].(map[string]interface{});
-	userName := pMap["n"].(string);
-	pass := pMap["p"].(string);
+	var ok bool;
+	var pMap map[string]interface{};
+	var customCols map[string]interface{};
+	var userName string;
+	var pass string;
+	if pMap, ok = params.(map[string]interface{}); !ok { return nil, true, errors.New("Incorrect data format"); }
+	if customCols, ok = pMap["c"].(map[string]interface{}); !ok { return nil, true, errors.New("Incorrect data format"); }
+	if userName, ok = pMap["n"].(string); !ok { return nil, true, errors.New("Incorrect data format"); }
+	if pass, ok = pMap["p"].(string); !ok { return nil, true, errors.New("Incorrect data format"); }
+
+	//CHECK IF USER IS ONLINE
+	user, err := users.Get(userName);
+	if(err == nil){ return nil, true, errors.New("The User must be logged off to delete their account."); }
+
 	//DELETE ACCOUNT
 	deleteErr := database.DeleteAccount(userName, pass, customCols);
 	if(deleteErr != nil){ return nil, true, deleteErr; }
-	//LOG USER OUT IF ONLINE
-	users.DropUser(userName);
 
 	//
 	return nil, true, nil;
@@ -113,11 +147,17 @@ func clientActionDeleteAccount(params interface{}) (interface{}, bool, error) {
 func clientActionChangePassword(params interface{}, userName *string) (interface{}, bool, error) {
 	if(*userName != ""){
 		return nil, true, errors.New("You must be logged in to change your password");
+	}else if(!(*settings).EnableSqlFeatures){
+		return nil, true, errors.New("SQL Features are not enabled");
 	}
 	//GET ITEMS FROM PARAMS
-	pMap := params.(map[string]interface{});
-	customCols := pMap["c"].(map[string]interface{});
-	pass := pMap["p"].(string);
+	var ok bool;
+	var pMap map[string]interface{};
+	var customCols map[string]interface{};
+	var pass string;
+	if pMap, ok = params.(map[string]interface{}); !ok { return nil, true, errors.New("Incorrect data format"); }
+	if customCols, ok = pMap["c"].(map[string]interface{}); !ok { return nil, true, errors.New("Incorrect data format"); }
+	if pass, ok = pMap["p"].(string); !ok { return nil, true, errors.New("Incorrect data format"); }
 	//CHANGE PASSWORD
 	changeErr := database.ChangePassword(*userName, pass, customCols);
 	if(changeErr != nil){ return nil, true, changeErr; }
@@ -129,11 +169,17 @@ func clientActionChangePassword(params interface{}, userName *string) (interface
 func clientActionChangeAccountInfo(params interface{}, userName *string) (interface{}, bool, error) {
 	if(*userName != ""){
 		return nil, true, errors.New("You must be logged in to change your account info");
+	}else if(!(*settings).EnableSqlFeatures){
+		return nil, true, errors.New("SQL Features are not enabled");
 	}
 	//GET ITEMS FROM PARAMS
-	pMap := params.(map[string]interface{});
-	customCols := pMap["c"].(map[string]interface{});
-	pass := pMap["p"].(string);
+	var ok bool;
+	var pMap map[string]interface{};
+	var customCols map[string]interface{};
+	var pass string;
+	if pMap, ok = params.(map[string]interface{}); !ok { return nil, true, errors.New("Incorrect data format"); }
+	if customCols, ok = pMap["c"].(map[string]interface{}); !ok { return nil, true, errors.New("Incorrect data format"); }
+	if pass, ok = pMap["p"].(string); !ok { return nil, true, errors.New("Incorrect data format"); }
 	//CHANGE ACCOUNT INFO
 	changeErr := database.ChangeAccountInfo(*userName, pass, customCols);
 	if(changeErr != nil){ return nil, true, changeErr; }
@@ -142,14 +188,24 @@ func clientActionChangeAccountInfo(params interface{}, userName *string) (interf
 	return nil, true, nil;
 }
 
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+//   LOGIN+LOGOUT ACTIONS   //////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+
 func clientActionLogin(params interface{}, userName *string, conn *websocket.Conn) (interface{}, bool, error) {
 	if(*userName != ""){ return nil, true, errors.New("Already logged in as '"+(*userName)+"'"); }
 	//MAKE A MAP FROM PARAMS
-	pMap := params.(map[string]interface{});
-	name := pMap["n"].(string);
-	pass := pMap["p"].(string);
-	guest := pMap["g"].(bool);
-	customCols := pMap["c"].(map[string]interface{});
+	var ok bool;
+	var pMap map[string]interface{};
+	var name string;
+	var pass string;
+	var guest bool;
+	var customCols map[string]interface{};
+	if pMap, ok = params.(map[string]interface{}); !ok { return nil, true, errors.New("Incorrect data format"); }
+	if name, ok = pMap["n"].(string); !ok { return nil, true, errors.New("Incorrect data format"); }
+	if pass, ok = pMap["p"].(string); !ok { return nil, true, errors.New("Incorrect data format"); }
+	if guest, ok = pMap["g"].(bool); !ok { return nil, true, errors.New("Incorrect data format"); }
+	if customCols, ok = pMap["c"].(map[string]interface{}); !ok { return nil, true, errors.New("Incorrect data format"); }
 	//LOG IN
 	var dbIndex int;
 	var user users.User;
@@ -187,6 +243,10 @@ func clientActionLogout(userName *string, roomIn *rooms.Room) (interface{}, bool
 	return nil, false, nil;
 }
 
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+//   ROOM ACTIONS   //////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+
 func clientActionJoinRoom(params interface{}, userName *string, roomIn *rooms.Room) (interface{}, bool, error) {
 	if(*userName == ""){ return nil, true, errors.New("Client not logged in"); }
 	//GET User
@@ -197,7 +257,9 @@ func clientActionJoinRoom(params interface{}, userName *string, roomIn *rooms.Ro
 		return nil, true, userErr;
 	}
 	//GET ROOM NAME FROM PARAMS
-	roomName := params.(string);
+	var ok bool;
+	var roomName string;
+	if roomName, ok = params.(string); !ok { return nil, true, errors.New("Incorrect data format"); }
 	//GET ROOM
 	room, roomErr := rooms.Get(roomName);
 	if(roomErr != nil){ return nil, true, roomErr; }
@@ -243,11 +305,17 @@ func clientActionCreateRoom(params interface{}, userName *string, roomIn *rooms.
 		return nil, true, errors.New("Client not logged in");
 	}
 	//GET PARAMS
-	p := params.(map[string]interface{});
-	roomName := p["n"].(string);
-	roomType := p["t"].(string);
-	private := p["p"].(bool);
-	maxUsers := p["m"].(int);
+	var ok bool;
+	var pMap map[string]interface{};
+	var roomName string;
+	var roomType string;
+	var private bool;
+	var maxUsers int;
+	if pMap, ok = params.(map[string]interface{}); !ok { return nil, true, errors.New("Incorrect data format"); }
+	if roomName, ok = pMap["n"].(string); !ok { return nil, true, errors.New("Incorrect data format"); }
+	if roomType, ok = pMap["t"].(string); !ok { return nil, true, errors.New("Incorrect data format"); }
+	if private, ok = pMap["t"].(bool); !ok { return nil, true, errors.New("Incorrect data format"); }
+	if maxUsers, ok = pMap["m"].(int); !ok { return nil, true, errors.New("Incorrect data format"); }
 	//
 	if rType, ok := rooms.GetRoomTypes()[roomType]; !ok {
 		return nil, true, errors.New("Invalid room type");
@@ -282,7 +350,10 @@ func clientActionDeleteRoom(params interface{}, userName *string, roomIn *rooms.
 	}else if(*userName == ""){
 		return nil, true, errors.New("Client not logged in");
 	}
-	roomName := params.(string);
+	//GET PARAMS
+	var ok bool;
+	var roomName string;
+	if roomName, ok = params.(string); !ok { return nil, true, errors.New("Incorrect data format"); }
 	//GET ROOM
 	room, roomErr := rooms.Get(roomName);
 	if(roomErr != nil){
@@ -322,7 +393,9 @@ func clientActionRoomInvite(params interface{}, userName *string, roomIn *rooms.
 	rType := rooms.GetRoomTypes()[(*roomIn).Type()];
 	if(rType.ServerOnly()){ return nil, true, errors.New("Only the server can manipulate that type of room"); }
 	//GET PARAMS
-	name := params.(string);
+	var ok bool;
+	var name string;
+	if name, ok = params.(string); !ok { return nil, true, errors.New("Incorrect data format"); }
 	//INVITE
 	invErr := user.Invite(name, *roomIn);
 	if(invErr != nil){ return nil, true, invErr; }
@@ -350,7 +423,9 @@ func clientActionRevokeInvite(params interface{}, userName *string, roomIn *room
 	rType := rooms.GetRoomTypes()[(*roomIn).Type()];
 	if(rType.ServerOnly()){ return nil, true, errors.New("Only the server can manipulate that type of room"); }
 	//GET PARAMS
-	name := params.(string);
+	var ok bool;
+	var name string;
+	if name, ok = params.(string); !ok { return nil, true, errors.New("Incorrect data format"); }
 	//REVOKE INVITE
 	revokeErr := user.RevokeInvite(name, *roomIn);
 	if(revokeErr != nil){ return nil, true, revokeErr; }
@@ -358,8 +433,12 @@ func clientActionRevokeInvite(params interface{}, userName *string, roomIn *room
 	return nil, true, nil;
 }
 
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+//   CHAT+VOICE ACTIONS   ////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+
 func clientActionVoiceStream(params interface{}, userName *string, roomIn *rooms.Room, conn *websocket.Conn) (interface{}, bool, error) {
-	if(*userName == ""){ return nil, false, errors.New("Client not logged in"); }
+	if(*userName == ""){ return nil, false, nil; }
 	//GET User
 	user, userErr := users.Get(*userName);
 	if(userErr != nil || user.RoomName() == ""){
@@ -377,7 +456,7 @@ func clientActionVoiceStream(params interface{}, userName *string, roomIn *rooms
 }
 
 func clientActionChatMessage(params interface{}, userName *string, roomIn *rooms.Room) (interface{}, bool, error) {
-	if(*userName == ""){ return nil, false, errors.New("Client not logged in"); }
+	if(*userName == ""){ return nil, false, nil; }
 	//GET User
 	user, userErr := users.Get(*userName);
 	if(userErr != nil || user.RoomName() == ""){
@@ -389,4 +468,104 @@ func clientActionChatMessage(params interface{}, userName *string, roomIn *rooms
 	(*roomIn).ChatMessage(*userName, params);
 	//
 	return nil, false, nil;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+//   FRIENDING ACTIONS   /////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+
+func clientActionFriendRequest(params interface{}, userName *string) (interface{}, bool, error) {
+	if(*userName == ""){
+		return nil, true, errors.New("Client not logged in");
+	}else if(!(*settings).EnableSqlFeatures){
+		return nil, true, errors.New("SQL Features are not enabled");
+	}
+	//GET User
+	user, userErr := users.Get(*userName);
+	if(userErr != nil){ return nil, true, errors.New("Client not logged in"); }
+	//GET PARAMS AS A MAP
+	var ok bool;
+	var pMap map[string]interface{};
+	var friendName string;
+
+	if pMap, ok = params.(map[string]interface{}); !ok { return nil, true, errors.New("Incorrect data format"); }
+	if friendName, ok = pMap["n"].(string); !ok { return nil, true, errors.New("Incorrect data format"); }
+
+	requestErr := user.FriendRequest(friendName);
+	if(userErr != nil){ return nil, true, requestErr; }
+
+	//
+	return nil, true, nil;
+}
+
+func clientActionAcceptFriend(params interface{}, userName *string) (interface{}, bool, error) {
+	if(*userName == ""){
+		return nil, true, errors.New("Client not logged in");
+	}else if(!(*settings).EnableSqlFeatures){
+		return nil, true, errors.New("SQL Features are not enabled");
+	}
+	//GET User
+	user, userErr := users.Get(*userName);
+	if(userErr != nil){ return nil, true, errors.New("Client not logged in"); }
+	//GET PARAMS AS A MAP
+	var ok bool;
+	var pMap map[string]interface{};
+	var friendName string;
+
+	if pMap, ok = params.(map[string]interface{}); !ok { return nil, true, errors.New("Incorrect data format"); }
+	if friendName, ok = pMap["n"].(string); !ok { return nil, true, errors.New("Incorrect data format"); }
+
+	acceptErr := user.AcceptFriendRequest(friendName);
+	if(acceptErr != nil){ return nil, true, acceptErr; }
+
+	//
+	return nil, true, nil;
+}
+
+func clientActionDeclineFriend(params interface{}, userName *string) (interface{}, bool, error) {
+	if(*userName == ""){
+		return nil, true, errors.New("Client not logged in");
+	}else if(!(*settings).EnableSqlFeatures){
+		return nil, true, errors.New("SQL Features are not enabled");
+	}
+	//GET User
+	user, userErr := users.Get(*userName);
+	if(userErr != nil){ return nil, true, errors.New("Client not logged in"); }
+	//GET PARAMS AS A MAP
+	var ok bool;
+	var pMap map[string]interface{};
+	var friendName string;
+
+	if pMap, ok = params.(map[string]interface{}); !ok { return nil, true, errors.New("Incorrect data format"); }
+	if friendName, ok = pMap["n"].(string); !ok { return nil, true, errors.New("Incorrect data format"); }
+
+	declineErr := user.DeclineFriendRequest(friendName);
+	if(declineErr != nil){ return nil, true, declineErr; }
+
+	//
+	return nil, true, nil;
+}
+
+func clientActionRemoveFriend(params interface{}, userName *string) (interface{}, bool, error) {
+	if(*userName == ""){
+		return nil, true, errors.New("Client not logged in");
+	}else if(!(*settings).EnableSqlFeatures){
+		return nil, true, errors.New("SQL Features are not enabled");
+	}
+	//GET User
+	user, userErr := users.Get(*userName);
+	if(userErr != nil){ return nil, true, errors.New("Client not logged in"); }
+	//GET PARAMS AS A MAP
+	var ok bool;
+	var pMap map[string]interface{};
+	var friendName string;
+
+	if pMap, ok = params.(map[string]interface{}); !ok { return nil, true, errors.New("Incorrect data format"); }
+	if friendName, ok = pMap["n"].(string); !ok { return nil, true, errors.New("Incorrect data format"); }
+
+	removeErr := user.RemoveFriend(friendName);
+	if(removeErr != nil){ return nil, true, removeErr; }
+
+	//
+	return nil, true, nil;
 }

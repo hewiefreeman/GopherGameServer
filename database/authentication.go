@@ -172,12 +172,8 @@ func SignUpClient(userName string, password string, customCols map[string]interf
 			//GET STRING VALUE & CHECK FOR INJECTIONS
 			value, valueErr := convertDataToString(dataTypes[dt], vals[i].([]interface{})[0]);
 			if(valueErr != nil){ return valueErr; }
-			//CHECK IF DATA TYPE NEEDS QUOTES
-			if(dataTypeNeedsQuotes(dt)){
-				queryPart2 = queryPart2+"\""+value+"\", ";
-			}else{
-				queryPart2 = queryPart2+value+", ";
-			}
+			//
+			queryPart2 = queryPart2+value+", ";
 		}
 	}
 	queryPart2 = queryPart2[0:len(queryPart2)-2]+");";
@@ -219,7 +215,7 @@ func LoginClient(userName string, password string, customCols map[string]interfa
 			vals = append(vals, new(interface{}));
 		}
 	}
-	selectQuery = selectQuery[0:len(selectQuery)-2]+" FROM "+tableUsers+" WHERE "+usersColumnName+"=\""+userName+"\";";
+	selectQuery = selectQuery[0:len(selectQuery)-2]+" FROM "+tableUsers+" WHERE "+usersColumnName+"=\""+userName+"\" LIMIT 1;";
 
 	//EXECUTE SELECT QUERY
 	checkRows, err := database.Query(selectQuery);
@@ -276,7 +272,7 @@ func ChangePassword(userName string, password string, customCols map[string]inte
 			valsList = append(valsList, []interface{}{val, customAccountInfo[key].dataType, key});
 		}
 	}
-	selectQuery = selectQuery[0:len(selectQuery)-2]+" FROM "+tableUsers+" WHERE "+usersColumnName+"=\""+userName+"\";";
+	selectQuery = selectQuery[0:len(selectQuery)-2]+" FROM "+tableUsers+" WHERE "+usersColumnName+"=\""+userName+"\" LIMIT 1;";
 
 	//EXECUTE SELECT QUERY
 	checkRows, err := database.Query(selectQuery);
@@ -299,7 +295,7 @@ func ChangePassword(userName string, password string, customCols map[string]inte
 	}
 
 	//UPDATE THE PASSWORD
-	_, updateErr := database.Exec("UPDATE "+tableUsers+" SET "+usersColumnPassword+" WHERE "+usersColumnID+"="+strconv.Itoa(dbIndex.(int))+";");
+	_, updateErr := database.Exec("UPDATE "+tableUsers+" SET "+usersColumnPassword+" WHERE "+usersColumnID+"="+strconv.Itoa(dbIndex.(int))+" LIMIT 1;");
 	if(updateErr != nil){ return updateErr; }
 
 	//
@@ -337,7 +333,7 @@ func ChangeAccountInfo(userName string, password string, customCols map[string]i
 			valsList = append(valsList, []interface{}{val, customAccountInfo[key].dataType, key});
 		}
 	}
-	selectQuery = selectQuery[0:len(selectQuery)-2]+" FROM "+tableUsers+" WHERE "+usersColumnName+"=\""+userName+"\";";
+	selectQuery = selectQuery[0:len(selectQuery)-2]+" FROM "+tableUsers+" WHERE "+usersColumnName+"=\""+userName+"\" LIMIT 1;";
 
 	//EXECUTE SELECT QUERY
 	checkRows, err := database.Query(selectQuery);
@@ -368,14 +364,10 @@ func ChangeAccountInfo(userName string, password string, customCols map[string]i
 		//GET STRING VALUE & CHECK FOR INJECTIONS
 		value, valueErr := convertDataToString(dataTypes[dt], valsList[i].([]interface{})[0]);
 		if(valueErr != nil){ return valueErr; }
-		//CHECK IF DATA TYPE NEEDS QUOTES
-		if(dataTypeNeedsQuotes(dt)){
-			updateQuery = updateQuery+valsList[i].([]interface{})[2].(string)+"=\""+value+"\", ";
-		}else{
-			updateQuery = updateQuery+valsList[i].([]interface{})[2].(string)+"="+value+", ";
-		}
+		//
+		updateQuery = updateQuery+valsList[i].([]interface{})[2].(string)+"="+value+", ";
 	}
-	updateQuery = updateQuery[0:len(updateQuery)-2]+" WHERE "+usersColumnID+"="+strconv.Itoa(dbIndex.(int))+";";
+	updateQuery = updateQuery[0:len(updateQuery)-2]+" WHERE "+usersColumnID+"="+strconv.Itoa(dbIndex.(int))+" LIMIT 1;";
 
 	//EXECUTE THE UPDATE QUERY
 	_, updateErr := database.Exec(updateQuery);
@@ -414,7 +406,7 @@ func DeleteAccount(userName string, password string, customCols map[string]inter
 			vals = append(vals, new(interface{}));
 		}
 	}
-	selectQuery = selectQuery[0:len(selectQuery)-2]+" FROM "+tableUsers+" WHERE "+usersColumnName+"=\""+userName+"\";";
+	selectQuery = selectQuery[0:len(selectQuery)-2]+" FROM "+tableUsers+" WHERE "+usersColumnName+"=\""+userName+"\" LIMIT 1;";
 
 	//EXECUTE SELECT QUERY
 	checkRows, err := database.Query(selectQuery);
@@ -437,7 +429,7 @@ func DeleteAccount(userName string, password string, customCols map[string]inter
 	}
 
 	//EVERYTHING WENT FINE AND DANDY, DELETE THE ACCOUNT
-	_, deleteErr := database.Exec("DELETE FROM "+tableUsers+" WHERE "+usersColumnID+"="+strconv.Itoa(dbIndex)+";");
+	_, deleteErr := database.Exec("DELETE FROM "+tableUsers+" WHERE "+usersColumnID+"="+strconv.Itoa(dbIndex)+" LIMIT 1;");
 	if(deleteErr != nil){ return deleteErr; }
 
 	//REMOVE INSTANCES FROM friends TABLE

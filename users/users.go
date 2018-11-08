@@ -5,6 +5,7 @@ import (
 	"errors"
 	"github.com/hewiefreeman/GopherGameServer/rooms"
 	"github.com/hewiefreeman/GopherGameServer/helpers"
+	"github.com/hewiefreeman/GopherGameServer/database"
 	"github.com/gorilla/websocket"
 )
 
@@ -21,6 +22,8 @@ type User struct {
 	room string
 
 	status int
+
+	friends map[string]database.Friend
 
 	socket *websocket.Conn
 }
@@ -45,7 +48,11 @@ const (
 //   LOG A USER IN   /////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
-//Logs a User in to the service.
+// NOTE: If you are using the SQL authentication features, do not use this! Use the client APIs to log in
+// your clients, and you can customize your log in proccess with the database package. Only use this if
+// you are making a proper custom authentication for your project.
+//
+// Logs a User in to the service.
 func Login(userName string, dbID int, isGuest bool, socket *websocket.Conn) (User, error) {
 	//REJECT INCORRECT INPUT
 	if(len(userName) == 0){
@@ -64,12 +71,37 @@ func Login(userName string, dbID int, isGuest bool, socket *websocket.Conn) (Use
 	databaseID := dbID
 	if isGuest { databaseID = -1 }
 
-	response := usersActionChan.Execute(loginUser, []interface{}{userName, databaseID, isGuest, socket});
+	//GET User's Friend LIST
+	var friends []map[string]interface{} = []map[string]interface{}{};
+	var friendsMap map[string]database.Friend;
+	var friendsErr error;
+	if(dbID != -1){
+		friendsMap, friendsErr := database.GetFriends(dbID); // map[string]Friend
+		if(friendsErr == nil){
+			for _, val := range friendsMap {
+				friendEntry := make(map[string]interface{});
+				friendEntry["name"] = val.Name();
+				friendEntry["requestStatus"] = val.RequestStatus();
+				if(val.RequestStatus() == database.FriendStatusAccepted){
+					//GET THE User STATUS
+					user, userErr := Get(val.Name());
+					if(userErr != nil){
+						friendEntry["status"] = StatusOffline;
+					}else{
+						friendEntry["status"] = user.status;
+					}
+				}
+				friends = append(friends, friendEntry);
+			}
+		}
+	}
+
+	response := usersActionChan.Execute(loginUser, []interface{}{userName, databaseID, isGuest, socket, friendsMap});
 	if(response[1] != nil){
 		if(kickOnLogin){
 			DropUser(userName);
 			//TRY AGAIN
-			response = usersActionChan.Execute(loginUser, []interface{}{userName, databaseID, isGuest, socket});
+			response = usersActionChan.Execute(loginUser, []interface{}{userName, databaseID, isGuest, socket, friendsMap});
 			if(response[1] != nil){ return User{}, errors.New("Unexpected error while logging in"); }
 		}else{
 			err = response[1].(error);
@@ -77,7 +109,10 @@ func Login(userName string, dbID int, isGuest bool, socket *websocket.Conn) (Use
 	}
 
 	//SUCCESS, SEND RESPONSE TO CLIENT
-	clientResp := helpers.MakeClientResponse(helpers.ClientActionLogin, userName, nil);
+	responseVal := make(map[string]interface{});
+	responseVal["n"] = userName;
+	responseVal["f"] = friends;
+	clientResp := helpers.MakeClientResponse(helpers.ClientActionLogin, responseVal, nil);
 	socket.WriteJSON(clientResp);
 
 	//
@@ -85,14 +120,14 @@ func Login(userName string, dbID int, isGuest bool, socket *websocket.Conn) (Use
 }
 
 func loginUser(p []interface{}) []interface{} {
-	userName, dbID, isGuest, socket := p[0].(string), p[1].(int), p[2].(bool), p[3].(*websocket.Conn);
+	userName, dbID, isGuest, socket, friends := p[0].(string), p[1].(int), p[2].(bool), p[3].(*websocket.Conn), p[4].(map[string]database.Friend);
 	var userRef User = User{};
 	var err error = nil;
 
 	if _, ok := users[userName]; ok {
 		err = errors.New("User '"+userName+"' is already logged in");
 	}else{
-		newUser := User{name: userName, databaseID: dbID, isGuest: isGuest, socket: socket};
+		newUser := User{name: userName, databaseID: dbID, isGuest: isGuest, friends: friends, socket: socket};
 		users[userName] = &newUser;
 		userRef = *users[userName];
 	}
@@ -336,6 +371,12 @@ func (u *User) Name() string {
 // Gets the database table index of the User.
 func (u *User) DatabaseID() int {
 	return u.databaseID;
+}
+
+// Gets the Friend list of the User as a map[string]database.Friend where the key string is the friend's
+// User name.
+func (u *User) Friends() map[string]database.Friend {
+	return u.friends;
 }
 
 // Gets the name of the Room that the User is currently in. If you get a blank string, this simply means

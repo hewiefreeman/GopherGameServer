@@ -21,6 +21,10 @@ const (
 	ClientActionChatMessage = "c"
 	ClientActionVoiceStream = "v"
 	ClientActionCustomAction = "a"
+	ClientActionFriendRequest = "f"
+	ClientActionAcceptFriend = "fa"
+	ClientActionDeclineFriend = "fd"
+	ClientActionRemoveFriend = "fr"
 )
 
 //BUILT-IN SERVER ACTION RESPONSES
