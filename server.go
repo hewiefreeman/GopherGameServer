@@ -17,7 +17,6 @@ import (
 
 /////////// TO DOs:
 ///////////    - SQL Authentication:
-///////////    	- Wire up auth to client API
 ///////////    	- "Remember Me" login key pairs
 ///////////    	- Friending & wire up to client API
 ///////////    - Multi-connect
