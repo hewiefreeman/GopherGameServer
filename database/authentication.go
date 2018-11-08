@@ -4,7 +4,6 @@ import(
 	"errors"
 	"strconv"
 	"github.com/hewiefreeman/GopherGameServer/helpers"
-	"fmt"
 )
 
 var(
@@ -205,7 +204,7 @@ func LoginClient(userName string, password string, customCols map[string]interfa
 	}else if(checkStringSQLInjection(userName)){
 		return 0, errors.New("Malicious characters detected");
 	}else if(!checkCustomRequirements(customCols, customLoginRequirements)){
-		return errors.New("Incorrect data supplied");
+		return 0, errors.New("Incorrect data supplied");
 	}
 
 	//FIRST TWO ARE id, password IN THAT ORDER
