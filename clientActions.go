@@ -155,15 +155,9 @@ func clientActionLogin(params interface{}, userName *string, conn *websocket.Con
 	var user users.User;
 	var err error;
 	if((*settings).EnableSqlFeatures){
-		if((*settings).CustomLogin){
-			dbIndex, err = database.CustomLoginClient(pass, customCols);
-			if(err != nil){ return nil, true, err; }
-			user, err = users.Login(name, dbIndex, guest, conn);
-		}else{
-			dbIndex, err = database.LoginClient(name, pass, customCols);
-			if(err != nil){ return nil, true, err; }
-			user, err = users.Login(name, dbIndex, guest, conn);
-		}
+		dbIndex, err = database.LoginClient(name, pass, customCols);
+		if(err != nil){ return nil, true, err; }
+		user, err = users.Login(name, dbIndex, guest, conn);
 	}else{
 		user, err = users.Login(name, -1, guest, conn);
 	}
