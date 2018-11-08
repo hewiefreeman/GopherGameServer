@@ -17,8 +17,9 @@ import (
 
 /////////// TO DOs:
 ///////////    - SQL Authentication:
+///////////    	- Wire up auth to client API
 ///////////    	- "Remember Me" login key pairs
-///////////         - Custom Login
+///////////    	- Friending & wire up to client API
 ///////////    - Multi-connect
 ///////////	- ServerCallbacks
 ///////////    - SQLite Database:
@@ -32,6 +33,7 @@ import (
 // the server's functionality for your liking.
 type ServerSettings struct {
 	ServerName string // The server's name. Used for the server's ownership of private Rooms.
+	MaxConnections int // The maximum amount of concurrent connections the server will accept. Setting this to 0 means infinite.
 
 	HostName string // Server's host name. Use 'https://' for TLS connections. (ex: 'https://example.com')
 	HostAlias string // Server's host alias name. Use 'https://' for TLS connections. (ex: 'https://www.example.com')
@@ -46,7 +48,6 @@ type ServerSettings struct {
 
 	MultiConnect bool // Enables multiple connections under the same User. When enabled, will override KickDupOnLogin's functionality.
 	KickDupOnLogin bool // When enabled, a logged in User will be disconnected from service when another User logs in with the same name.
-	MaxConnections int // The maximum amount of concurrent connections the server will accept. Setting this to 0 means infinite.
 
 	UserRoomControl bool // Enables Users to create Rooms, invite/uninvite(AKA revoke) other Users to their owned private rooms, and destroy their owned rooms.
 	RoomDeleteOnLeave bool // When enabled, Rooms created by a User will be deleted when the owner leaves. WARNING: If disabled, you must remember to at some point delete the rooms created by Users, or they will pile up endlessly!
@@ -146,6 +147,7 @@ func Start(s *ServerSettings, callback func()) error {
 		fmt.Println("Using default settings...");
 		settings = &ServerSettings{
 					ServerName: "!server!",
+					MaxConnections: 0,
 
 					HostName: "localhost",
 					HostAlias: "localhost",
@@ -160,7 +162,6 @@ func Start(s *ServerSettings, callback func()) error {
 
 					MultiConnect: false,
 					KickDupOnLogin: false,
-					MaxConnections: 0,
 
 					UserRoomControl: true,
 					RoomDeleteOnLeave: true,
@@ -173,6 +174,7 @@ func Start(s *ServerSettings, callback func()) error {
 					SqlPassword: "password",
 					SqlDatabase: "database",
 					EncryptionCost: 32,
+					CustomLogin: false,
 					RememberMe: false,
 
 					EnableRecovery: false,

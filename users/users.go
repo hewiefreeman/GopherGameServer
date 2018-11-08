@@ -318,10 +318,6 @@ func DropUser(userName string) error {
 	if(err != nil){
 		return err;
 	}
-	//MAKE DROP MESSAGE
-	dropMessage := helpers.MakeClientResponse(helpers.ClientActionLogout, nil, nil);
-	//SEND MESSAGE
-	user.socket.WriteJSON(dropMessage);
 	//
 	user.LogOut();
 	//

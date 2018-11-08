@@ -6,6 +6,10 @@ import (
 
 //BUILT-IN CLIENT ACTION/RESPONSE MESSAGE TYPES
 const (
+	ClientActionSignup = "s"
+	ClientActionDeleteAccount = "d"
+	ClientActionChangePassword = "pc"
+	ClientActionChangeAccountInfo = "ic"
 	ClientActionLogin = "li"
 	ClientActionLogout = "lo"
 	ClientActionJoinRoom = "j"

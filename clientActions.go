@@ -5,6 +5,7 @@ import (
 	"github.com/hewiefreeman/GopherGameServer/rooms"
 	"github.com/hewiefreeman/GopherGameServer/actions"
 	"github.com/hewiefreeman/GopherGameServer/helpers"
+	"github.com/hewiefreeman/GopherGameServer/database"
 	"github.com/mssola/user_agent"
 	"github.com/gorilla/websocket"
 	"errors"
@@ -12,28 +13,52 @@ import (
 
 func clientActionHandler(action clientAction, userName *string, roomIn *rooms.Room, conn *websocket.Conn, ua *user_agent.UserAgent) (interface{}, bool, error) {
 	switch _action := action.A; _action {
+
+		case helpers.ClientActionSignup:
+			return clientActionSignup(action.P);
+
+		case helpers.ClientActionDeleteAccount:
+			return clientActionDeleteAccount(action.P);
+
+		case helpers.ClientActionChangePassword:
+			return clientActionChangePassword(action.P, userName);
+
+		case helpers.ClientActionChangeAccountInfo:
+			return clientActionChangeAccountInfo(action.P, userName);
+
 		case helpers.ClientActionLogin:
 			return clientActionLogin(action.P, userName, conn);
+
 		case helpers.ClientActionLogout:
 			return clientActionLogout(userName, roomIn);
+
 		case helpers.ClientActionJoinRoom:
 			return clientActionJoinRoom(action.P, userName, roomIn);
+
 		case helpers.ClientActionLeaveRoom:
 			return clientActionLeaveRoom(userName, roomIn);
+
 		case helpers.ClientActionCreateRoom:
 			return clientActionCreateRoom(action.P, userName, roomIn);
+
 		case helpers.ClientActionDeleteRoom:
 			return clientActionDeleteRoom(action.P, userName, roomIn);
+
 		case helpers.ClientActionRoomInvite:
 			return clientActionRoomInvite(action.P, userName, roomIn);
+
 		case helpers.ClientActionRevokeInvite:
 			return clientActionRevokeInvite(action.P, userName, roomIn);
+
 		case helpers.ClientActionChatMessage:
 			return clientActionChatMessage(action.P, userName, roomIn);
+
 		case helpers.ClientActionVoiceStream:
 			return clientActionVoiceStream(action.P, userName, roomIn, conn);
+
 		case helpers.ClientActionCustomAction:
 			return clientCustomAction(action.P, userName, conn);
+
 		default:
 			return nil, true, errors.New("Unrecognized client action");
 	}
@@ -55,12 +80,93 @@ func clientCustomAction(params interface{}, userName *string, conn *websocket.Co
 //   BUILT-IN CLIENT ACTIONS   ///////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
+func clientActionSignup(params interface{}) (interface{}, bool, error) {
+	//GET ITEMS FROM PARAMS
+	pMap := params.(map[string]interface{});
+	customCols := pMap["c"].(map[string]interface{});
+	userName := pMap["n"].(string);
+	pass := pMap["p"].(string);
+	//SIGN CLIENT UP
+	signupErr := database.SignUpClient(userName, pass, customCols);
+	if(signupErr != nil){ return nil, true, signupErr; }
+
+	//
+	return nil, true, nil;
+}
+
+func clientActionDeleteAccount(params interface{}) (interface{}, bool, error) {
+	//GET ITEMS FROM PARAMS
+	pMap := params.(map[string]interface{});
+	customCols := pMap["c"].(map[string]interface{});
+	userName := pMap["n"].(string);
+	pass := pMap["p"].(string);
+	//DELETE ACCOUNT
+	deleteErr := database.DeleteAccount(userName, pass, customCols);
+	if(deleteErr != nil){ return nil, true, deleteErr; }
+	//LOG USER OUT IF ONLINE
+	users.DropUser(userName);
+
+	//
+	return nil, true, nil;
+}
+
+func clientActionChangePassword(params interface{}, userName *string) (interface{}, bool, error) {
+	if(*userName != ""){
+		return nil, true, errors.New("You must be logged in to change your password");
+	}
+	//GET ITEMS FROM PARAMS
+	pMap := params.(map[string]interface{});
+	customCols := pMap["c"].(map[string]interface{});
+	pass := pMap["p"].(string);
+	//CHANGE PASSWORD
+	changeErr := database.ChangePassword(*userName, pass, customCols);
+	if(changeErr != nil){ return nil, true, changeErr; }
+
+	//
+	return nil, true, nil;
+}
+
+func clientActionChangeAccountInfo(params interface{}, userName *string) (interface{}, bool, error) {
+	if(*userName != ""){
+		return nil, true, errors.New("You must be logged in to change your account info");
+	}
+	//GET ITEMS FROM PARAMS
+	pMap := params.(map[string]interface{});
+	customCols := pMap["c"].(map[string]interface{});
+	pass := pMap["p"].(string);
+	//CHANGE ACCOUNT INFO
+	changeErr := database.ChangeAccountInfo(*userName, pass, customCols);
+	if(changeErr != nil){ return nil, true, changeErr; }
+
+	//
+	return nil, true, nil;
+}
+
 func clientActionLogin(params interface{}, userName *string, conn *websocket.Conn) (interface{}, bool, error) {
 	if(*userName != ""){ return nil, true, errors.New("Already logged in as '"+(*userName)+"'"); }
 	//MAKE A MAP FROM PARAMS
 	pMap := params.(map[string]interface{});
+	name := pMap["n"].(string);
+	pass := pMap["p"].(string);
+	guest := pMap["g"].(bool);
+	customCols := pMap["c"].(map[string]interface{});
 	//LOG IN
-	user, err := users.Login(pMap["n"].(string), -1, pMap["g"].(bool), conn);
+	var dbIndex int;
+	var user users.User;
+	var err error;
+	if((*settings).EnableSqlFeatures){
+		if((*settings).CustomLogin){
+			dbIndex, err = database.CustomLoginClient(pass, customCols);
+			if(err != nil){ return nil, true, err; }
+			user, err = users.Login(name, dbIndex, guest, conn);
+		}else{
+			dbIndex, err = database.LoginClient(name, pass, customCols);
+			if(err != nil){ return nil, true, err; }
+			user, err = users.Login(name, dbIndex, guest, conn);
+		}
+	}else{
+		user, err = users.Login(name, -1, guest, conn);
+	}
 	if(err != nil){ return nil, true, err; }
 	//CHANGE SOCKET'S userName
 	*userName = user.Name();

@@ -243,6 +243,7 @@ func convertDataToString(dataType string, data interface{}) (string, error) {
 	}
 }
 
+//CHECKS IF THERE ARE ANY MALICIOUS CHARACTERS IN A STRING
 func checkStringSQLInjection(inputStr string) bool {
 	return (strings.Contains(inputStr, "\"") || strings.Contains(inputStr, "'") || strings.Contains(inputStr, ")") ||
 			strings.Contains(inputStr, "(") || strings.Contains(inputStr, ",") || strings.Contains(inputStr, "="));

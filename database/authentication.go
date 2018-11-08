@@ -9,7 +9,127 @@ import(
 
 var(
 	encryptionCost int = 32;
+	customLoginRequirements map[string]struct{} = make(map[string]struct{});
+	customSignupRequirements map[string]struct{} = make(map[string]struct{});
+	customPasswordChangeRequirements map[string]struct{} = make(map[string]struct{});
+	customAccountInfoChangeRequirements map[string]struct{} = make(map[string]struct{});
+	customDeleteAccountRequirements map[string]struct{} = make(map[string]struct{});
 )
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+//   CUSTOM REQUIREMENTS   ///////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// Sets the required AccountInfoColumn names for processing a sign up request from a client. If a client
+// doesn't send the required info, an error will be sent back.
+func SetCustomSignupRequirements(columnNames ...string) error {
+	if(serverStarted){
+		return errors.New("You can't run SetCustomSignupRequirements after the server has started");
+	}
+	for i := 0; i < len(columnNames); i++ {
+		if(checkStringSQLInjection(columnNames[i])){
+			return errors.New("Malicious characters detected");
+		}
+		if _, ok := customAccountInfo[columnNames[i]]; !ok {
+			return errors.New("Incorrect column name '"+columnNames[i]+"'");
+		}else{
+			customSignupRequirements[columnNames[i]] = struct{}{};
+		}
+	}
+	return nil;
+}
+
+// Sets the required AccountInfoColumn names for processing a login request from a client. If a client
+// doesn't send the required info, an error will be sent back.
+func SetCustomLoginRequirements(columnNames ...string) error {
+	if(serverStarted){
+		return errors.New("You can't run SetCustomLoginRequirements after the server has started");
+	}
+	for i := 0; i < len(columnNames); i++ {
+		if(checkStringSQLInjection(columnNames[i])){
+			return errors.New("Malicious characters detected");
+		}
+		if _, ok := customAccountInfo[columnNames[i]]; !ok {
+			return errors.New("Incorrect column name '"+columnNames[i]+"'");
+		}else{
+			customLoginRequirements[columnNames[i]] = struct{}{};
+		}
+	}
+	return nil;
+}
+
+// Sets the required AccountInfoColumn names for processing a password change request from a client. If a client
+// doesn't send the required info, an error will be sent back.
+func SetCustomPasswordChangeRequirements(columnNames ...string) error {
+	if(serverStarted){
+		return errors.New("You can't run SetCustomPasswordChangeRequirements after the server has started");
+	}
+	for i := 0; i < len(columnNames); i++ {
+		if(checkStringSQLInjection(columnNames[i])){
+			return errors.New("Malicious characters detected");
+		}
+		if _, ok := customAccountInfo[columnNames[i]]; !ok {
+			return errors.New("Incorrect column name '"+columnNames[i]+"'");
+		}else{
+			customPasswordChangeRequirements[columnNames[i]] = struct{}{};
+		}
+	}
+	return nil;
+}
+
+// Sets the required AccountInfoColumn names for processing an AccountInfoColumn change request from a client. If a client
+// doesn't send the required info, an error will be sent back.
+func SetCustomAccountInfoChangeRequirements(columnNames ...string) error {
+	if(serverStarted){
+		return errors.New("You can't run SetCustomAccountInfoChangeRequirements after the server has started");
+	}
+	for i := 0; i < len(columnNames); i++ {
+		if(checkStringSQLInjection(columnNames[i])){
+			return errors.New("Malicious characters detected");
+		}
+		if _, ok := customAccountInfo[columnNames[i]]; !ok {
+			return errors.New("Incorrect column name '"+columnNames[i]+"'");
+		}else{
+			customAccountInfoChangeRequirements[columnNames[i]] = struct{}{};
+		}
+	}
+	return nil;
+}
+
+// Sets the required AccountInfoColumn names for processing a delete account request from a client. If a client
+// doesn't send the required info, an error will be sent back.
+func SetCustomDeleteAccountRequirements(columnNames ...string) error {
+	if(serverStarted){
+		return errors.New("You can't run SetCustomDeleteAccountRequirements after the server has started");
+	}
+	for i := 0; i < len(columnNames); i++ {
+		if(checkStringSQLInjection(columnNames[i])){
+			return errors.New("Malicious characters detected");
+		}
+		if _, ok := customAccountInfo[columnNames[i]]; !ok {
+			return errors.New("Incorrect column name '"+columnNames[i]+"'");
+		}else{
+			customDeleteAccountRequirements[columnNames[i]] = struct{}{};
+		}
+	}
+	return nil;
+}
+
+func checkCustomRequirements(customCols map[string]interface{}, requirements map[string]struct{}) bool {
+	if(customCols != nil){
+		if(len(customCols) == 0 && len(requirements) != 0){
+			return false;
+		}
+		for key, _ := range customCols {
+			if _, ok := requirements[key]; !ok {
+				return false;
+			}
+		}
+	}else if(len(requirements) != 0){
+		return false;
+	}
+	return true;
+}
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 //   SIGN A USER UP   ////////////////////////////////////////////////////////////////////////////////
@@ -24,15 +144,8 @@ func SignUpClient(userName string, password string, customCols map[string]interf
 		return errors.New("A password is required to sign up");
 	}else if(checkStringSQLInjection(userName)){
 		return errors.New("Malicious characters detected");
-	}
-
-	// CHECK FOR VALID COLUMNS IN customCols - ALSO PREVENTS INJECTIONS IN KEYS
-	if(customCols != nil){
-		for key, _ := range customCols {
-			if _, ok := customAccountInfo[key]; !ok {
-				return errors.New("Incorrect data supplied!");
-			}
-		}
+	}else if(!checkCustomRequirements(customCols, customSignupRequirements)){
+		return errors.New("Incorrect data supplied");
 	}
 
 	//ENCRYPT PASSWORD
@@ -84,25 +197,15 @@ func SignUpClient(userName string, password string, customCols map[string]interf
 
 // WARNING: This is only meant for internal Gopher Game Server mechanics. Use the client APIs to log in a
 // client when using the SQL features.
-func LoginClient(userName string, password string, customCols map[string]interface{}) error {
+func LoginClient(userName string, password string, customCols map[string]interface{}) (int, error) {
 	if(len(userName) == 0){
-		return errors.New("A user name is required to log in");
+		return 0, errors.New("A user name is required to log in");
 	}else if(len(password) == 0){
-		return errors.New("A password is required to log in");
+		return 0, errors.New("A password is required to log in");
 	}else if(checkStringSQLInjection(userName)){
-		return errors.New("Malicious characters detected");
-	}
-
-	// CHECK FOR VALID COLUMNS IN customCols - ALSO PREVENTS INJECTIONS IN KEYS
-	if(customCols != nil){
-		for key, val := range customCols {
-			if info, ok := customAccountInfo[key]; !ok {
-				return errors.New("Incorrect data supplied!");
-			}else{
-				_, err := convertDataToString(dataTypes[info.dataType], val);
-				if(err != nil){ return err; }
-			}
-		}
+		return 0, errors.New("Malicious characters detected");
+	}else if(!checkCustomRequirements(customCols, customLoginRequirements)){
+		return errors.New("Incorrect data supplied");
 	}
 
 	//FIRST TWO ARE id, password IN THAT ORDER
@@ -121,108 +224,34 @@ func LoginClient(userName string, password string, customCols map[string]interfa
 
 	//EXECUTE SELECT QUERY
 	checkRows, err := database.Query(selectQuery);
-	if(err != nil){ return err; }
+	if(err != nil){ return 0, err; }
 	//
 	checkRows.Next();
 	if scanErr := checkRows.Scan(vals...); scanErr != nil {
 		checkRows.Close();
-		return errors.New("Login or password is incorrect");
+		return 0, errors.New("Login or password is incorrect");
 	}
 	checkRows.Close();
 
 	//
-	//dbIndex := *(vals[0]).(*int); // USE FOR SERVER CALLBACK & MAKE DATABASE RESPONSE MAP
+	dbIndex := *(vals[0]).(*interface{}); // USE FOR SERVER CALLBACK & MAKE DATABASE RESPONSE MAP
 	dbPass := *(vals[1]).(*interface{});
 
 	//COMPARE HASHED PASSWORDS
 	if(!helpers.CheckPasswordHash(password, dbPass.([]byte))){
-		return errors.New("Login or password is incorrect");
+		return 0, errors.New("Login or password is incorrect");
 	}
 
 	//
-	return nil;
-}
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////
-//   CUSTOM LOGIN CLIENT   ///////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////////////////////////////////
-
-// WARNING: This is only meant for internal Gopher Game Server mechanics. Use the client APIs to log in a
-// client when using the SQL features.
-func CustomLoginClient(password string, customCols map[string]interface{}) error {
-	if(len(password) == 0){
-		return errors.New("A password is required to log in");
-	}
-
-	// CHECK FOR VALID COLUMNS IN customCols - ALSO PREVENTS INJECTIONS IN KEYS
-	if(customCols != nil){
-		if(len(customCols) == 0){
-			return errors.New("Custom data is required to log in");
-		}
-		for key, val := range customCols {
-			if info, ok := customAccountInfo[key]; !ok {
-				return errors.New("Incorrect data supplied!");
-			}else{
-				_, err := convertDataToString(dataTypes[info.dataType], val);
-				if(err != nil){ return err; }
-			}
-		}
-	}else{
-		return errors.New("Custom data is required to log in");
-	}
-
-	//FIRST THREE ARE id, userName, password IN THAT ORDER
-	var vals []interface{} = []interface{}{new(interface{}), new(interface{}), new(interface{})};
-	var customKeys []string = []string{};
-
-	//CONSTRUCT SELECT QUERY
-	selectQuery := "Select "+usersColumnID+", "+usersColumnName+", "+usersColumnPassword+", ";
-	for key, _ := range customCols {
-		selectQuery = selectQuery+key+", ";
-		//MAINTAIN THE ORDER IN WHICH THE COLUMNS WERE DECLARED VIA A SLICE
-		vals = append(vals, new(interface{}));
-		customKeys = append(customKeys, key);
-	}
-	selectQuery = selectQuery[0:len(selectQuery)-2]+" FROM "+tableUsers+" WHERE "+customKeys[0]+"=";
-	if(dataTypeNeedsQuotes(customAccountInfo[customKeys[0]].dataType)){
-		selectQuery = selectQuery+"\""+customCols[customKeys[0]].(string)+"\";";
-	}else{
-		selectQuery = selectQuery+customCols[customKeys[0]].(string)+";";
-	}
-
-
-	//EXECUTE SELECT QUERY
-	checkRows, err := database.Query(selectQuery);
-	if(err != nil){ return err; }
-	//
-	checkRows.Next();
-	if scanErr := checkRows.Scan(vals...); scanErr != nil {
-		checkRows.Close();
-		return errors.New("Login or password is incorrect");
-	}
-	checkRows.Close();
-
-	//
-	//dbIndex := *(vals[0]).(*int); // USE FOR SERVER CALLBACK & MAKE DATABASE RESPONSE MAP
-	dbPass := *(vals[2]).(*interface{});
-
-	//COMPARE HASHED PASSWORDS
-	if(!helpers.CheckPasswordHash(password, dbPass.([]byte))){
-		return errors.New("Login or password is incorrect");
-	}
-
-	fmt.Println("logging in as:", string((*(vals[1]).(*interface{})).([]byte)));
-
-	//
-	return nil;
+	return dbIndex.(int), nil;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 //   CHANGE PASSWORD   ///////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// WARNING: This is only meant for internal Gopher Game Server mechanics. Use the client APIs to log in a
-// client when using the SQL features.
+// WARNING: This is only meant for internal Gopher Game Server mechanics. Use the client APIs to change
+// a user's password when using the SQL features.
 func ChangePassword(userName string, password string, customCols map[string]interface{}) error {
 	if(len(userName) == 0){
 		return errors.New("A user name is required to change a password");
@@ -230,18 +259,9 @@ func ChangePassword(userName string, password string, customCols map[string]inte
 		return errors.New("A password is required to change a password");
 	}else if(checkStringSQLInjection(userName)){
 		return errors.New("Malicious characters detected");
+	}else if(!checkCustomRequirements(customCols, customPasswordChangeRequirements)){
+		return errors.New("Incorrect data supplied");
 	}
-
-	// CHECK FOR VALID COLUMNS IN customCols - ALSO PREVENTS INJECTIONS IN KEYS
-	if(customCols != nil){
-		for key, _ := range customCols {
-			if _, ok := customAccountInfo[key]; !ok {
-				return errors.New("Incorrect data supplied!");
-			}
-		}
-	}
-
-	//PASSWORD VERIFICATION & DATABASE RETRIEVAL
 
 	//FIRST TWO ARE id, password IN THAT ORDER
 	var vals []interface{} = []interface{}{new(interface{}), new(interface{})};
@@ -266,7 +286,7 @@ func ChangePassword(userName string, password string, customCols map[string]inte
 	checkRows.Next();
 	if scanErr := checkRows.Scan(vals...); scanErr != nil {
 		checkRows.Close();
-		return errors.New("User name or password is incorrect");
+		return errors.New("Login or password is incorrect");
 	}
 	checkRows.Close();
 
@@ -276,7 +296,7 @@ func ChangePassword(userName string, password string, customCols map[string]inte
 
 	//COMPARE HASHED PASSWORDS
 	if(!helpers.CheckPasswordHash(password, dbPass.([]byte))){
-		return errors.New("User name or password is incorrect");
+		return errors.New("Login or password is incorrect");
 	}
 
 	//UPDATE THE PASSWORD
@@ -291,8 +311,8 @@ func ChangePassword(userName string, password string, customCols map[string]inte
 //   CHANGE ACCOUNT INFO   ///////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// WARNING: This is only meant for internal Gopher Game Server mechanics. Use the client APIs to log in a
-// client when using the SQL features.
+// WARNING: This is only meant for internal Gopher Game Server mechanics. Use the client APIs to change
+// a user's AccountInfoColumn when using the SQL features.
 func ChangeAccountInfo(userName string, password string, customCols map[string]interface{}) error {
 	if(len(userName) == 0){
 		return errors.New("A user name is required to change account info");
@@ -300,26 +320,9 @@ func ChangeAccountInfo(userName string, password string, customCols map[string]i
 		return errors.New("A password is required to change account info");
 	}else if(checkStringSQLInjection(userName)){
 		return errors.New("Malicious characters detected");
+	}else if(!checkCustomRequirements(customCols, customAccountInfoChangeRequirements)){
+		return errors.New("Incorrect data supplied");
 	}
-
-	// CHECK FOR VALID COLUMNS IN customCols - ALSO PREVENTS INJECTIONS IN KEYS
-	if(customCols != nil){
-		if(len(customCols) == 0){
-			return errors.New("New account info data is required to change account info");
-		}
-		for key, val := range customCols {
-			if info, ok := customAccountInfo[key]; !ok {
-				return errors.New("Incorrect data supplied!");
-			}else{
-				_, err := convertDataToString(dataTypes[info.dataType], val);
-				if(err != nil){ return err; }
-			}
-		}
-	}else{
-		return errors.New("New account info data is required to change account info");
-	}
-
-	//PASSWORD VERIFICATION & DATABASE RETRIEVAL
 
 	//FIRST TWO ARE id, password IN THAT ORDER
 	var vals []interface{} = []interface{}{new(interface{}), new(interface{})};
@@ -327,11 +330,13 @@ func ChangeAccountInfo(userName string, password string, customCols map[string]i
 
 	//CONSTRUCT SELECT QUERY
 	selectQuery := "Select "+usersColumnID+", "+usersColumnPassword+", ";
-	for key, val := range customCols {
-		selectQuery = selectQuery+key+", ";
-		//MAINTAIN THE ORDER IN WHICH THE COLUMNS WERE DECLARED VIA A SLICE
-		vals = append(vals, new(interface{}));
-		valsList = append(valsList, []interface{}{val, customAccountInfo[key].dataType, key});
+	if(customCols != nil){
+		for key, val := range customCols {
+			selectQuery = selectQuery+key+", ";
+			//MAINTAIN THE ORDER IN WHICH THE COLUMNS WERE DECLARED VIA A SLICE
+			vals = append(vals, new(interface{}));
+			valsList = append(valsList, []interface{}{val, customAccountInfo[key].dataType, key});
+		}
 	}
 	selectQuery = selectQuery[0:len(selectQuery)-2]+" FROM "+tableUsers+" WHERE "+usersColumnName+"=\""+userName+"\";";
 
@@ -342,7 +347,7 @@ func ChangeAccountInfo(userName string, password string, customCols map[string]i
 	checkRows.Next();
 	if scanErr := checkRows.Scan(vals...); scanErr != nil {
 		checkRows.Close();
-		return errors.New("User name or password is incorrect");
+		return errors.New("Login or password is incorrect");
 	}
 	checkRows.Close();
 
@@ -352,7 +357,7 @@ func ChangeAccountInfo(userName string, password string, customCols map[string]i
 
 	//COMPARE HASHED PASSWORDS
 	if(!helpers.CheckPasswordHash(password, dbPass.([]byte))){
-		return errors.New("User name or password is incorrect");
+		return errors.New("Login or password is incorrect");
 	}
 
 	//UPDATE THE AccountInfoColumns
@@ -386,7 +391,7 @@ func ChangeAccountInfo(userName string, password string, customCols map[string]i
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // WARNING: This is only meant for internal Gopher Game Server mechanics. Use the client APIs to delete a
-// client's account when using the SQL features.
+// user's account when using the SQL features.
 func DeleteAccount(userName string, password string, customCols map[string]interface{}) error {
 	if(len(userName) == 0){
 		return errors.New("A user name is required to delete an account");
@@ -394,18 +399,8 @@ func DeleteAccount(userName string, password string, customCols map[string]inter
 		return errors.New("A password is required to delete an account");
 	}else if(checkStringSQLInjection(userName)){
 		return errors.New("Malicious characters detected");
-	}
-
-	// CHECK FOR VALID COLUMNS IN customCols - ALSO PREVENTS INJECTIONS IN KEYS
-	if(customCols != nil){
-		for key, val := range customCols {
-			if info, ok := customAccountInfo[key]; !ok {
-				return errors.New("Incorrect data supplied!");
-			}else{
-				_, err := convertDataToString(dataTypes[info.dataType], val);
-				if(err != nil){ return err; }
-			}
-		}
+	}else if(!checkCustomRequirements(customCols, customDeleteAccountRequirements)){
+		return errors.New("Incorrect data supplied");
 	}
 
 	//FIRST TWO ARE id, password IN THAT ORDER
@@ -429,7 +424,7 @@ func DeleteAccount(userName string, password string, customCols map[string]inter
 	checkRows.Next();
 	if scanErr := checkRows.Scan(vals...); scanErr != nil {
 		checkRows.Close();
-		return errors.New("User name or password is incorrect");
+		return errors.New("Login or password is incorrect");
 	}
 	checkRows.Close();
 
@@ -439,7 +434,7 @@ func DeleteAccount(userName string, password string, customCols map[string]inter
 
 	//COMPARE HASHED PASSWORDS
 	if(!helpers.CheckPasswordHash(password, dbPass)){
-		return errors.New("User name or password is incorrect");
+		return errors.New("Login or password is incorrect");
 	}
 
 	//EVERYTHING WENT FINE AND DANDY, DELETE THE ACCOUNT
