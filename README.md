@@ -1,5 +1,5 @@
 # <div style="height:100px;line-height:100px;text-align:center;vertical-align:center;"><img src="https://github.com/hewiefreeman/GopherGameServer/blob/master/Server%20Gopher.png" width="100px" height="100px">Gopher Game Server</div>
-Gopher Game Server is a full-featured game server written in Go. Comes with a client API for JavaScript as well (and eventually Java, C++, and C)
+Gopher Game Server is a full-featured, flexible, and fully-customizable game server written in Go. Comes with a client API for JavaScript (and eventually Java, C++, and C).
 
 -**PROJECT IN DEVELOPMENT**-
 
