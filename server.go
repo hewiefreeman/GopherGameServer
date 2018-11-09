@@ -185,7 +185,7 @@ func Start(s *ServerSettings, callback func()) error {
 	}
 
 	//UPDATE SETTINGS IN users PACKAGE, THEN users WILL UPDATE SETTINGS FOR rooms PACKAGE
-	users.SettingsSet((*settings).KickDupOnLogin, (*settings).ServerName, (*settings).RoomDeleteOnLeave);
+	users.SettingsSet((*settings).KickDupOnLogin, (*settings).ServerName, (*settings).RoomDeleteOnLeave, (*settings).EnableSqlFeatures);
 
 	//NOTIFY PACKAGES OF SERVER START
 	users.SetServerStarted(true);

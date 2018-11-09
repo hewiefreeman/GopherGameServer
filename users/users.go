@@ -34,6 +34,7 @@ var (
 	serverStarted bool = false
 	serverName string = ""
 	kickOnLogin bool = false
+	sqlFeatures bool = false
 )
 
 // These represent the four statuses a User could be.
@@ -75,20 +76,20 @@ func Login(userName string, dbID int, isGuest bool, socket *websocket.Conn) (Use
 	var friends []map[string]interface{} = []map[string]interface{}{};
 	var friendsMap map[string]database.Friend;
 	var friendsErr error;
-	if(dbID != -1){
-		friendsMap, friendsErr := database.GetFriends(dbID); // map[string]Friend
+	if(dbID != -1 && sqlFeatures){
+		friendsMap, friendsErr = database.GetFriends(dbID); // map[string]Friend
 		if(friendsErr == nil){
 			for _, val := range friendsMap {
 				friendEntry := make(map[string]interface{});
-				friendEntry["name"] = val.Name();
-				friendEntry["requestStatus"] = val.RequestStatus();
+				friendEntry["n"] = val.Name();
+				friendEntry["rs"] = val.RequestStatus();
 				if(val.RequestStatus() == database.FriendStatusAccepted){
 					//GET THE User STATUS
 					user, userErr := Get(val.Name());
 					if(userErr != nil){
-						friendEntry["status"] = StatusOffline;
+						friendEntry["s"] = StatusOffline;
 					}else{
-						friendEntry["status"] = user.status;
+						friendEntry["s"] = user.status;
 					}
 				}
 				friends = append(friends, friendEntry);
@@ -265,19 +266,48 @@ func changeUserRoomName(p []interface{}) []interface{} {
 	}
 
 	//
-	return []interface{}{err, roomIn}
+	return []interface{}{err, roomIn};
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////
-//   GET THE STATUS OF A USER   //////////////////////////////////////////////////////////////////////
+//   SET THE STATUS OF A USER   //////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// Gets the current status of a User by their name.
-func GetStatus(userName string) int {
-	user, err := Get(userName);
-	if(err != nil){ return StatusOffline };
+func (u *User) SetStatus(status int) error {
+	//CHANGE User's STATUS
+	response := usersActionChan.Execute(changeUserStatus, []interface{}{u, status});
+	if(response[0] != nil){ return response[0].(error) }
+
+	//SEND STATUS CHANGE MESSAGE TO User's FRIENDS WHOM ARE "ACCEPTED"
+	message := make(map[string]interface{});
+	message[helpers.ServerActionFriendStatusChange] = make(map[string]interface{});
+	message[helpers.ServerActionFriendStatusChange].(map[string]interface{})["n"] = u.name;
+	message[helpers.ServerActionFriendStatusChange].(map[string]interface{})["s"] = status;
+	for key, val := range u.friends {
+		if(val.RequestStatus() == database.FriendStatusAccepted){
+			friend, friendErr := Get(key);
+			if(friendErr == nil){
+				friend.socket.WriteJSON(message);
+			}
+		}
+	}
+
 	//
-	return user.status;
+	return nil;
+}
+
+func changeUserStatus(p []interface{}) []interface{} {
+	theUser, theStatus := p[0].(*User), p[1].(int);
+	var err error = nil;
+
+	if _, ok := users[(*theUser).name]; ok {
+		(*users[(*theUser).name]).status = theStatus;
+	}else{
+		err = errors.New("User '"+theUser.name+"' is not logged in");
+	}
+
+	//
+	return []interface{}{err};
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -385,6 +415,11 @@ func (u *User) RoomName() string {
 	return u.room;
 }
 
+// Gets the status of the User.
+func (u *User) Status() int {
+	return u.status;
+}
+
 // Gets the WebSocket connection of a User.
 func (u *User) Socket() *websocket.Conn {
 	return u.socket;
@@ -407,10 +442,11 @@ func SetServerStarted(val bool){
 }
 
 // For Gopher Game Server internal mechanics only.
-func SettingsSet(kickDups bool, name string, deleteOnLeave bool){
+func SettingsSet(kickDups bool, name string, deleteOnLeave bool, sqlFeatures bool){
 	if(!serverStarted){
 		kickOnLogin = kickDups;
 		serverName = name;
+		sqlFeatures = sqlFeatures;
 		rooms.SettingsSet(name, deleteOnLeave, usersActionChan);
 	}
 }

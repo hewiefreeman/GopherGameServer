@@ -54,6 +54,11 @@ func clientActionHandler(action clientAction, userName *string, roomIn *rooms.Ro
 		case helpers.ClientActionVoiceStream:
 			return clientActionVoiceStream(action.P, userName, roomIn, conn);
 
+		// CHANGE STATUS
+
+		case helpers.ClientActionChangeStatus:
+			return clientActionChangeStatus(action.P, userName);
+
 		// CUSTOM ACTIONS
 
 		case helpers.ClientActionCustomAction:
@@ -89,6 +94,26 @@ func clientCustomAction(params interface{}, userName *string, conn *websocket.Co
 	if action, ok = pMap["a"].(string); !ok { return nil, true, errors.New("Incorrect data format"); }
 	actions.HandleCustomClientAction(action, pMap["d"], *userName, conn);
 	return nil, false, nil;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+//   CHANGE USER STATUS   ////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+
+func clientActionChangeStatus(params interface{}, userName *string) (interface{}, bool, error) {
+	if(*userName != ""){ return nil, true, errors.New("You must be logged in to change your status"); }
+	user, userErr := users.Get(*userName);
+	if(userErr != nil){ return nil, true, userErr; }
+	//GET PARAMS
+	var ok bool;
+	var status int;
+
+	if status, ok = params.(int); !ok { return nil, true, errors.New("Incorrect data format"); }
+	//
+	statusErr := user.SetStatus(status);
+	if(statusErr != nil){ return nil, true, statusErr; }
+	//
+	return status, true, nil;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -133,7 +158,7 @@ func clientActionDeleteAccount(params interface{}) (interface{}, bool, error) {
 	if pass, ok = pMap["p"].(string); !ok { return nil, true, errors.New("Incorrect data format"); }
 
 	//CHECK IF USER IS ONLINE
-	user, err := users.Get(userName);
+	_, err := users.Get(userName);
 	if(err == nil){ return nil, true, errors.New("The User must be logged off to delete their account."); }
 
 	//DELETE ACCOUNT
@@ -485,17 +510,15 @@ func clientActionFriendRequest(params interface{}, userName *string) (interface{
 	if(userErr != nil){ return nil, true, errors.New("Client not logged in"); }
 	//GET PARAMS AS A MAP
 	var ok bool;
-	var pMap map[string]interface{};
 	var friendName string;
 
-	if pMap, ok = params.(map[string]interface{}); !ok { return nil, true, errors.New("Incorrect data format"); }
-	if friendName, ok = pMap["n"].(string); !ok { return nil, true, errors.New("Incorrect data format"); }
+	if friendName, ok = params.(string); !ok { return nil, true, errors.New("Incorrect data format"); }
 
 	requestErr := user.FriendRequest(friendName);
 	if(userErr != nil){ return nil, true, requestErr; }
 
 	//
-	return nil, true, nil;
+	return friendName, true, nil;
 }
 
 func clientActionAcceptFriend(params interface{}, userName *string) (interface{}, bool, error) {
@@ -509,17 +532,29 @@ func clientActionAcceptFriend(params interface{}, userName *string) (interface{}
 	if(userErr != nil){ return nil, true, errors.New("Client not logged in"); }
 	//GET PARAMS AS A MAP
 	var ok bool;
-	var pMap map[string]interface{};
 	var friendName string;
 
-	if pMap, ok = params.(map[string]interface{}); !ok { return nil, true, errors.New("Incorrect data format"); }
-	if friendName, ok = pMap["n"].(string); !ok { return nil, true, errors.New("Incorrect data format"); }
+	if friendName, ok = params.(string); !ok { return nil, true, errors.New("Incorrect data format"); }
 
 	acceptErr := user.AcceptFriendRequest(friendName);
 	if(acceptErr != nil){ return nil, true, acceptErr; }
 
+	//GET FRIEND'S status
+	var status int;
+	friend, friendErr := users.Get(friendName);
+	if(friendErr != nil){
+		status = users.StatusOffline;
+	}else{
+		status = friend.Status();
+	}
+
+	//MAKE RESPONSE
+	responseMap := make(map[string]interface{});
+	responseMap["n"] = friendName;
+	responseMap["s"] = status;
+
 	//
-	return nil, true, nil;
+	return responseMap, true, nil;
 }
 
 func clientActionDeclineFriend(params interface{}, userName *string) (interface{}, bool, error) {
@@ -533,17 +568,15 @@ func clientActionDeclineFriend(params interface{}, userName *string) (interface{
 	if(userErr != nil){ return nil, true, errors.New("Client not logged in"); }
 	//GET PARAMS AS A MAP
 	var ok bool;
-	var pMap map[string]interface{};
 	var friendName string;
 
-	if pMap, ok = params.(map[string]interface{}); !ok { return nil, true, errors.New("Incorrect data format"); }
-	if friendName, ok = pMap["n"].(string); !ok { return nil, true, errors.New("Incorrect data format"); }
+	if friendName, ok = params.(string); !ok { return nil, true, errors.New("Incorrect data format"); }
 
 	declineErr := user.DeclineFriendRequest(friendName);
 	if(declineErr != nil){ return nil, true, declineErr; }
 
 	//
-	return nil, true, nil;
+	return friendName, true, nil;
 }
 
 func clientActionRemoveFriend(params interface{}, userName *string) (interface{}, bool, error) {
@@ -557,15 +590,13 @@ func clientActionRemoveFriend(params interface{}, userName *string) (interface{}
 	if(userErr != nil){ return nil, true, errors.New("Client not logged in"); }
 	//GET PARAMS AS A MAP
 	var ok bool;
-	var pMap map[string]interface{};
 	var friendName string;
 
-	if pMap, ok = params.(map[string]interface{}); !ok { return nil, true, errors.New("Incorrect data format"); }
-	if friendName, ok = pMap["n"].(string); !ok { return nil, true, errors.New("Incorrect data format"); }
+	if friendName, ok = params.(string); !ok { return nil, true, errors.New("Incorrect data format"); }
 
 	removeErr := user.RemoveFriend(friendName);
 	if(removeErr != nil){ return nil, true, removeErr; }
 
 	//
-	return nil, true, nil;
+	return friendName, true, nil;
 }

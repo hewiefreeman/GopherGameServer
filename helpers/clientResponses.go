@@ -20,6 +20,7 @@ const (
 	ClientActionRevokeInvite = "ri"
 	ClientActionChatMessage = "c"
 	ClientActionVoiceStream = "v"
+	ClientActionChangeStatus = "sc"
 	ClientActionCustomAction = "a"
 	ClientActionFriendRequest = "f"
 	ClientActionAcceptFriend = "fa"
@@ -39,6 +40,10 @@ const (
 	ServerActionVoiceStream = "v"
 	ServerActionVoicePing = "vp"
 	ServerActionRoomInvite = "i"
+	ServerActionFriendRequest = "f"
+	ServerActionFriendAccept = "fa"
+	ServerActionFriendRemove = "fr"
+	ServerActionFriendStatusChange = "fs"
 )
 
 func MakeClientResponse(action string, responseVal interface{}, err error) map[string]interface{} {

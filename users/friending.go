@@ -2,6 +2,7 @@ package users
 
 import (
 	"github.com/hewiefreeman/GopherGameServer/database"
+	"github.com/hewiefreeman/GopherGameServer/helpers"
 	"errors"
 )
 
@@ -39,8 +40,8 @@ func (u *User) FriendRequest(friendName string) error {
 	//SEND A FRIEND REQUEST TO THE USER IF THEY ARE ONLINE
 	if(friendOnline){
 		message := make(map[string]interface{});
-		message["f"] = make(map[string]interface{});
-		message["f"].(map[string]interface{})["n"] = u.name;
+		message[helpers.ServerActionFriendRequest] = make(map[string]interface{});
+		message[helpers.ServerActionFriendRequest].(map[string]interface{})["n"] = u.name;
 		friend.socket.WriteJSON(message);
 	}
 
@@ -57,7 +58,7 @@ func addFriend(params []interface{}) []interface{} {
 		return []interface{}{ errors.New("User '"+userName+"' is not logged in") };
 	}
 	//ADD REQUESTED FRIEND FOR FRIEND
-	if _, ok = users[friendName]; ok {
+	if _, ok := users[friendName]; ok {
 		(*users[friendName]).friends[userName] = database.NewFriend(userName, userID, database.FriendStatusRequested);
 	}
 	//
@@ -71,7 +72,7 @@ func addFriend(params []interface{}) []interface{} {
 func (u *User) AcceptFriendRequest(friendName string) error {
 	if _, ok := u.friends[friendName]; !ok {
 		return errors.New("The user '"+friendName+"' has not requested you as a friend");
-	}else if(u.friends[friendName].RequestStatus() != database.FriendStatusRequested){
+	}else if((u.friends[friendName]).RequestStatus() != database.FriendStatusRequested){
 		return errors.New("The user '"+friendName+"' cannot be accepted as a friend");
 	}
 	//CHECK IF FRIEND IS ONLINE & GET DATABASE ID
@@ -100,8 +101,9 @@ func (u *User) AcceptFriendRequest(friendName string) error {
 	//SEND A FRIEND REQUEST TO THE USER IF THEY ARE ONLINE
 	if(friendOnline){
 		message := make(map[string]interface{});
-		message["fa"] = make(map[string]interface{});
-		message["fa"].(map[string]interface{})["n"] = u.name;
+		message[helpers.ServerActionFriendAccept] = make(map[string]interface{});
+		message[helpers.ServerActionFriendAccept].(map[string]interface{})["n"] = u.name;
+		message[helpers.ServerActionFriendAccept].(map[string]interface{})["s"] = u.status;
 		friend.socket.WriteJSON(message);
 	}
 
@@ -167,8 +169,8 @@ func (u *User) DeclineFriendRequest(friendName string) error {
 	//SEND A FRIEND REQUEST TO THE USER IF THEY ARE ONLINE
 	if(friendOnline){
 		message := make(map[string]interface{});
-		message["fr"] = make(map[string]interface{});
-		message["fr"].(map[string]interface{})["n"] = u.name;
+		message[helpers.ServerActionFriendRemove] = make(map[string]interface{});
+		message[helpers.ServerActionFriendRemove].(map[string]interface{})["n"] = u.name;
 		friend.socket.WriteJSON(message);
 	}
 
@@ -212,8 +214,8 @@ func (u *User) RemoveFriend(friendName string) error {
 	//SEND A FRIEND REQUEST TO THE USER IF THEY ARE ONLINE
 	if(friendOnline){
 		message := make(map[string]interface{});
-		message["fr"] = make(map[string]interface{});
-		message["fr"].(map[string]interface{})["n"] = u.name;
+		message[helpers.ServerActionFriendRemove] = make(map[string]interface{});
+		message[helpers.ServerActionFriendRemove].(map[string]interface{})["n"] = u.name;
 		friend.socket.WriteJSON(message);
 	}
 
