@@ -17,8 +17,6 @@ import (
 )
 
 /////////// TO DOs:
-///////////    - SQL Authentication:
-///////////    	- "Remember Me" login key pairs
 ///////////    - Multi-connect
 ///////////	- ServerCallbacks
 ///////////    - SQLite Database:
