@@ -19,7 +19,6 @@ import (
 /////////// TO DOs:
 ///////////    - SQL Authentication:
 ///////////    	- "Remember Me" login key pairs
-///////////    	- Friending & wire up to client API
 ///////////    - Multi-connect
 ///////////	- ServerCallbacks
 ///////////    - SQLite Database:
@@ -52,7 +51,7 @@ type ServerSettings struct {
 	UserRoomControl bool // Enables Users to create Rooms, invite/uninvite(AKA revoke) other Users to their owned private rooms, and destroy their owned rooms.
 	RoomDeleteOnLeave bool // When enabled, Rooms created by a User will be deleted when the owner leaves. WARNING: If disabled, you must remember to at some point delete the rooms created by Users, or they will pile up endlessly!
 
-	EnableSqlFeatures bool // Enables the built-in SQL User authentication and friending.
+	EnableSqlFeatures bool // Enables the built-in SQL User authentication and friending. NOTE: It is HIGHLY recommended to use TLS over an SSL/HTTPS connection when using the SQL features. Otherwise, User information could be easily compromised!
 	SqlIP string // SQL Database IP address.
 	SqlPort int // SQL Database port.
 	SqlProtocol string // The protocol to use while comminicating with the MySQL database. Most use either 'udp' or 'tcp'.
@@ -60,7 +59,7 @@ type ServerSettings struct {
 	SqlPassword string // SQL user password
 	SqlDatabase string // SQL database name
 	EncryptionCost int // The amount of encryption iterations the server will run when storing and checking passwords. The higher the number, the longer encryptions take, but are more secure. Default is 32.
-	RememberMe bool // Enables the "remember me" login feature.
+	RememberMe bool // Enables the "Remember Me" login feature. You can read more about this in project's "Usage" section.
 
 	EnableRecovery bool // Enables the recovery of all Rooms, their settings, and their variables on start-up after terminating the server.
 	RecoveryLocation string // The folder location (starting from system's root folder) where you would like to store the recovery data.
@@ -185,7 +184,7 @@ func Start(s *ServerSettings, callback func()) error {
 	}
 
 	//UPDATE SETTINGS IN users PACKAGE, THEN users WILL UPDATE SETTINGS FOR rooms PACKAGE
-	users.SettingsSet((*settings).KickDupOnLogin, (*settings).ServerName, (*settings).RoomDeleteOnLeave, (*settings).EnableSqlFeatures);
+	users.SettingsSet((*settings).KickDupOnLogin, (*settings).ServerName, (*settings).RoomDeleteOnLeave, (*settings).EnableSqlFeatures, (*settings).RememberMe);
 
 	//NOTIFY PACKAGES OF SERVER START
 	users.SetServerStarted(true);
@@ -196,7 +195,7 @@ func Start(s *ServerSettings, callback func()) error {
 	//START UP DATABASE
 	if((*settings).EnableSqlFeatures){
 		dbErr := database.Init((*settings).SqlUser, (*settings).SqlPassword, (*settings).SqlDatabase,
-							(*settings).SqlProtocol, (*settings).SqlIP, (*settings).SqlPort, (*settings).EncryptionCost);
+							(*settings).SqlProtocol, (*settings).SqlIP, (*settings).SqlPort, (*settings).EncryptionCost, (*settings).RememberMe);
 		if(dbErr != nil){
 			return dbErr;
 		}

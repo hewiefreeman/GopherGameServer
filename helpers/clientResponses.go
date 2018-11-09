@@ -44,6 +44,11 @@ const (
 	ServerActionFriendAccept = "fa"
 	ServerActionFriendRemove = "fr"
 	ServerActionFriendStatusChange = "fs"
+	ServerActionRequestDeviceTag = "t"
+	ServerActionSetDeviceTag = "ts"
+	ServerActionSetAutoLoginPass = "ap"
+	ServerActionAutoLoginFailed = "af"
+	ServerActionAutoLoginNotFiled = "ai"
 )
 
 func MakeClientResponse(action string, responseVal interface{}, err error) map[string]interface{} {

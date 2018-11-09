@@ -42,9 +42,9 @@ func setUp() error {
 		_, adjustErr := database.Exec("ALTER TABLE "+tableUsers+" AUTO_INCREMENT=1;");
 		if(adjustErr != nil){ return adjustErr; }
 
-		//INSERT startUpTestUser FOR FUTURE TESTS
+		//INSERT startUpTest FOR FUTURE TESTS
 		_, insertErr := database.Exec("INSERT INTO "+tableUsers+" ("+usersColumnName+", "+usersColumnPassword+") "+
-								"VALUES (\"startUpTestUser\", \"startUpTestUser\");");
+								"VALUES (\"startUpTest\", \"startUpTest\");");
 		if(insertErr != nil){ return insertErr; }
 
 		//MAKE THE friends TABLE
@@ -56,6 +56,20 @@ func setUp() error {
 								"FOREIGN KEY("+friendsColumnFriend+") REFERENCES "+tableUsers+"("+usersColumnID+")"+
 								");");
 		if(friendsErr != nil){ return friendsErr; }
+
+		if(rememberMe){
+			//MAKE THE autologs TABLE
+			_, friendsErr = database.Exec("CREATE TABLE "+tableAutologs+" ("+
+									autologsColumnID+" INTEGER NOT NULL, "+
+									autologsColumnDevicePass+" VARCHAR(255) NOT NULL, "+
+									autologsColumnDeviceTag+" VARCHAR(255) NOT NULL, "+
+									");");
+			if(friendsErr != nil){ return friendsErr; }
+			//INSERT startUpTest FOR FUTURE TESTS
+			_, insertErr = database.Exec("INSERT INTO "+tableAutologs+" ("+autologsColumnID+", "+autologsColumnDeviceTag+", "+autologsColumnDevicePass+") "+
+									"VALUES (1, \"startUpTest\", \"startUpTest\");");
+			if(insertErr != nil){ return insertErr; }
+		}
 
 	}else{
 		//CHECK IF THERE ARE ANY NEW custom AccountInfoColumn ITEMS
@@ -92,6 +106,24 @@ func setUp() error {
 			query = query[0:len(query)-2]+";";
 			_, colsErr := database.Exec(query);
 			if(colsErr != nil){ return colsErr; }
+		}
+
+		if(rememberMe){
+			//CHECK IF THE autologs TABLE HAS BEEN MADE
+			_, checkErr := database.Exec("SELECT "+autologsColumnID+" FROM "+tableAutologs+" WHERE "+autologsColumnID+"=1;");
+			if(checkErr != nil){
+				//MAKE THE autologs TABLE
+				_, friendsErr := database.Exec("CREATE TABLE "+tableAutologs+" ("+
+										autologsColumnID+" INTEGER NOT NULL, "+
+										autologsColumnDevicePass+" VARCHAR(255) NOT NULL, "+
+										autologsColumnDeviceTag+" VARCHAR(255) NOT NULL, "+
+										");");
+				if(friendsErr != nil){ return friendsErr; }
+				//INSERT startUpTest FOR FUTURE TESTS
+				_, insertErr := database.Exec("INSERT INTO "+tableAutologs+" ("+autologsColumnID+", "+autologsColumnDeviceTag+", "+autologsColumnDevicePass+") "+
+										"VALUES (1, \"startUpTest\", \"startUpTest\");");
+				if(insertErr != nil){ return insertErr; }
+			}
 		}
 	}
 

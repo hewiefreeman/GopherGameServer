@@ -12,18 +12,21 @@ import (
 )
 
 var (
-	//DATABASE VARIABLES
+	//THE DATABASE
 	database *sql.DB = nil;
-	databaseName string = "";
 
-	//
+	//SERVER SETTINGS
 	serverStarted bool = false
+	rememberMe bool = false;
+	databaseName string = "";
+	inited bool = false;
 )
 
 //TABLE & COLUMN NAMES
 const (
 	tableUsers = "users"
 	tableFriends = "friends"
+	tableAutologs = "autologs"
 
 	//users TABLE COLUMNS
 	usersColumnID = "_id"
@@ -34,22 +37,31 @@ const (
 	friendsColumnUser = "user"
 	friendsColumnFriend = "friend"
 	friendsColumnStatus = "status"
+
+	//autologs TABLE COLUMNS
+	autologsColumnID = "_id"
+	autologsColumnDeviceTag = "dn"
+	autologsColumnDevicePass = "da"
 )
 
 // WARNING: This is only meant for internal Gopher Game Server mechanics. If you want to enable SQL authorization
 // and friending, use the EnableSqlFeatures and cooresponding options in ServerSetting.
-func Init(userName string, password string, dbName string, protocol string, ip string, port int, encryptCost int) error {
+func Init(userName string, password string, dbName string, protocol string, ip string, port int, encryptCost int, remMe bool) error {
 	if(len(userName) == 0){
 		 return errors.New("sql.Start() requires a user name");
 	}else if(len(password) == 0){
 		 return errors.New("sql.Start() requires a password");
 	}else if(len(userName) == 0){
 		 return errors.New("sql.Start() requires a database name");
+	}else if(inited){
+		return errors.New("sql package is already initialized");
 	}
 
 	if(encryptCost != 0){
 		encryptionCost = encryptCost;
 	}
+
+	rememberMe = remMe;
 
 	var err error;
 
@@ -67,6 +79,9 @@ func Init(userName string, password string, dbName string, protocol string, ip s
 	//CONFIGURE DATABASE
 	setupErr := setUp();
 	if(setupErr != nil){ return setupErr; }
+
+	//
+	inited = true;
 
 	//
 	return nil;

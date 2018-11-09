@@ -11,7 +11,8 @@ import (
 	"errors"
 )
 
-func clientActionHandler(action clientAction, userName *string, roomIn *rooms.Room, conn *websocket.Conn, ua *user_agent.UserAgent) (interface{}, bool, error) {
+func clientActionHandler(action clientAction, userName *string, roomIn *rooms.Room, conn *websocket.Conn, ua *user_agent.UserAgent,
+					deviceTag *string, devicePass *string, deviceUserID *int) (interface{}, bool, error) {
 	switch _action := action.A; _action {
 
 		// DATABASE
@@ -28,9 +29,9 @@ func clientActionHandler(action clientAction, userName *string, roomIn *rooms.Ro
 		// LOGIN/LOGOUT
 
 		case helpers.ClientActionLogin:
-			return clientActionLogin(action.P, userName, conn);
+			return clientActionLogin(action.P, userName, deviceTag, devicePass, deviceUserID, conn);
 		case helpers.ClientActionLogout:
-			return clientActionLogout(userName, roomIn);
+			return clientActionLogout(userName, roomIn, deviceTag, devicePass, deviceUserID);
 
 		// ROOM ACTIONS
 
@@ -180,11 +181,13 @@ func clientActionChangePassword(params interface{}, userName *string) (interface
 	var pMap map[string]interface{};
 	var customCols map[string]interface{};
 	var pass string;
+	var newPass string;
 	if pMap, ok = params.(map[string]interface{}); !ok { return nil, true, errors.New("Incorrect data format"); }
 	if customCols, ok = pMap["c"].(map[string]interface{}); !ok { return nil, true, errors.New("Incorrect data format"); }
 	if pass, ok = pMap["p"].(string); !ok { return nil, true, errors.New("Incorrect data format"); }
+	if newPass, ok = pMap["n"].(string); !ok { return nil, true, errors.New("Incorrect data format"); }
 	//CHANGE PASSWORD
-	changeErr := database.ChangePassword(*userName, pass, customCols);
+	changeErr := database.ChangePassword(*userName, pass, newPass, customCols);
 	if(changeErr != nil){ return nil, true, changeErr; }
 
 	//
@@ -217,7 +220,7 @@ func clientActionChangeAccountInfo(params interface{}, userName *string) (interf
 //   LOGIN+LOGOUT ACTIONS   //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
-func clientActionLogin(params interface{}, userName *string, conn *websocket.Conn) (interface{}, bool, error) {
+func clientActionLogin(params interface{}, userName *string, deviceTag *string, devicePass *string, deviceUserID *int, conn *websocket.Conn) (interface{}, bool, error) {
 	if(*userName != ""){ return nil, true, errors.New("Already logged in as '"+(*userName)+"'"); }
 	//MAKE A MAP FROM PARAMS
 	var ok bool;
@@ -234,23 +237,26 @@ func clientActionLogin(params interface{}, userName *string, conn *websocket.Con
 	//LOG IN
 	var dbIndex int;
 	var user users.User;
+	var dPass string;
 	var err error;
 	if((*settings).EnableSqlFeatures){
-		dbIndex, err = database.LoginClient(name, pass, customCols);
+		dbIndex, dPass, err = database.LoginClient(name, pass, *deviceTag, customCols);
 		if(err != nil){ return nil, true, err; }
-		user, err = users.Login(name, dbIndex, guest, conn);
+		user, err = users.Login(name, dbIndex, dPass, guest, conn);
 	}else{
-		user, err = users.Login(name, -1, guest, conn);
+		user, err = users.Login(name, -1, "", guest, conn);
 	}
 	if(err != nil){ return nil, true, err; }
 	//CHANGE SOCKET'S userName
 	*userName = user.Name();
+	*devicePass = dPass;
+	*deviceUserID = dbIndex;
 
 	//
 	return nil, false, nil;
 }
 
-func clientActionLogout(userName *string, roomIn *rooms.Room) (interface{}, bool, error) {
+func clientActionLogout(userName *string, roomIn *rooms.Room, deviceTag *string, devicePass *string, deviceUserID *int) (interface{}, bool, error) {
 	if(*userName == ""){ return nil, true, errors.New("Already logged out"); }
 	//GET User
 	user, err := users.Get(*userName);
@@ -261,8 +267,15 @@ func clientActionLogout(userName *string, roomIn *rooms.Room) (interface{}, bool
 	}
 	//LOG User OUT AND RESET SOCKET'S userName
 	user.LogOut();
+	//REMOVE AUTO-LOG IF ANY
+	if((*settings).EnableSqlFeatures && (*settings).RememberMe){
+		database.RemoveAutoLog(*deviceUserID, *deviceTag);
+	}
+	//
 	*userName = "";
 	*roomIn = rooms.Room{};
+	*devicePass = "";
+	*deviceUserID = 0;
 
 	//
 	return nil, false, nil;

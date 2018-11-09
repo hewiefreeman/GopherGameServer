@@ -35,7 +35,7 @@ const (
 	DataTypeTinyInt = iota // TINYINT()
 	DataTypeSmallInt // SMALLINT()
 	DataTypeMediumInt // MEDIUMINT()
-	DataTypeInt // INT()
+	DataTypeInt // INTEGER()
 	DataTypeFloat // FLOAT()()
 	DataTypeDouble // DOUBLE()()
 	DataTypeDecimal // DECIMAL()()
@@ -80,7 +80,7 @@ var (
 					"TINYINT",
 					"SMALLINT",
 					"MEDIUMINT",
-					"INT",
+					"INTEGER",
 					"BIGINT",
 					"CHAR",
 					"VARCHAR",
@@ -108,7 +108,7 @@ var (
 					"TINYINT",
 					"SMALLINT",
 					"MEDIUMINT",
-					"INT",
+					"INTEGER",
 					"FLOAT",
 					"DOUBLE",
 					"DECIMAL",
@@ -185,7 +185,7 @@ func isPrecisionDataType(dataType int) bool {
 func convertDataToString(dataType string, data interface{}) (string, error) {
 	switch data.(type) {
 		case int:
-			if(dataType != "INT" && dataType != "TINYINT" && dataType != "MEDIUMINT" && dataType != "BIGINT" && dataType != "SMALLINT"){
+			if(dataType != "INTEGER" && dataType != "TINYINT" && dataType != "MEDIUMINT" && dataType != "BIGINT" && dataType != "SMALLINT"){
 				return "", errors.New("Mismatched data types");
 			}
 			return strconv.Itoa(data.(int)), nil;

@@ -35,6 +35,7 @@ var (
 	serverName string = ""
 	kickOnLogin bool = false
 	sqlFeatures bool = false
+	rememberMe bool = false
 )
 
 // These represent the four statuses a User could be.
@@ -54,7 +55,7 @@ const (
 // you are making a proper custom authentication for your project.
 //
 // Logs a User in to the service.
-func Login(userName string, dbID int, isGuest bool, socket *websocket.Conn) (User, error) {
+func Login(userName string, dbID int, autologPass string, isGuest bool, socket *websocket.Conn) (User, error) {
 	//REJECT INCORRECT INPUT
 	if(len(userName) == 0){
 		return User{}, errors.New("users.Login() requires a user name");
@@ -108,16 +109,33 @@ func Login(userName string, dbID int, isGuest bool, socket *websocket.Conn) (Use
 			err = response[1].(error);
 		}
 	}
-
+	user := response[0].(User);
+	//SEND ONLINE MESSAGE TO FRIENDS
+	message := make(map[string]interface{});
+	message[helpers.ServerActionFriendStatusChange] = make(map[string]interface{});
+	message[helpers.ServerActionFriendStatusChange].(map[string]interface{})["n"] = userName;
+	message[helpers.ServerActionFriendStatusChange].(map[string]interface{})["s"] = 0;
+	for key, val := range user.friends {
+		if(val.RequestStatus() == database.FriendStatusAccepted){
+			friend, friendErr := Get(key);
+			if(friendErr == nil){
+				friend.socket.WriteJSON(message);
+			}
+		}
+	}
 	//SUCCESS, SEND RESPONSE TO CLIENT
 	responseVal := make(map[string]interface{});
 	responseVal["n"] = userName;
 	responseVal["f"] = friends;
+	if(rememberMe && len(autologPass) > 0){
+		responseVal["ai"] = dbID;
+		responseVal["ap"] = autologPass;
+	}
 	clientResp := helpers.MakeClientResponse(helpers.ClientActionLogin, responseVal, nil);
 	socket.WriteJSON(clientResp);
 
 	//
-	return response[0].(User), err;
+	return user, err;
 }
 
 func loginUser(p []interface{}) []interface{} {
@@ -128,12 +146,30 @@ func loginUser(p []interface{}) []interface{} {
 	if _, ok := users[userName]; ok {
 		err = errors.New("User '"+userName+"' is already logged in");
 	}else{
-		newUser := User{name: userName, databaseID: dbID, isGuest: isGuest, friends: friends, socket: socket};
+		newUser := User{name: userName, databaseID: dbID, isGuest: isGuest, friends: friends, status: 0, socket: socket};
 		users[userName] = &newUser;
 		userRef = *users[userName];
 	}
 
 	return []interface{}{userRef, err};
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+//   AUTOLOG A USER IN   /////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// WARNING: This is only meant for internal Gopher Game Server mechanics. If you want the "Remember Me"
+// (AKA auto login) feature, enable it in ServerSettings along with the SqlFeatures and cooresponding
+// options. You can read more about the "Remember Me" login in the project's usage section.
+func AutoLogIn(tag string, pass string, newPass string, dbID int, conn *websocket.Conn) (string, error){
+	//VERIFY AND GET USER NAME FROM DATABASE
+	userName, autoLogErr := database.AutoLoginClient(tag, pass, newPass, dbID);
+	if(autoLogErr != nil){ return "", autoLogErr; }
+	//
+	_, userErr := Login(userName, dbID, newPass, false, conn);
+	if(userErr != nil){ return "", userErr; }
+	//
+	return userName, nil;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -273,6 +309,8 @@ func changeUserRoomName(p []interface{}) []interface{} {
 //   SET THE STATUS OF A USER   //////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
+// Sets the status of a User. Also sends a notification to all the User's Friends (with the request
+// status "accepted") that they changed their status.
 func (u *User) SetStatus(status int) error {
 	//CHANGE User's STATUS
 	response := usersActionChan.Execute(changeUserStatus, []interface{}{u, status});
@@ -442,11 +480,12 @@ func SetServerStarted(val bool){
 }
 
 // For Gopher Game Server internal mechanics only.
-func SettingsSet(kickDups bool, name string, deleteOnLeave bool, sqlFeatures bool){
+func SettingsSet(kickDups bool, name string, deleteOnLeave bool, sqlFeatures bool, remMe bool){
 	if(!serverStarted){
 		kickOnLogin = kickDups;
 		serverName = name;
 		sqlFeatures = sqlFeatures;
+		rememberMe = remMe;
 		rooms.SettingsSet(name, deleteOnLeave, usersActionChan);
 	}
 }

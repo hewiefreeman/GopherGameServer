@@ -192,15 +192,17 @@ func SignUpClient(userName string, password string, customCols map[string]interf
 
 // WARNING: This is only meant for internal Gopher Game Server mechanics. Use the client APIs to log in a
 // client when using the SQL features.
-func LoginClient(userName string, password string, customCols map[string]interface{}) (int, error) {
+func LoginClient(userName string, password string, deviceTag string, customCols map[string]interface{}) (int, string, error) {
 	if(len(userName) == 0){
-		return 0, errors.New("A user name is required to log in");
+		return 0, "", errors.New("A user name is required to log in");
 	}else if(len(password) == 0){
-		return 0, errors.New("A password is required to log in");
+		return 0, "", errors.New("A password is required to log in");
 	}else if(checkStringSQLInjection(userName)){
-		return 0, errors.New("Malicious characters detected");
+		return 0, "", errors.New("Malicious characters detected");
+	}else if(checkStringSQLInjection(deviceTag)){
+		return 0, "", errors.New("Malicious characters detected");
 	}else if(!checkCustomRequirements(customCols, customLoginRequirements)){
-		return 0, errors.New("Incorrect data supplied");
+		return 0, "", errors.New("Incorrect data supplied");
 	}
 
 	//FIRST TWO ARE id, password IN THAT ORDER
@@ -219,12 +221,12 @@ func LoginClient(userName string, password string, customCols map[string]interfa
 
 	//EXECUTE SELECT QUERY
 	checkRows, err := database.Query(selectQuery);
-	if(err != nil){ return 0, err; }
+	if(err != nil){ return 0, "", err; }
 	//
 	checkRows.Next();
 	if scanErr := checkRows.Scan(vals...); scanErr != nil {
 		checkRows.Close();
-		return 0, errors.New("Login or password is incorrect");
+		return 0, "", errors.New("Login or password is incorrect");
 	}
 	checkRows.Close();
 
@@ -234,11 +236,87 @@ func LoginClient(userName string, password string, customCols map[string]interfa
 
 	//COMPARE HASHED PASSWORDS
 	if(!helpers.CheckPasswordHash(password, dbPass.([]byte))){
-		return 0, errors.New("Login or password is incorrect");
+		return 0, "", errors.New("Login or password is incorrect");
+	}
+
+	//AUTO-LOGGING
+	var devicePass string = "";
+	var devicePassErr error = nil;
+
+	if(rememberMe){
+		//MAKE AUTO-LOG ENTRY
+		devicePass, devicePassErr = helpers.HashPassword(password, encryptionCost);
+		if(devicePassErr == nil){
+			database.Exec("INSERT INTO "+tableAutologs+" ("+autologsColumnID+", "+autologsColumnDeviceTag+", "+autologsColumnDevicePass+
+								") VALUES ("+strconv.Itoa(dbIndex.(int))+", \""+deviceTag+"\", \""+devicePass+"\");");
+		}
 	}
 
 	//
-	return dbIndex.(int), nil;
+	return dbIndex.(int), devicePass, nil;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+//   AUTOLOGIN CLIENT   //////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// WARNING: This is only meant for internal Gopher Game Server mechanics. Use the client APIs to automatically
+// log in a client when using the "Remember Me" SQL feature.
+func AutoLoginClient(tag string, pass string, newPass string, dbID int) (string, error) {
+	if(checkStringSQLInjection(tag)){
+		return "", errors.New("Malicious characters detected");
+	}
+	//EXECUTE SELECT QUERY
+	var dPass string;
+	checkRows, err := database.Query("Select "+autologsColumnDevicePass+" FROM "+tableAutologs+" WHERE "+autologsColumnID+"="+strconv.Itoa(dbID)+" AND "+
+								autologsColumnDeviceTag+"=\""+tag+"\" LIMIT 1;");
+	if(err != nil){ return "", errors.New("Incorrect autolog info"); }
+	//
+	checkRows.Next();
+	if scanErr := checkRows.Scan(&dPass); scanErr != nil {
+		checkRows.Close();
+		return "", errors.New("Incorrect autolog info");
+	}
+	checkRows.Close();
+
+	//COMPARE PASSES
+	if(pass != dPass){
+		//SOMEONE TRIED TO COMPROMISE THIS KEY PAIR. DELETE IT NOW.
+		RemoveAutoLog(dbID, tag);
+	}
+
+	//UPDATE TO NEW PASS
+	_, updateErr := database.Exec("UPDATE "+tableAutologs+" SET "+autologsColumnDevicePass+"=\""+newPass+"\" WHERE "+autologsColumnID+"="+strconv.Itoa(dbID)+" AND "+
+							autologsColumnDeviceTag+"=\""+tag+"\" LIMIT 1;");
+	if(updateErr != nil){ return "", errors.New("Incorrect autolog info"); }
+
+	//EVERYTHING WENT WELL, GET THE User's NAME
+	var userName string;
+	userRows, err := database.Query("Select "+usersColumnName+" FROM "+tableUsers+" WHERE "+usersColumnID+"="+strconv.Itoa(dbID)+" LIMIT 1;");
+	if(err != nil){ return "", errors.New("Incorrect autolog info"); }
+	//
+	userRows.Next();
+	if scanErr := userRows.Scan(&userName); scanErr != nil {
+		userRows.Close();
+		return "", errors.New("Incorrect autolog info");
+	}
+	userRows.Close();
+
+	//
+	return userName, nil;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+//   REMOVE AUTOLOGIN KEY PAIR   /////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// WARNING: This is only meant for internal Gopher Game Server mechanics. Auto-login entries in the database
+// are automatically deleted when a User logs off, or are thought to be compromised by the server.
+func RemoveAutoLog(userID int, deviceTag string){
+	if(checkStringSQLInjection(deviceTag)){
+		return;
+	}
+	database.Exec("DELETE FROM "+tableAutologs+" WHERE "+autologsColumnID+"="+strconv.Itoa(userID)+" AND "+autologsColumnDeviceTag+"=\""+deviceTag+"\" LIMIT 1;");
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -247,11 +325,13 @@ func LoginClient(userName string, password string, customCols map[string]interfa
 
 // WARNING: This is only meant for internal Gopher Game Server mechanics. Use the client APIs to change
 // a user's password when using the SQL features.
-func ChangePassword(userName string, password string, customCols map[string]interface{}) error {
+func ChangePassword(userName string, password string, newPassword string, customCols map[string]interface{}) error {
 	if(len(userName) == 0){
 		return errors.New("A user name is required to change a password");
 	}else if(len(password) == 0){
 		return errors.New("A password is required to change a password");
+	}else if(len(newPassword) == 0){
+		return errors.New("A new password is required to change a password");
 	}else if(checkStringSQLInjection(userName)){
 		return errors.New("Malicious characters detected");
 	}else if(!checkCustomRequirements(customCols, customPasswordChangeRequirements)){
@@ -294,8 +374,12 @@ func ChangePassword(userName string, password string, customCols map[string]inte
 		return errors.New("Login or password is incorrect");
 	}
 
+	//ENCRYPT NEW PASSWORD
+	passHash, hashErr := helpers.HashPassword(newPassword, encryptionCost);
+	if(hashErr != nil){ return hashErr; }
+
 	//UPDATE THE PASSWORD
-	_, updateErr := database.Exec("UPDATE "+tableUsers+" SET "+usersColumnPassword+" WHERE "+usersColumnID+"="+strconv.Itoa(dbIndex.(int))+" LIMIT 1;");
+	_, updateErr := database.Exec("UPDATE "+tableUsers+" SET "+usersColumnPassword+"=\""+passHash+"\" WHERE "+usersColumnID+"="+strconv.Itoa(dbIndex.(int))+" LIMIT 1;");
 	if(updateErr != nil){ return updateErr; }
 
 	//

@@ -10,6 +10,7 @@ import (
 	"github.com/gorilla/websocket"
 	"fmt"
 	"sync"
+	"time"
 )
 
 var (
@@ -67,17 +68,168 @@ func clientActionListener(conn *websocket.Conn, ua *user_agent.UserAgent) {
 	// Room THE CLIENT'S CURRENTLY IN
 	var roomIn rooms.Room = rooms.Room{};
 
+	// THE CLIENT'S AUTOLOG INFO
+	var deviceTag string = "";
+	var devicePass string = "";
+	var deviceUserID int = 0;
+
+	if((*settings).RememberMe){
+		//SEND TAG RETRIEVAL MESSAGE
+		var sentTagRequest bool = false;
+		//PARAMS
+		var ok bool;
+		var err error;
+		var pMap map[string]interface{};
+		var oldPass string = "";
+		//LOOP FOR TAGGING DEVICE - BREAKS WHEN THE DEVICE HAS BEEN TAGGED.
+		for{
+			if(!sentTagRequest){
+				tagMessage := make(map[string]interface{});
+				tagMessage[helpers.ServerActionRequestDeviceTag] = nil;
+				writeErr := conn.WriteJSON(tagMessage);
+				if(writeErr != nil){
+					conn.WriteControl(websocket.CloseMessage, []byte{}, time.Now().Add(time.Second*1));
+					conn.Close();
+					return;
+				}
+				sentTagRequest = true;
+			}
+			//READ INPUT BUFFER
+			readErr := conn.ReadJSON(&action);
+			if(readErr != nil || action.A == ""){
+				conn.WriteControl(websocket.CloseMessage, []byte{}, time.Now().Add(time.Second*1));
+				conn.Close();
+				return;
+			}
+
+			//DETERMINE ACTION
+			if(action.A == "0"){
+				//NO DEVICE TAG. MAKE ONE AND SEND IT.
+				deviceTag, newTagErr := helpers.GenerateSecureString(32);
+				if(newTagErr != nil){
+					conn.WriteControl(websocket.CloseMessage, []byte{}, time.Now().Add(time.Second*1));
+					conn.Close();
+					return;
+				}
+				tagMessage := make(map[string]interface{});
+				tagMessage[helpers.ServerActionSetDeviceTag] = deviceTag;
+				writeErr := conn.WriteJSON(tagMessage);
+				if(writeErr != nil){
+					conn.WriteControl(websocket.CloseMessage, []byte{}, time.Now().Add(time.Second*1));
+					conn.Close();
+					return;
+				}
+			}else if(action.A == "1"){
+				//THE CLIENT ONLY HAS A DEVICE TAG, BREAK
+				if deviceTag, ok = action.P.(string); ok {
+					//SEND AUTO-LOG NOT FILED MESSAGE
+					notFiledMessage := make(map[string]interface{});
+					notFiledMessage[helpers.ServerActionAutoLoginNotFiled] = nil;
+					writeErr := conn.WriteJSON(notFiledMessage);
+					if(writeErr != nil){
+						conn.WriteControl(websocket.CloseMessage, []byte{}, time.Now().Add(time.Second*1));
+						conn.Close();
+						return;
+					}
+				}else{
+					conn.WriteControl(websocket.CloseMessage, []byte{}, time.Now().Add(time.Second*1));
+					conn.Close();
+					return;
+				}
+
+				//
+				break;
+
+			}else if(action.A == "2"){
+				//THE CLIENT HAS A LOGIN KEY PAIR - MAKE A NEW PASS FOR THEM
+				devicePass, err = helpers.GenerateSecureString(32);
+				if(err != nil){
+					conn.WriteControl(websocket.CloseMessage, []byte{}, time.Now().Add(time.Second*1));
+					conn.Close();
+					return;
+				}
+				//GET PARAMS
+				if pMap, ok = action.P.(map[string]interface{}); !ok {
+					conn.WriteControl(websocket.CloseMessage, []byte{}, time.Now().Add(time.Second*1));
+					conn.Close();
+					return;
+				}
+				if deviceTag, ok = pMap["dt"].(string); !ok {
+					conn.WriteControl(websocket.CloseMessage, []byte{}, time.Now().Add(time.Second*1));
+					conn.Close();
+					return;
+				}
+				if oldPass, ok = pMap["da"].(string); !ok {
+					conn.WriteControl(websocket.CloseMessage, []byte{}, time.Now().Add(time.Second*1));
+					conn.Close();
+					return;
+				}
+				if deviceUserID, ok = pMap["di"].(int); !ok {
+					conn.WriteControl(websocket.CloseMessage, []byte{}, time.Now().Add(time.Second*1));
+					conn.Close();
+					return;
+				}
+				//CHANGE THE CLIENT'S PASS
+				newPassMessage := make(map[string]interface{});
+				newPassMessage[helpers.ServerActionSetAutoLoginPass] = devicePass;
+				writeErr := conn.WriteJSON(newPassMessage);
+				if(writeErr != nil){
+					conn.WriteControl(websocket.CloseMessage, []byte{}, time.Now().Add(time.Second*1));
+					conn.Close();
+					return;
+				}
+			}else if(action.A == "3"){
+				if(deviceTag == "" || oldPass == "" || deviceUserID == 0 || devicePass == ""){
+					//IRRESPONSIBLE USAGE
+					conn.WriteControl(websocket.CloseMessage, []byte{}, time.Now().Add(time.Second*1));
+					conn.Close();
+					return;
+				}
+				//AUTO-LOG THE CLIENT
+				clientName, autoLogErr := users.AutoLogIn(deviceTag, oldPass, devicePass, deviceUserID, conn);
+				if(autoLogErr != nil){
+					//ERROR AUTO-LOGGING - RUN AUTOLOGCOMPLETE AND DELETE KEYS FOR CLIENT, AND SILENTLY CHANGE DEVICE KEY
+					newTag, newTagErr := helpers.GenerateSecureString(32);
+					if(newTagErr != nil){
+						conn.WriteControl(websocket.CloseMessage, []byte{}, time.Now().Add(time.Second*1));
+						conn.Close();
+						return;
+					}
+					autologMessage := make(map[string]interface{});
+					autologMessage[helpers.ServerActionAutoLoginFailed] = make(map[string]interface{});
+					autologMessage[helpers.ServerActionAutoLoginFailed].(map[string]interface{})["dt"] = newTag;
+					autologMessage[helpers.ServerActionAutoLoginFailed].(map[string]interface{})["e"] = autoLogErr.Error();
+					writeErr := conn.WriteJSON(autologMessage);
+					if(writeErr != nil){
+						conn.WriteControl(websocket.CloseMessage, []byte{}, time.Now().Add(time.Second*1));
+						conn.Close();
+						return;
+					}
+					deviceTag = newTag;
+					//
+					break;
+				}
+				userName = clientName;
+				//
+				break;
+			}
+		}
+	}
+
+	//STANDARD CONNECTION LOOP
 	for {
 		//READ INPUT BUFFER
 		readErr := conn.ReadJSON(&action);
 		if(readErr != nil || action.A == ""){
 			//DISCONNECT USER
 			sockedDropped(userName);
+			conn.WriteControl(websocket.CloseMessage, []byte{}, time.Now().Add(time.Second*1));
+			conn.Close();
 			return;
 		}
 
 		//TAKE ACTION
-		responseVal, respond, actionErr := clientActionHandler(action, &userName, &roomIn, conn, ua);
+		responseVal, respond, actionErr := clientActionHandler(action, &userName, &roomIn, conn, ua, &deviceTag, &devicePass, &deviceUserID);
 
 		if(respond){
 			//SEND RESPONSE
@@ -85,6 +237,8 @@ func clientActionListener(conn *websocket.Conn, ua *user_agent.UserAgent) {
 			if writeErr := conn.WriteJSON(helpers.MakeClientResponse(action.A, responseVal, actionErr)); writeErr != nil {
 				//DISCONNECT USER
 				sockedDropped(userName);
+				conn.WriteControl(websocket.CloseMessage, []byte{}, time.Now().Add(time.Second*1));
+				conn.Close();
 				return;
 			}
 		}
