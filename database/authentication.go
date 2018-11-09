@@ -192,7 +192,7 @@ func SignUpClient(userName string, password string, customCols map[string]interf
 
 // WARNING: This is only meant for internal Gopher Game Server mechanics. Use the client APIs to log in a
 // client when using the SQL features.
-func LoginClient(userName string, password string, deviceTag string, customCols map[string]interface{}) (int, string, error) {
+func LoginClient(userName string, password string, deviceTag string, remMe bool, customCols map[string]interface{}) (int, string, error) {
 	if(len(userName) == 0){
 		return 0, "", errors.New("A user name is required to log in");
 	}else if(len(password) == 0){
@@ -243,7 +243,7 @@ func LoginClient(userName string, password string, deviceTag string, customCols 
 	var devicePass string = "";
 	var devicePassErr error = nil;
 
-	if(rememberMe){
+	if(rememberMe && remMe){
 		//MAKE AUTO-LOG ENTRY
 		devicePass, devicePassErr = helpers.HashPassword(password, encryptionCost);
 		if(devicePassErr == nil){

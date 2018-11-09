@@ -226,12 +226,18 @@ func clientActionLogin(params interface{}, userName *string, deviceTag *string, 
 	var ok bool;
 	var pMap map[string]interface{};
 	var name string;
-	var pass string;
+	var pass string = "";
+	var remMe bool;
 	var guest bool;
 	var customCols map[string]interface{};
 	if pMap, ok = params.(map[string]interface{}); !ok { return nil, true, errors.New("Incorrect data format"); }
 	if name, ok = pMap["n"].(string); !ok { return nil, true, errors.New("Incorrect data format"); }
-	if pass, ok = pMap["p"].(string); !ok { return nil, true, errors.New("Incorrect data format"); }
+	if((*settings).EnableSqlFeatures){
+		if pass, ok = pMap["p"].(string); !ok { return nil, true, errors.New("Incorrect data format"); }
+		if((*settings).RememberMe){
+			if remMe, ok = pMap["r"].(bool); !ok { return nil, true, errors.New("Incorrect data format"); }
+		}
+	}
 	if guest, ok = pMap["g"].(bool); !ok { return nil, true, errors.New("Incorrect data format"); }
 	if customCols, ok = pMap["c"].(map[string]interface{}); !ok { return nil, true, errors.New("Incorrect data format"); }
 	//LOG IN
@@ -240,11 +246,11 @@ func clientActionLogin(params interface{}, userName *string, deviceTag *string, 
 	var dPass string;
 	var err error;
 	if((*settings).EnableSqlFeatures){
-		dbIndex, dPass, err = database.LoginClient(name, pass, *deviceTag, customCols);
+		dbIndex, dPass, err = database.LoginClient(name, pass, *deviceTag, remMe, customCols);
 		if(err != nil){ return nil, true, err; }
-		user, err = users.Login(name, dbIndex, dPass, guest, conn);
+		user, err = users.Login(name, dbIndex, dPass, guest, remMe, conn);
 	}else{
-		user, err = users.Login(name, -1, "", guest, conn);
+		user, err = users.Login(name, -1, "", guest, false, conn);
 	}
 	if(err != nil){ return nil, true, err; }
 	//CHANGE SOCKET'S userName

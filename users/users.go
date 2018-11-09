@@ -55,7 +55,7 @@ const (
 // you are making a proper custom authentication for your project.
 //
 // Logs a User in to the service.
-func Login(userName string, dbID int, autologPass string, isGuest bool, socket *websocket.Conn) (User, error) {
+func Login(userName string, dbID int, autologPass string, isGuest bool, remMe bool, socket *websocket.Conn) (User, error) {
 	//REJECT INCORRECT INPUT
 	if(len(userName) == 0){
 		return User{}, errors.New("users.Login() requires a user name");
@@ -127,7 +127,7 @@ func Login(userName string, dbID int, autologPass string, isGuest bool, socket *
 	responseVal := make(map[string]interface{});
 	responseVal["n"] = userName;
 	responseVal["f"] = friends;
-	if(rememberMe && len(autologPass) > 0){
+	if(rememberMe && len(autologPass) > 0 && remMe){
 		responseVal["ai"] = dbID;
 		responseVal["ap"] = autologPass;
 	}
@@ -166,7 +166,7 @@ func AutoLogIn(tag string, pass string, newPass string, dbID int, conn *websocke
 	userName, autoLogErr := database.AutoLoginClient(tag, pass, newPass, dbID);
 	if(autoLogErr != nil){ return "", autoLogErr; }
 	//
-	_, userErr := Login(userName, dbID, newPass, false, conn);
+	_, userErr := Login(userName, dbID, newPass, false, true, conn);
 	if(userErr != nil){ return "", userErr; }
 	//
 	return userName, nil;
