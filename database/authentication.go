@@ -8,6 +8,7 @@ import(
 
 var(
 	encryptionCost int = 32;
+	customLoginColumn string = "";
 	customLoginRequirements map[string]struct{} = make(map[string]struct{});
 	customSignupRequirements map[string]struct{} = make(map[string]struct{});
 	customPasswordChangeRequirements map[string]struct{} = make(map[string]struct{});
@@ -217,7 +218,12 @@ func LoginClient(userName string, password string, deviceTag string, remMe bool,
 			vals = append(vals, new(interface{}));
 		}
 	}
-	selectQuery = selectQuery[0:len(selectQuery)-2]+" FROM "+tableUsers+" WHERE "+usersColumnName+"=\""+userName+"\" LIMIT 1;";
+	if(len(customLoginColumn) > 0){
+		selectQuery = selectQuery[0:len(selectQuery)-2]+" FROM "+tableUsers+" WHERE "+customLoginColumn+"=\""+userName+"\" LIMIT 1;";
+	}else{
+		selectQuery = selectQuery[0:len(selectQuery)-2]+" FROM "+tableUsers+" WHERE "+usersColumnName+"=\""+userName+"\" LIMIT 1;";
+	}
+
 
 	//EXECUTE SELECT QUERY
 	checkRows, err := database.Query(selectQuery);

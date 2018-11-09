@@ -46,15 +46,20 @@ const (
 
 // WARNING: This is only meant for internal Gopher Game Server mechanics. If you want to enable SQL authorization
 // and friending, use the EnableSqlFeatures and cooresponding options in ServerSetting.
-func Init(userName string, password string, dbName string, protocol string, ip string, port int, encryptCost int, remMe bool) error {
-	if(len(userName) == 0){
+func Init(userName string, password string, dbName string, protocol string, ip string, port int, encryptCost int, remMe bool, custLoginCol string) error {
+	if(inited){
+		return errors.New("sql package is already initialized");
+	}else if(len(userName) == 0){
 		 return errors.New("sql.Start() requires a user name");
 	}else if(len(password) == 0){
 		 return errors.New("sql.Start() requires a password");
 	}else if(len(userName) == 0){
 		 return errors.New("sql.Start() requires a database name");
-	}else if(inited){
-		return errors.New("sql package is already initialized");
+	}else if(len(custLoginCol) > 0){
+		if _, ok := customAccountInfo[custLoginCol]; !ok {
+			err = errors.New("The AccountInfoColumn '"+custLoginCol+"' does not exist. Use database.NewAccountInfoColumn() to make a column with that name.");
+		}
+		customLoginColumn = custLoginCol;
 	}
 
 	if(encryptCost != 0){

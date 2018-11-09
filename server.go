@@ -17,6 +17,11 @@ import (
 )
 
 /////////// TO DOs:
+///////////    - Test Database setUp() without testUser INSERTs
+///////////    - Test Client API with basic SQL features
+///////////    - Test Client API friending
+///////////    - Test Client API friend status changes
+///////////    - Test Client API remember me
 ///////////    - Multi-connect
 ///////////	- ServerCallbacks
 ///////////    - SQLite Database:
@@ -57,6 +62,7 @@ type ServerSettings struct {
 	SqlPassword string // SQL user password
 	SqlDatabase string // SQL database name
 	EncryptionCost int // The amount of encryption iterations the server will run when storing and checking passwords. The higher the number, the longer encryptions take, but are more secure. Default is 32.
+	CustomLoginColumn string // The custom AccountInfoColumn you wish to use for logging in instead of the default name column.
 	RememberMe bool // Enables the "Remember Me" login feature. You can read more about this in project's "Usage" section.
 
 	EnableRecovery bool // Enables the recovery of all Rooms, their settings, and their variables on start-up after terminating the server.
@@ -170,6 +176,7 @@ func Start(s *ServerSettings, callback func()) error {
 					SqlPassword: "password",
 					SqlDatabase: "database",
 					EncryptionCost: 32,
+					CustomLoginColumn: "",
 					RememberMe: false,
 
 					EnableRecovery: false,
@@ -193,7 +200,8 @@ func Start(s *ServerSettings, callback func()) error {
 	//START UP DATABASE
 	if((*settings).EnableSqlFeatures){
 		dbErr := database.Init((*settings).SqlUser, (*settings).SqlPassword, (*settings).SqlDatabase,
-							(*settings).SqlProtocol, (*settings).SqlIP, (*settings).SqlPort, (*settings).EncryptionCost, (*settings).RememberMe);
+							(*settings).SqlProtocol, (*settings).SqlIP, (*settings).SqlPort, (*settings).EncryptionCost,
+							(*settings).RememberMe, (*settings).CustomLoginColumn);
 		if(dbErr != nil){
 			return dbErr;
 		}

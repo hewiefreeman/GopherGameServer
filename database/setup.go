@@ -126,6 +126,11 @@ func setUp() error {
 			}
 		}
 	}
+	//MAKE SURE THE customLoginColumn IS UNIQUE IF SET
+	if(len(customLoginColumn) > 0){
+		_, alterErr := database.Exec("ALTER TABLE "+tableUsers+" ADD UNIQUE ("+customLoginColumn+");");
+		if(alterErr != nil){ return alterErr; }
+	}
 
 	//
 	return nil;
