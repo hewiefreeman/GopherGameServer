@@ -8,7 +8,6 @@ import (
 	"strconv"
 	"github.com/mssola/user_agent"
 	"github.com/gorilla/websocket"
-	"fmt"
 	"sync"
 	"time"
 )
@@ -233,7 +232,6 @@ func clientActionListener(conn *websocket.Conn, ua *user_agent.UserAgent) {
 
 		if(respond){
 			//SEND RESPONSE
-			fmt.Println("sending response for:", action.A);
 			if writeErr := conn.WriteJSON(helpers.MakeClientResponse(action.A, responseVal, actionErr)); writeErr != nil {
 				//DISCONNECT USER
 				sockedDropped(userName);

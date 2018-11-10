@@ -2,6 +2,7 @@ package database
 
 import (
 	"strconv"
+	"fmt"
 )
 
 // CONFIGURES THE DATABASE FOR Gopher Game Server USAGE
@@ -9,6 +10,7 @@ func setUp() error {
 	//CHECK IF THE TABLE users HAS BEEN MADE
 	_, checkErr := database.Exec("SELECT "+usersColumnName+" FROM "+tableUsers+" WHERE "+usersColumnID+"=1;");
 	if(checkErr != nil){
+		fmt.Println("Making all tables...");
 		//MAKE THE users TABLE QUERY
 		createQuery := "CREATE TABLE "+tableUsers+" ("+
 								usersColumnID+" INTEGER NOT NULL AUTO_INCREMENT, "+
@@ -42,11 +44,6 @@ func setUp() error {
 		_, adjustErr := database.Exec("ALTER TABLE "+tableUsers+" AUTO_INCREMENT=1;");
 		if(adjustErr != nil){ return adjustErr; }
 
-		//INSERT startUpTest FOR FUTURE TESTS
-		_, insertErr := database.Exec("INSERT INTO "+tableUsers+" ("+usersColumnName+", "+usersColumnPassword+") "+
-								"VALUES (\"startUpTest\", \"startUpTest\");");
-		if(insertErr != nil){ return insertErr; }
-
 		//MAKE THE friends TABLE
 		_, friendsErr := database.Exec("CREATE TABLE "+tableFriends+" ("+
 								friendsColumnUser+" INTEGER NOT NULL, "+
@@ -65,10 +62,6 @@ func setUp() error {
 									autologsColumnDeviceTag+" VARCHAR(255) NOT NULL, "+
 									");");
 			if(friendsErr != nil){ return friendsErr; }
-			//INSERT startUpTest FOR FUTURE TESTS
-			_, insertErr = database.Exec("INSERT INTO "+tableAutologs+" ("+autologsColumnID+", "+autologsColumnDeviceTag+", "+autologsColumnDevicePass+") "+
-									"VALUES (1, \"startUpTest\", \"startUpTest\");");
-			if(insertErr != nil){ return insertErr; }
 		}
 
 	}else{
@@ -112,17 +105,14 @@ func setUp() error {
 			//CHECK IF THE autologs TABLE HAS BEEN MADE
 			_, checkErr := database.Exec("SELECT "+autologsColumnID+" FROM "+tableAutologs+" WHERE "+autologsColumnID+"=1;");
 			if(checkErr != nil){
+				fmt.Println("Making autologs table...");
 				//MAKE THE autologs TABLE
 				_, friendsErr := database.Exec("CREATE TABLE "+tableAutologs+" ("+
 										autologsColumnID+" INTEGER NOT NULL, "+
 										autologsColumnDevicePass+" VARCHAR(255) NOT NULL, "+
-										autologsColumnDeviceTag+" VARCHAR(255) NOT NULL, "+
+										autologsColumnDeviceTag+" VARCHAR(255) NOT NULL"+
 										");");
 				if(friendsErr != nil){ return friendsErr; }
-				//INSERT startUpTest FOR FUTURE TESTS
-				_, insertErr := database.Exec("INSERT INTO "+tableAutologs+" ("+autologsColumnID+", "+autologsColumnDeviceTag+", "+autologsColumnDevicePass+") "+
-										"VALUES (1, \"startUpTest\", \"startUpTest\");");
-				if(insertErr != nil){ return insertErr; }
 			}
 		}
 	}

@@ -17,17 +17,20 @@ import (
 )
 
 /////////// TO DOs:
-///////////    - Test Database setUp() without testUser INSERTs
-///////////    - Test Client API with basic SQL features
-///////////    - Test Client API friending
-///////////    - Test Client API friend status changes
-///////////    - Test Client API remember me
+///////////    - Authentication:
+///////////          - Test Client API remember me
+///////////          - Test Client API friending
+///////////          - Test Client API friend status changes
+///////////    - Test chat/private chat
 ///////////    - Multi-connect
+///////////          - Test
 ///////////	- ServerCallbacks
+///////////          - Test
 ///////////    - SQLite Database:
 ///////////    	- Save state on shut-down
 ///////////         - Error handle server start-up and callback on successful launch
 ///////////         - Above will be used to determine whether to save the state or not. If the server didn't start correctly, the sate should not be saved.
+///////////         - Test
 ///////////    - Add checks for required ServerSettings
 ///////////    - Admin tools
 
@@ -61,7 +64,7 @@ type ServerSettings struct {
 	SqlUser string // SQL user name
 	SqlPassword string // SQL user password
 	SqlDatabase string // SQL database name
-	EncryptionCost int // The amount of encryption iterations the server will run when storing and checking passwords. The higher the number, the longer encryptions take, but are more secure. Default is 32.
+	EncryptionCost int // The amount of encryption iterations the server will run when storing and checking passwords. The higher the number, the longer encryptions take, but are more secure. Default is 4, range is 4-31.
 	CustomLoginColumn string // The custom AccountInfoColumn you wish to use for logging in instead of the default name column.
 	RememberMe bool // Enables the "Remember Me" login feature. You can read more about this in project's "Usage" section.
 
@@ -175,7 +178,7 @@ func Start(s *ServerSettings, callback func()) error {
 					SqlUser: "user",
 					SqlPassword: "password",
 					SqlDatabase: "database",
-					EncryptionCost: 32,
+					EncryptionCost: 4,
 					CustomLoginColumn: "",
 					RememberMe: false,
 

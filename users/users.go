@@ -67,8 +67,6 @@ func Login(userName string, dbID int, autologPass string, isGuest bool, remMe bo
 		return User{}, errors.New("users.Login() requires a socket");
 	}
 
-	var err error = nil;
-
 	//ALWAYS SET A GUEST'S id TO -1
 	databaseID := dbID
 	if isGuest { databaseID = -1 }
@@ -106,7 +104,7 @@ func Login(userName string, dbID int, autologPass string, isGuest bool, remMe bo
 			response = usersActionChan.Execute(loginUser, []interface{}{userName, databaseID, isGuest, socket, friendsMap});
 			if(response[1] != nil){ return User{}, errors.New("Unexpected error while logging in"); }
 		}else{
-			err = response[1].(error);
+			return User{}, response[1].(error);
 		}
 	}
 	user := response[0].(User);
@@ -135,7 +133,7 @@ func Login(userName string, dbID int, autologPass string, isGuest bool, remMe bo
 	socket.WriteJSON(clientResp);
 
 	//
-	return user, err;
+	return user, nil;
 }
 
 func loginUser(p []interface{}) []interface{} {

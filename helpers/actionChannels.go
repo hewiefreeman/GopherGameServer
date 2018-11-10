@@ -52,7 +52,10 @@ func (a *ActionChannel) Execute(action func([]interface{})[]interface{}, params 
 	//
 	a.mux.Lock();
 	//
-	if((*a).c == nil){ return []interface{}{} }
+	if((*a).c == nil){
+		a.mux.Unlock();
+		return []interface{}{}
+	}
 	channel := *a.c;
 	//
 	a.mux.Unlock();

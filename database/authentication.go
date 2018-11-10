@@ -4,10 +4,11 @@ import(
 	"errors"
 	"strconv"
 	"github.com/hewiefreeman/GopherGameServer/helpers"
+	"fmt"
 )
 
 var(
-	encryptionCost int = 32;
+	encryptionCost int = 4;
 	customLoginColumn string = "";
 	customLoginRequirements map[string]struct{} = make(map[string]struct{});
 	customSignupRequirements map[string]struct{} = make(map[string]struct{});
@@ -116,8 +117,8 @@ func SetCustomDeleteAccountRequirements(columnNames ...string) error {
 }
 
 func checkCustomRequirements(customCols map[string]interface{}, requirements map[string]struct{}) bool {
-	if(customCols != nil){
-		if(len(customCols) == 0 && len(requirements) != 0){
+	if(customCols != nil && len(requirements) != 0){
+		if(len(customCols) == 0){
 			return false;
 		}
 		for key, _ := range customCols {
@@ -157,11 +158,18 @@ func SignUpClient(userName string, password string, customCols map[string]interf
 	//CREATE PART 1 OF QUERY
 	queryPart1 := "INSERT INTO "+tableUsers+" ("+usersColumnName+", "+usersColumnPassword+", ";
 	if(customCols != nil){
+		if(customLoginColumn != ""){
+			if _, ok := customCols[customLoginColumn]; !ok {
+				return errors.New("Insufficient data supplied");
+			}
+		}
 		for key, val := range customCols {
 			queryPart1 = queryPart1+key+", ";
 			//MAINTAIN THE ORDER IN WHICH THE COLUMNS WERE DECLARED VIA A SLICE
 			vals = append(vals, []interface{}{val, customAccountInfo[key].dataType});
 		}
+	}else if(customLoginColumn != ""){
+		return errors.New("Insufficient data supplied");
 	}
 	queryPart1 = queryPart1[0:len(queryPart1)-2]+") ";
 
@@ -177,6 +185,7 @@ func SignUpClient(userName string, password string, customCols map[string]interf
 			queryPart2 = queryPart2+value+", ";
 		}
 	}
+
 	queryPart2 = queryPart2[0:len(queryPart2)-2]+");";
 
 	//EXECUTE QUERY
@@ -193,24 +202,24 @@ func SignUpClient(userName string, password string, customCols map[string]interf
 
 // WARNING: This is only meant for internal Gopher Game Server mechanics. Use the client APIs to log in a
 // client when using the SQL features.
-func LoginClient(userName string, password string, deviceTag string, remMe bool, customCols map[string]interface{}) (int, string, error) {
+func LoginClient(userName string, password string, deviceTag string, remMe bool, customCols map[string]interface{}) (string, int, string, error) {
 	if(len(userName) == 0){
-		return 0, "", errors.New("A user name is required to log in");
+		return "", 0, "", errors.New("A user name is required to log in");
 	}else if(len(password) == 0){
-		return 0, "", errors.New("A password is required to log in");
+		return "", 0, "", errors.New("A password is required to log in");
 	}else if(checkStringSQLInjection(userName)){
-		return 0, "", errors.New("Malicious characters detected");
+		return "", 0, "", errors.New("Malicious characters detected");
 	}else if(checkStringSQLInjection(deviceTag)){
-		return 0, "", errors.New("Malicious characters detected");
+		return "", 0, "", errors.New("Malicious characters detected");
 	}else if(!checkCustomRequirements(customCols, customLoginRequirements)){
-		return 0, "", errors.New("Incorrect data supplied");
+		return "", 0, "", errors.New("Incorrect data supplied");
 	}
 
 	//FIRST TWO ARE id, password IN THAT ORDER
-	var vals []interface{} = []interface{}{new(interface{}), new(interface{})};
+	var vals []interface{} = []interface{}{new(int), new([]byte), new(string)};
 
 	//CONSTRUCT SELECT QUERY
-	selectQuery := "Select "+usersColumnID+", "+usersColumnPassword+", ";
+	selectQuery := "Select "+usersColumnID+", "+usersColumnPassword+", "+usersColumnName+", ";
 	if(customCols != nil){
 		for key, _ := range customCols {
 			selectQuery = selectQuery+key+", ";
@@ -227,22 +236,23 @@ func LoginClient(userName string, password string, deviceTag string, remMe bool,
 
 	//EXECUTE SELECT QUERY
 	checkRows, err := database.Query(selectQuery);
-	if(err != nil){ return 0, "", err; }
+	if(err != nil){ return "", 0, "", err; }
 	//
 	checkRows.Next();
 	if scanErr := checkRows.Scan(vals...); scanErr != nil {
 		checkRows.Close();
-		return 0, "", errors.New("Login or password is incorrect");
+		return "", 0, "", errors.New("Login or password is incorrect");
 	}
 	checkRows.Close();
 
 	//
-	dbIndex := *(vals[0]).(*interface{}); // USE FOR SERVER CALLBACK & MAKE DATABASE RESPONSE MAP
-	dbPass := *(vals[1]).(*interface{});
+	dbIndex := vals[0].(*int); // USE FOR SERVER CALLBACK & MAKE DATABASE RESPONSE MAP
+	dbPass := vals[1].(*[]byte);
+	uName := vals[2].(*string);
 
 	//COMPARE HASHED PASSWORDS
-	if(!helpers.CheckPasswordHash(password, dbPass.([]byte))){
-		return 0, "", errors.New("Login or password is incorrect");
+	if(!helpers.CheckPasswordHash(password, *dbPass)){
+		return "", 0, "", errors.New("Login or password is incorrect");
 	}
 
 	//AUTO-LOGGING
@@ -251,15 +261,15 @@ func LoginClient(userName string, password string, deviceTag string, remMe bool,
 
 	if(rememberMe && remMe){
 		//MAKE AUTO-LOG ENTRY
-		devicePass, devicePassErr = helpers.HashPassword(password, encryptionCost);
+		devicePass, devicePassErr = helpers.GenerateSecureString(32);
 		if(devicePassErr == nil){
 			database.Exec("INSERT INTO "+tableAutologs+" ("+autologsColumnID+", "+autologsColumnDeviceTag+", "+autologsColumnDevicePass+
-								") VALUES ("+strconv.Itoa(dbIndex.(int))+", \""+deviceTag+"\", \""+devicePass+"\");");
+								") VALUES ("+strconv.Itoa(*dbIndex)+", \""+deviceTag+"\", \""+devicePass+"\");");
 		}
 	}
 
 	//
-	return dbIndex.(int), devicePass, nil;
+	return *uName, *dbIndex, devicePass, nil;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -345,7 +355,7 @@ func ChangePassword(userName string, password string, newPassword string, custom
 	}
 
 	//FIRST TWO ARE id, password IN THAT ORDER
-	var vals []interface{} = []interface{}{new(interface{}), new(interface{})};
+	var vals []interface{} = []interface{}{new(int), new([]byte)};
 	var valsList []interface{} = []interface{}{};
 
 	//CONSTRUCT SELECT QUERY
@@ -372,11 +382,11 @@ func ChangePassword(userName string, password string, newPassword string, custom
 	checkRows.Close();
 
 	//
-	dbIndex := *(vals[0]).(*interface{}); // USE FOR SERVER CALLBACK & MAKE DATABASE RESPONSE MAP
-	dbPass := *(vals[1]).(*interface{});
+	dbIndex := *(vals[0]).(*int); // USE FOR SERVER CALLBACK & MAKE DATABASE RESPONSE MAP
+	dbPass := *(vals[1]).(*[]byte);
 
 	//COMPARE HASHED PASSWORDS
-	if(!helpers.CheckPasswordHash(password, dbPass.([]byte))){
+	if(!helpers.CheckPasswordHash(password, dbPass)){
 		return errors.New("Login or password is incorrect");
 	}
 
@@ -385,7 +395,7 @@ func ChangePassword(userName string, password string, newPassword string, custom
 	if(hashErr != nil){ return hashErr; }
 
 	//UPDATE THE PASSWORD
-	_, updateErr := database.Exec("UPDATE "+tableUsers+" SET "+usersColumnPassword+"=\""+passHash+"\" WHERE "+usersColumnID+"="+strconv.Itoa(dbIndex.(int))+" LIMIT 1;");
+	_, updateErr := database.Exec("UPDATE "+tableUsers+" SET "+usersColumnPassword+"=\""+passHash+"\" WHERE "+usersColumnID+"="+strconv.Itoa(dbIndex)+" LIMIT 1;");
 	if(updateErr != nil){ return updateErr; }
 
 	//
@@ -400,9 +410,11 @@ func ChangePassword(userName string, password string, newPassword string, custom
 // a user's AccountInfoColumn when using the SQL features.
 func ChangeAccountInfo(userName string, password string, customCols map[string]interface{}) error {
 	if(len(userName) == 0){
-		return errors.New("A user name is required to change account info");
+		return errors.New("A user name is required to change custom account info");
 	}else if(len(password) == 0){
-		return errors.New("A password is required to change account info");
+		return errors.New("A password is required to change custom account info");
+	}else if(len(customCols) == 0){
+		return errors.New("Custom columns need to be provided to change their info");
 	}else if(checkStringSQLInjection(userName)){
 		return errors.New("Malicious characters detected");
 	}else if(!checkCustomRequirements(customCols, customAccountInfoChangeRequirements)){
@@ -410,7 +422,7 @@ func ChangeAccountInfo(userName string, password string, customCols map[string]i
 	}
 
 	//FIRST TWO ARE id, password IN THAT ORDER
-	var vals []interface{} = []interface{}{new(interface{}), new(interface{})};
+	var vals []interface{} = []interface{}{new(int), new([]byte)};
 	var valsList []interface{} = []interface{}{};
 
 	//CONSTRUCT SELECT QUERY
@@ -425,25 +437,30 @@ func ChangeAccountInfo(userName string, password string, customCols map[string]i
 	}
 	selectQuery = selectQuery[0:len(selectQuery)-2]+" FROM "+tableUsers+" WHERE "+usersColumnName+"=\""+userName+"\" LIMIT 1;";
 
+	fmt.Println(selectQuery);
+
 	//EXECUTE SELECT QUERY
 	checkRows, err := database.Query(selectQuery);
 	if(err != nil){ return err; }
 	//
 	checkRows.Next();
 	if scanErr := checkRows.Scan(vals...); scanErr != nil {
+		fmt.Println(scanErr);
 		checkRows.Close();
 		return errors.New("Login or password is incorrect");
 	}
 	checkRows.Close();
+	fmt.Println("got past scan.");
 
 	//
-	dbIndex := *(vals[0]).(*interface{}); // USE FOR SERVER CALLBACK & MAKE DATABASE RESPONSE MAP
-	dbPass := *(vals[1]).(*interface{});
+	dbIndex := *(vals[0]).(*int); // USE FOR SERVER CALLBACK & MAKE DATABASE RESPONSE MAP
+	dbPass := *(vals[1]).(*[]byte);
 
 	//COMPARE HASHED PASSWORDS
-	if(!helpers.CheckPasswordHash(password, dbPass.([]byte))){
+	if(!helpers.CheckPasswordHash(password, dbPass)){
 		return errors.New("Login or password is incorrect");
 	}
+	fmt.Println("got past password check");
 
 	//UPDATE THE AccountInfoColumns
 
@@ -457,7 +474,7 @@ func ChangeAccountInfo(userName string, password string, customCols map[string]i
 		//
 		updateQuery = updateQuery+valsList[i].([]interface{})[2].(string)+"="+value+", ";
 	}
-	updateQuery = updateQuery[0:len(updateQuery)-2]+" WHERE "+usersColumnID+"="+strconv.Itoa(dbIndex.(int))+" LIMIT 1;";
+	updateQuery = updateQuery[0:len(updateQuery)-2]+" WHERE "+usersColumnID+"="+strconv.Itoa(dbIndex)+" LIMIT 1;";
 
 	//EXECUTE THE UPDATE QUERY
 	_, updateErr := database.Exec(updateQuery);

@@ -9,6 +9,7 @@ import (
 	_"github.com/go-sql-driver/mysql"
 	"errors"
 	"strconv"
+	"fmt"
 )
 
 var (
@@ -17,8 +18,8 @@ var (
 
 	//SERVER SETTINGS
 	serverStarted bool = false
-	rememberMe bool = false;
-	databaseName string = "";
+	rememberMe bool = false
+	databaseName string = ""
 	inited bool = false;
 )
 
@@ -57,13 +58,15 @@ func Init(userName string, password string, dbName string, protocol string, ip s
 		 return errors.New("sql.Start() requires a database name");
 	}else if(len(custLoginCol) > 0){
 		if _, ok := customAccountInfo[custLoginCol]; !ok {
-			err = errors.New("The AccountInfoColumn '"+custLoginCol+"' does not exist. Use database.NewAccountInfoColumn() to make a column with that name.");
+			return errors.New("The AccountInfoColumn '"+custLoginCol+"' does not exist. Use database.NewAccountInfoColumn() to make a column with that name.");
 		}
 		customLoginColumn = custLoginCol;
 	}
 
-	if(encryptCost != 0){
+	if(encryptCost >= 4 && encryptCost <= 31){
 		encryptionCost = encryptCost;
+	}else if(encryptCost != 0){
+		fmt.Println("EncryptionCost must be a minimum of 4, and max of 31. Setting to default: 4");
 	}
 
 	rememberMe = remMe;

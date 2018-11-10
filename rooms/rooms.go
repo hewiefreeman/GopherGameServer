@@ -27,7 +27,7 @@ type Room struct {
 	rType string
 
 	private bool
-	owner string;
+	owner string
 	inviteList *[]string
 
 	usersMap *map[string]RoomUser
