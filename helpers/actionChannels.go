@@ -7,12 +7,12 @@ import (
 )
 
 type ActionChannel struct {
-	c *chan channelAction
+	c   *chan channelAction
 	mux sync.Mutex
 }
 
 type channelAction struct {
-	action func([]interface{})[]interface{}
+	action func([]interface{}) []interface{}
 	params []interface{}
 
 	returnChan chan []interface{}
@@ -20,15 +20,15 @@ type channelAction struct {
 	kill bool
 }
 
-func actionChannelListener(c *chan channelAction){
-	for{
+func actionChannelListener(c *chan channelAction) {
+	for {
 		value := <-*c
 
 		//
-		if(value.kill){
+		if value.kill {
 			value.returnChan <- []interface{}{}
 			close(value.returnChan)
-			close(*c);
+			close(*c)
 			break
 		}
 
@@ -42,37 +42,37 @@ func actionChannelListener(c *chan channelAction){
 }
 
 func NewActionChannel() *ActionChannel {
-	c := make(chan channelAction);
-	go actionChannelListener(&c);
-	newAC := ActionChannel{c: &c};
-	return &newAC;
+	c := make(chan channelAction)
+	go actionChannelListener(&c)
+	newAC := ActionChannel{c: &c}
+	return &newAC
 }
 
-func (a *ActionChannel) Execute(action func([]interface{})[]interface{}, params []interface{}) []interface{} {
+func (a *ActionChannel) Execute(action func([]interface{}) []interface{}, params []interface{}) []interface{} {
 	//
-	a.mux.Lock();
+	a.mux.Lock()
 	//
-	if((*a).c == nil){
-		a.mux.Unlock();
+	if (*a).c == nil {
+		a.mux.Unlock()
 		return []interface{}{}
 	}
-	channel := *a.c;
+	channel := *a.c
 	//
-	a.mux.Unlock();
+	a.mux.Unlock()
 	//
-	returnChan := make(chan []interface{});
+	returnChan := make(chan []interface{})
 	channel <- channelAction{action: action,
-						params: params,
-						returnChan: returnChan};
+		params:     params,
+		returnChan: returnChan}
 	//
-	return <- returnChan;
+	return <-returnChan
 }
 
-func (a *ActionChannel) Kill(){
-	(*a).mux.Lock();
+func (a *ActionChannel) Kill() {
+	(*a).mux.Lock()
 	//
-	*a.c <- channelAction{ kill: true };
-	(*a).c = nil;
+	*a.c <- channelAction{kill: true}
+	(*a).c = nil
 	//
-	(*a).mux.Unlock();
+	(*a).mux.Unlock()
 }

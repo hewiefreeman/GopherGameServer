@@ -1,8 +1,8 @@
 package rooms
 
 import (
-	"github.com/hewiefreeman/GopherGameServer/helpers"
 	"errors"
+	"github.com/hewiefreeman/GopherGameServer/helpers"
 )
 
 // These represent the types of room messages the server sends.
@@ -25,13 +25,13 @@ const (
 // Sends a chat message to all Users in the Room.
 func (r *Room) ChatMessage(author string, message interface{}) error {
 	//REJECT INCORRECT INPUT
-	if(len(author) == 0){
-		return errors.New("*Room.ChatMessage() requires an author");
-	}else if(message == nil){
-		return errors.New("*Room.ChatMessage() requires a message");
+	if len(author) == 0 {
+		return errors.New("*Room.ChatMessage() requires an author")
+	} else if message == nil {
+		return errors.New("*Room.ChatMessage() requires a message")
 	}
 
-	return r.sendMessage(MessageTypeChat, 0, nil, author, message);
+	return r.sendMessage(MessageTypeChat, 0, nil, author, message)
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -41,9 +41,11 @@ func (r *Room) ChatMessage(author string, message interface{}) error {
 // Sends a server message to the specified recipients in the Room. The parameter recipients can be nil or an empty slice
 // of string. In which case, the server message will be sent to all Users in the Room.
 func (r *Room) ServerMessage(message interface{}, messageType int, recipients []string) error {
-	if(message == nil){ return errors.New("*Room.ServerMessage() requires a message"); }
+	if message == nil {
+		return errors.New("*Room.ServerMessage() requires a message")
+	}
 
-	return r.sendMessage(MessageTypeServer, messageType, recipients, "", message);
+	return r.sendMessage(MessageTypeServer, messageType, recipients, "", message)
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -54,24 +56,30 @@ func (r *Room) ServerMessage(message interface{}, messageType int, recipients []
 // of string. In which case, the data message will be sent to all Users in the Room.
 func (r *Room) DataMessage(message interface{}, recipients []string) error {
 	//GET USER MAP
-	userMap, err := r.GetUserMap();
-	if(err != nil){ return err; }
+	userMap, err := r.GetUserMap()
+	if err != nil {
+		return err
+	}
 
 	//CONSTRUCT MESSAGE
-	theMessage := make(map[string]interface{});
-	theMessage[helpers.ServerActionDataMessage] = message;
+	theMessage := make(map[string]interface{})
+	theMessage[helpers.ServerActionDataMessage] = message
 
 	//SEND MESSAGE TO USERS
-	if(recipients == nil || len(recipients) == 0){
-		for _, u := range userMap { u.socket.WriteJSON(theMessage); }
-	}else{
+	if recipients == nil || len(recipients) == 0 {
+		for _, u := range userMap {
+			u.socket.WriteJSON(theMessage)
+		}
+	} else {
 		for i := 0; i < len(recipients); i++ {
-			if u, ok := userMap[recipients[i]]; ok { u.socket.WriteJSON(theMessage); }
+			if u, ok := userMap[recipients[i]]; ok {
+				u.socket.WriteJSON(theMessage)
+			}
 		}
 	}
 
 	//
-	return nil;
+	return nil
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -80,24 +88,34 @@ func (r *Room) DataMessage(message interface{}, recipients []string) error {
 
 func (r *Room) sendMessage(mt int, st int, rec []string, a string, m interface{}) error {
 	//GET USER MAP
-	userMap, err := r.GetUserMap();
-	if(err != nil){ return err; }
+	userMap, err := r.GetUserMap()
+	if err != nil {
+		return err
+	}
 
 	//CONSTRUCT MESSAGE
-	message := make(map[string]interface{});
-	message[helpers.ServerActionRoomMessage] = make(map[string]interface{});
-	if(mt == MessageTypeServer){ message[helpers.ServerActionRoomMessage].(map[string]interface{})["s"] = st; } // Server messages come with a sub-type
-	if(len(a) > 0 && mt != MessageTypeServer){ message[helpers.ServerActionRoomMessage].(map[string]interface{})["a"] = a; } // Non-server messages have authors
-	message[helpers.ServerActionRoomMessage].(map[string]interface{})["m"] = m; // The message
+	message := make(map[string]interface{})
+	message[helpers.ServerActionRoomMessage] = make(map[string]interface{})
+	if mt == MessageTypeServer {
+		message[helpers.ServerActionRoomMessage].(map[string]interface{})["s"] = st
+	} // Server messages come with a sub-type
+	if len(a) > 0 && mt != MessageTypeServer {
+		message[helpers.ServerActionRoomMessage].(map[string]interface{})["a"] = a
+	} // Non-server messages have authors
+	message[helpers.ServerActionRoomMessage].(map[string]interface{})["m"] = m // The message
 
 	//SEND MESSAGE TO USERS
-	if(rec == nil || len(rec) == 0){
-		for _, u := range userMap { u.socket.WriteJSON(message); }
-	}else{
+	if rec == nil || len(rec) == 0 {
+		for _, u := range userMap {
+			u.socket.WriteJSON(message)
+		}
+	} else {
 		for i := 0; i < len(rec); i++ {
-			if u, ok := userMap[rec[i]]; ok { u.socket.WriteJSON(message); }
+			if u, ok := userMap[rec[i]]; ok {
+				u.socket.WriteJSON(message)
+			}
 		}
 	}
 
-	return nil;
+	return nil
 }

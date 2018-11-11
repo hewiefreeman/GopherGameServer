@@ -6,93 +6,99 @@ package database
 
 import (
 	"database/sql"
-	_"github.com/go-sql-driver/mysql"
 	"errors"
-	"strconv"
 	"fmt"
+	_ "github.com/go-sql-driver/mysql"
+	"strconv"
 )
 
 var (
 	//THE DATABASE
-	database *sql.DB = nil;
+	database *sql.DB = nil
 
 	//SERVER SETTINGS
-	serverStarted bool = false
-	rememberMe bool = false
-	databaseName string = ""
-	inited bool = false;
+	serverStarted bool   = false
+	rememberMe    bool   = false
+	databaseName  string = ""
+	inited        bool   = false
 )
 
 //TABLE & COLUMN NAMES
 const (
-	tableUsers = "users"
-	tableFriends = "friends"
+	tableUsers    = "users"
+	tableFriends  = "friends"
 	tableAutologs = "autologs"
 
 	//users TABLE COLUMNS
-	usersColumnID = "_id"
-	usersColumnName = "name"
+	usersColumnID       = "_id"
+	usersColumnName     = "name"
 	usersColumnPassword = "pass"
 
 	//friends TABLE COLUMNS
-	friendsColumnUser = "user"
+	friendsColumnUser   = "user"
 	friendsColumnFriend = "friend"
 	friendsColumnStatus = "status"
 
 	//autologs TABLE COLUMNS
-	autologsColumnID = "_id"
-	autologsColumnDeviceTag = "dn"
+	autologsColumnID         = "_id"
+	autologsColumnDeviceTag  = "dn"
 	autologsColumnDevicePass = "da"
 )
 
 // WARNING: This is only meant for internal Gopher Game Server mechanics. If you want to enable SQL authorization
 // and friending, use the EnableSqlFeatures and corresponding options in ServerSetting.
 func Init(userName string, password string, dbName string, protocol string, ip string, port int, encryptCost int, remMe bool, custLoginCol string) error {
-	if(inited){
-		return errors.New("sql package is already initialized");
-	}else if(len(userName) == 0){
-		 return errors.New("sql.Start() requires a user name");
-	}else if(len(password) == 0){
-		 return errors.New("sql.Start() requires a password");
-	}else if(len(userName) == 0){
-		 return errors.New("sql.Start() requires a database name");
-	}else if(len(custLoginCol) > 0){
+	if inited {
+		return errors.New("sql package is already initialized")
+	} else if len(userName) == 0 {
+		return errors.New("sql.Start() requires a user name")
+	} else if len(password) == 0 {
+		return errors.New("sql.Start() requires a password")
+	} else if len(userName) == 0 {
+		return errors.New("sql.Start() requires a database name")
+	} else if len(custLoginCol) > 0 {
 		if _, ok := customAccountInfo[custLoginCol]; !ok {
-			return errors.New("The AccountInfoColumn '"+custLoginCol+"' does not exist. Use database.NewAccountInfoColumn() to make a column with that name.");
+			return errors.New("The AccountInfoColumn '" + custLoginCol + "' does not exist. Use database.NewAccountInfoColumn() to make a column with that name.")
 		}
-		customLoginColumn = custLoginCol;
+		customLoginColumn = custLoginCol
 	}
 
-	if(encryptCost >= 4 && encryptCost <= 31){
-		encryptionCost = encryptCost;
-	}else if(encryptCost != 0){
-		fmt.Println("EncryptionCost must be a minimum of 4, and max of 31. Setting to default: 4");
+	if encryptCost >= 4 && encryptCost <= 31 {
+		encryptionCost = encryptCost
+	} else if encryptCost != 0 {
+		fmt.Println("EncryptionCost must be a minimum of 4, and max of 31. Setting to default: 4")
 	}
 
-	rememberMe = remMe;
+	rememberMe = remMe
 
-	var err error;
+	var err error
 
 	//OPEN THE DATABASE
-	var openErr error;
-	database, openErr = sql.Open("mysql", userName+":"+password+"@"+protocol+"("+ip+":"+strconv.Itoa(port)+")/"+dbName);
-	if(err != nil){ return openErr; }
+	var openErr error
+	database, openErr = sql.Open("mysql", userName+":"+password+"@"+protocol+"("+ip+":"+strconv.Itoa(port)+")/"+dbName)
+	if err != nil {
+		return openErr
+	}
 	//NOTE: Open doesn't open a connection.
 	//MUST PING TO CHECK IF FOUND DATABASE
-	pingErr := database.Ping();
-	if(pingErr != nil){ return errors.New("Could not connect to database!"); }
+	pingErr := database.Ping()
+	if pingErr != nil {
+		return errors.New("Could not connect to database!")
+	}
 
-	databaseName = dbName;
+	databaseName = dbName
 
 	//CONFIGURE DATABASE
-	setupErr := setUp();
-	if(setupErr != nil){ return setupErr; }
+	setupErr := setUp()
+	if setupErr != nil {
+		return setupErr
+	}
 
 	//
-	inited = true;
+	inited = true
 
 	//
-	return nil;
+	return nil
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -101,22 +107,24 @@ func Init(userName string, password string, dbName string, protocol string, ip s
 
 // Gets the database index of a User by their name.
 func GetUserDatabaseIndex(userName string) (int, error) {
-	if(checkStringSQLInjection(userName)){
-		return 0, errors.New("Malicious characters detected");
+	if checkStringSQLInjection(userName) {
+		return 0, errors.New("Malicious characters detected")
 	}
-	var id int;
-	rows, err := database.Query("SELECT "+usersColumnID+" FROM "+tableUsers+" WHERE "+usersColumnName+"=\""+userName+"\" LIMIT 1;");
-	if(err != nil){ return 0, err; }
+	var id int
+	rows, err := database.Query("SELECT " + usersColumnID + " FROM " + tableUsers + " WHERE " + usersColumnName + "=\"" + userName + "\" LIMIT 1;")
+	if err != nil {
+		return 0, err
+	}
 	//
-	rows.Next();
+	rows.Next()
 	if scanErr := rows.Scan(&id); scanErr != nil {
-		rows.Close();
-		return 0, scanErr;
+		rows.Close()
+		return 0, scanErr
 	}
-	rows.Close();
+	rows.Close()
 
 	//
-	return id, nil;
+	return id, nil
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -124,8 +132,8 @@ func GetUserDatabaseIndex(userName string) (int, error) {
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // For Gopher Game Server internal mechanics.
-func SetServerStarted(val bool){
-	if(!serverStarted){
-		serverStarted = val;
+func SetServerStarted(val bool) {
+	if !serverStarted {
+		serverStarted = val
 	}
 }
