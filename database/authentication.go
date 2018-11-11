@@ -8,7 +8,7 @@ import (
 
 var (
 	encryptionCost                      int                 = 4
-	customLoginColumn                   string              = ""
+	customLoginColumn                   string
 	customLoginRequirements             map[string]struct{} = make(map[string]struct{})
 	customSignupRequirements            map[string]struct{} = make(map[string]struct{})
 	customPasswordChangeRequirements    map[string]struct{} = make(map[string]struct{})
@@ -20,7 +20,7 @@ var (
 //   CUSTOM REQUIREMENTS   ///////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// Sets the required AccountInfoColumn names for processing a sign up request from a client. If a client
+// SetCustomSignupRequirements sets the required AccountInfoColumn names for processing a sign up request from a client. If a client
 // doesn't send the required info, an error will be sent back.
 func SetCustomSignupRequirements(columnNames ...string) error {
 	if serverStarted {
@@ -32,14 +32,13 @@ func SetCustomSignupRequirements(columnNames ...string) error {
 		}
 		if _, ok := customAccountInfo[columnNames[i]]; !ok {
 			return errors.New("Incorrect column name '" + columnNames[i] + "'")
-		} else {
-			customSignupRequirements[columnNames[i]] = struct{}{}
 		}
+		customSignupRequirements[columnNames[i]] = struct{}{}
 	}
 	return nil
 }
 
-// Sets the required AccountInfoColumn names for processing a login request from a client. If a client
+// SetCustomLoginRequirements sets the required AccountInfoColumn names for processing a login request from a client. If a client
 // doesn't send the required info, an error will be sent back.
 func SetCustomLoginRequirements(columnNames ...string) error {
 	if serverStarted {
@@ -51,14 +50,13 @@ func SetCustomLoginRequirements(columnNames ...string) error {
 		}
 		if _, ok := customAccountInfo[columnNames[i]]; !ok {
 			return errors.New("Incorrect column name '" + columnNames[i] + "'")
-		} else {
-			customLoginRequirements[columnNames[i]] = struct{}{}
 		}
+		customLoginRequirements[columnNames[i]] = struct{}{}
 	}
 	return nil
 }
 
-// Sets the required AccountInfoColumn names for processing a password change request from a client. If a client
+// SetCustomPasswordChangeRequirements sets the required AccountInfoColumn names for processing a password change request from a client. If a client
 // doesn't send the required info, an error will be sent back.
 func SetCustomPasswordChangeRequirements(columnNames ...string) error {
 	if serverStarted {
@@ -70,14 +68,13 @@ func SetCustomPasswordChangeRequirements(columnNames ...string) error {
 		}
 		if _, ok := customAccountInfo[columnNames[i]]; !ok {
 			return errors.New("Incorrect column name '" + columnNames[i] + "'")
-		} else {
-			customPasswordChangeRequirements[columnNames[i]] = struct{}{}
 		}
+		customPasswordChangeRequirements[columnNames[i]] = struct{}{}
 	}
 	return nil
 }
 
-// Sets the required AccountInfoColumn names for processing an AccountInfoColumn change request from a client. If a client
+// SetCustomAccountInfoChangeRequirements sets the required AccountInfoColumn names for processing an AccountInfoColumn change request from a client. If a client
 // doesn't send the required info, an error will be sent back.
 func SetCustomAccountInfoChangeRequirements(columnNames ...string) error {
 	if serverStarted {
@@ -89,14 +86,13 @@ func SetCustomAccountInfoChangeRequirements(columnNames ...string) error {
 		}
 		if _, ok := customAccountInfo[columnNames[i]]; !ok {
 			return errors.New("Incorrect column name '" + columnNames[i] + "'")
-		} else {
-			customAccountInfoChangeRequirements[columnNames[i]] = struct{}{}
 		}
+		customAccountInfoChangeRequirements[columnNames[i]] = struct{}{}
 	}
 	return nil
 }
 
-// Sets the required AccountInfoColumn names for processing a delete account request from a client. If a client
+// SetCustomDeleteAccountRequirements sets the required AccountInfoColumn names for processing a delete account request from a client. If a client
 // doesn't send the required info, an error will be sent back.
 func SetCustomDeleteAccountRequirements(columnNames ...string) error {
 	if serverStarted {
@@ -108,9 +104,8 @@ func SetCustomDeleteAccountRequirements(columnNames ...string) error {
 		}
 		if _, ok := customAccountInfo[columnNames[i]]; !ok {
 			return errors.New("Incorrect column name '" + columnNames[i] + "'")
-		} else {
-			customDeleteAccountRequirements[columnNames[i]] = struct{}{}
 		}
+		customDeleteAccountRequirements[columnNames[i]] = struct{}{}
 	}
 	return nil
 }
@@ -135,6 +130,8 @@ func checkCustomRequirements(customCols map[string]interface{}, requirements map
 //   SIGN A USER UP   ////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
+// SignUpClient signs up the client from the client API with the SQL features enabled.
+//
 // WARNING: This is only meant for internal Gopher Game Server mechanics. Use the client APIs to sign a
 // client up when using the SQL features.
 func SignUpClient(userName string, password string, customCols map[string]interface{}) error {
@@ -205,6 +202,8 @@ func SignUpClient(userName string, password string, customCols map[string]interf
 //   LOGIN CLIENT   //////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
+// LoginClient logs in the client from the client API with the SQL features enabled.
+//
 // WARNING: This is only meant for internal Gopher Game Server mechanics. Use the client APIs to log in a
 // client when using the SQL features.
 func LoginClient(userName string, password string, deviceTag string, remMe bool, customCols map[string]interface{}) (string, int, string, error) {
@@ -282,6 +281,8 @@ func LoginClient(userName string, password string, deviceTag string, remMe bool,
 //   AUTOLOGIN CLIENT   //////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
+// AutoLoginClient logs in the client automatically with the client API when the SQL features and RememberMe enabled.
+//
 // WARNING: This is only meant for internal Gopher Game Server mechanics. Use the client APIs to automatically
 // log in a client when using the "Remember Me" SQL feature.
 func AutoLoginClient(tag string, pass string, newPass string, dbID int) (string, error) {
@@ -338,6 +339,8 @@ func AutoLoginClient(tag string, pass string, newPass string, dbID int) (string,
 //   REMOVE AUTOLOGIN KEY PAIR   /////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
+// RemoveAutoLog removes an auto-log entry when the client API logs out with the SQL features and RememberMe enabled.
+//
 // WARNING: This is only meant for internal Gopher Game Server mechanics. Auto-login entries in the database
 // are automatically deleted when a User logs off, or are thought to be compromised by the server.
 func RemoveAutoLog(userID int, deviceTag string) {
@@ -351,6 +354,8 @@ func RemoveAutoLog(userID int, deviceTag string) {
 //   CHANGE PASSWORD   ///////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
+// ChangePassword changes a client's password with the SQL features enabled.
+//
 // WARNING: This is only meant for internal Gopher Game Server mechanics. Use the client APIs to change
 // a user's password when using the SQL features.
 func ChangePassword(userName string, password string, newPassword string, customCols map[string]interface{}) error {
@@ -424,6 +429,8 @@ func ChangePassword(userName string, password string, newPassword string, custom
 //   CHANGE ACCOUNT INFO   ///////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
+// ChangeAccountInfo changes a client's AccountInfoColumn with the SQL features enabled.
+//
 // WARNING: This is only meant for internal Gopher Game Server mechanics. Use the client APIs to change
 // a user's AccountInfoColumn when using the SQL features.
 func ChangeAccountInfo(userName string, password string, customCols map[string]interface{}) error {
@@ -507,6 +514,8 @@ func ChangeAccountInfo(userName string, password string, customCols map[string]i
 //   DELETE CLIENT ACCOUNT   /////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
+// DeleteAccount deletes a client's account with the SQL features enabled.
+//
 // WARNING: This is only meant for internal Gopher Game Server mechanics. Use the client APIs to delete a
 // user's account when using the SQL features.
 func DeleteAccount(userName string, password string, customCols map[string]interface{}) error {

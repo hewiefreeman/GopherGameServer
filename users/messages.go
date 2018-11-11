@@ -8,7 +8,7 @@ import (
 //   SEND A PRIVATE MESSAGE   ////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// Sends a private message to another User by name.
+// PrivateMessage sends a private message to another User by name.
 func (u *User) PrivateMessage(userName string, message string) error {
 	user, userErr := Get(userName)
 	if userErr != nil {
@@ -33,6 +33,7 @@ func (u *User) PrivateMessage(userName string, message string) error {
 //   SEND A DATA MESSAGE   ///////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
+// DataMessage sends a data message directly to the User.
 func (u *User) DataMessage(data interface{}) error {
 	//CONSTRUCT MESSAGE
 	message := make(map[string]interface{})

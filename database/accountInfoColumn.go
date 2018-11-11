@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-// An AccountInfoColumn is the representation of an extra column on the users table that you can define. You can define as many
+// AccountInfoColumn is the representation of an extra column on the users table that you can define. You can define as many
 // as you want. These work with the ServerCallbacks and client APIs to provide you with information on data retrieved from
 // the database when the corresponding callback is triggered.
 //
@@ -138,7 +138,7 @@ var (
 		"SET"}
 )
 
-// Use this to make a new AccountInfoColumn. You can only make new AccountInfoColumns before starting the server.
+// NewAccountInfoColumn makes a new AccountInfoColumn. You can only make new AccountInfoColumns before starting the server.
 func NewAccountInfoColumn(name string, dataType int, maxSize int, precision int, notNull bool, unique bool) error {
 	if serverStarted {
 		return errors.New("You can't make a new AccountInfoColumn after the server has started")

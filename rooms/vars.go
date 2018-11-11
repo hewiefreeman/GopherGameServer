@@ -61,7 +61,7 @@ func roomVarGet(p []interface{}) []interface{} {
 
 // GetVariableMap gets a Map of all the Room variables.
 func (r *Room) GetVariableMap() (map[string]interface{}, error) {
-	var val map[string]interface{} = nil
+	var val map[string]interface{}
 	var err error
 
 	response := r.roomVarsActionChannel.Execute(roomVarMapGet, []interface{}{r})
