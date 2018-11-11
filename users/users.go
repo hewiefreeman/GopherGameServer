@@ -1,4 +1,4 @@
-// This package contains all the necessary tools to make and work with Users.
+// Package users contains all the necessary tools to make and work with Users.
 package users
 
 import (
@@ -9,7 +9,7 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-// The type User represents a client who has logged into the service. A User can
+// User represents a client who has logged into the service. A User can
 // be a guest, join/leave/create rooms, and call any client action, including your
 // custom client actions. If you are not using the built-in authentication, be aware
 // that you will need to make sure any client who has not been authenticated by the server
@@ -32,7 +32,7 @@ var (
 	users map[string]*User = make(map[string]*User)
 	usersActionChan *helpers.ActionChannel = helpers.NewActionChannel()
 	serverStarted bool = false
-	serverName string = ""
+	serverName string
 	kickOnLogin bool = false
 	sqlFeatures bool = false
 	rememberMe bool = false
@@ -50,11 +50,11 @@ const (
 //   LOG A USER IN   /////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// NOTE: If you are using the SQL authentication features, do not use this! Use the client APIs to log in
-// your clients, and you can customize your log in proccess with the database package. Only use this if
-// you are making a proper custom authentication for your project.
+// Login logs a User in to the service.
 //
-// Logs a User in to the service.
+// NOTE: If you are using the SQL authentication features, do not use this! Use the client APIs to log in
+// your clients, and you can customize your log in process with the database package. Only use this if
+// you are making a proper custom authentication for your project.
 func Login(userName string, dbID int, autologPass string, isGuest bool, remMe bool, socket *websocket.Conn) (User, error) {
 	//REJECT INCORRECT INPUT
 	if(len(userName) == 0){
@@ -156,8 +156,10 @@ func loginUser(p []interface{}) []interface{} {
 //   AUTOLOG A USER IN   /////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
+// AutologIn logs a user in automatically with RememberMe and SqlFeatures enabled in ServerSettings.
+//
 // WARNING: This is only meant for internal Gopher Game Server mechanics. If you want the "Remember Me"
-// (AKA auto login) feature, enable it in ServerSettings along with the SqlFeatures and cooresponding
+// (AKA auto login) feature, enable it in ServerSettings along with the SqlFeatures and corresponding
 // options. You can read more about the "Remember Me" login in the project's usage section.
 func AutoLogIn(tag string, pass string, newPass string, dbID int, conn *websocket.Conn) (string, error){
 	//VERIFY AND GET USER NAME FROM DATABASE
@@ -174,7 +176,7 @@ func AutoLogIn(tag string, pass string, newPass string, dbID int, conn *websocke
 //   LOG A USER OUT   ////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// Logs a User out from the service.
+// Logout logs a User out from the service.
 func (u *User) LogOut() {
 	//REMOVE USER FROM THEIR ROOM
 	if(u.room != ""){
@@ -216,7 +218,7 @@ func logUserOut(p []interface{}) []interface{} {
 //   GET A USER   ////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// Gets a User by their name.
+// Get finds a logged in User by their name. Returns an error if the User is not online.
 func Get(userName string) (User, error) {
 	var err error = nil;
 
@@ -248,7 +250,7 @@ func getUser(p []interface{}) []interface{} {
 //   MAKE A USER JOIN/LEAVE A ROOM   /////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// Makes a User join a Room.
+// Join makes a User join a Room.
 func (u *User) Join(r rooms.Room) error {
 	if(u.room == r.Name()){
 		return errors.New("User '"+u.name+"' is already in room '"+r.Name()+"'");
@@ -277,7 +279,7 @@ func (u *User) Join(r rooms.Room) error {
 	return nil;
 }
 
-// Makes a User leave their current room.
+// Leave makes a User leave their current room.
 func (u *User) Leave() error {
 	if(u.room != ""){
 		room, roomErr := rooms.Get(u.room);
@@ -321,7 +323,7 @@ func changeUserRoomName(p []interface{}) []interface{} {
 //   SET THE STATUS OF A USER   //////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// Sets the status of a User. Also sends a notification to all the User's Friends (with the request
+// SetStatus sets the status of a User. Also sends a notification to all the User's Friends (with the request
 // status "accepted") that they changed their status.
 func (u *User) SetStatus(status int) error {
 	//CHANGE User's STATUS
@@ -364,7 +366,7 @@ func changeUserStatus(p []interface{}) []interface{} {
 //   INVITE TO User's PRIVATE ROOM   /////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// Sends an invite to the specified user by name, provided they are online, the Room is private, and this User
+// Invite sends a Room invite to the specified user by name, provided they are online, the Room is private, and this User
 // is the owner of the Room.
 func (u *User) Invite(userName string, room rooms.Room) error {
 	if(len(userName) == 0){
@@ -400,7 +402,7 @@ func (u *User) Invite(userName string, room rooms.Room) error {
 //   REVOKE INVITE TO User's PRIVATE ROOM   //////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// Revokes an invite to the specified user by name, provided they are online, the Room is private, and this User
+// RevokeInvite revokes the invite to the specified user to the specified Room, provided they are online, the Room is private, and this User
 // is the owner of the Room.
 func (u *User) RevokeInvite(userName string, room rooms.Room) error {
 	if(len(userName) == 0){
@@ -423,7 +425,7 @@ func (u *User) RevokeInvite(userName string, room rooms.Room) error {
 //   KICK A USER   ///////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// Logs a User out by their name. Also used by KickDupOnLogin in ServerSettings.
+// DropUser logs a User out by their name. Also used by KickDupOnLogin in ServerSettings.
 func DropUser(userName string) error {
 	if(len(userName) == 0){
 		return errors.New("users.DropUser() requires a user name");
@@ -443,39 +445,39 @@ func DropUser(userName string) error {
 //   User ATTRIBUTE READERS   ////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// Gets the name of the User.
+// Name gets the name of the User.
 func (u *User) Name() string {
 	return u.name;
 }
 
-// Gets the database table index of the User.
+// DatabaseID gets the database table index of the User.
 func (u *User) DatabaseID() int {
 	return u.databaseID;
 }
 
-// Gets the Friend list of the User as a map[string]database.Friend where the key string is the friend's
+// Friends gets the Friend list of the User as a map[string]database.Friend where the key string is the friend's
 // User name.
 func (u *User) Friends() map[string]*database.Friend {
 	return u.friends;
 }
 
-// Gets the name of the Room that the User is currently in. If you get a blank string, this simply means
+// RoomName gets the name of the Room that the User is currently in. If you get a blank string, this simply means
 // the User is not in a room.
 func (u *User) RoomName() string {
 	return u.room;
 }
 
-// Gets the status of the User.
+// Status gets the status of the User.
 func (u *User) Status() int {
 	return u.status;
 }
 
-// Gets the WebSocket connection of a User.
+// Socket gets the WebSocket connection of a User.
 func (u *User) Socket() *websocket.Conn {
 	return u.socket;
 }
 
-// Returns true if the User is a guest.
+// IsGuest returns true if the User is a guest.
 func (u *User) IsGuest() bool {
 	return u.isGuest;
 }
@@ -484,14 +486,14 @@ func (u *User) IsGuest() bool {
 //   SERVER STARTUP FUNCTIONS   //////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// For Gopher Game Server internal mechanics only.
+// SetServerStarted is for Gopher Game Server internal mechanics only.
 func SetServerStarted(val bool){
 	if(!serverStarted){
 		serverStarted = val;
 	}
 }
 
-// For Gopher Game Server internal mechanics only.
+// SettingsSet is for Gopher Game Server internal mechanics only.
 func SettingsSet(kickDups bool, name string, deleteOnLeave bool, sqlFeat bool, remMe bool){
 	if(!serverStarted){
 		kickOnLogin = kickDups;
