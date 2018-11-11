@@ -7,7 +7,7 @@ import (
 )
 
 var (
-	encryptionCost                      int                 = 4
+	encryptionCost                      int = 4
 	customLoginColumn                   string
 	customLoginRequirements             map[string]struct{} = make(map[string]struct{})
 	customSignupRequirements            map[string]struct{} = make(map[string]struct{})

@@ -47,7 +47,6 @@ const (
 	DataTypeNil           // nil data type
 )
 
-
 // New creates a new CustomClientAction with the corresponding parameters:
 //
 // - actionType (string): The type of action

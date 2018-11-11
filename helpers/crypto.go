@@ -6,7 +6,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-// MakeClientResponse uses the crypto/rand library to create a secure random []byte.
+// GenerateRandomBytes uses the crypto/rand library to create a secure random []byte.
 func GenerateRandomBytes(n int) ([]byte, error) {
 	b := make([]byte, n)
 	_, err := rand.Read(b)

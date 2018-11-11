@@ -24,7 +24,7 @@ func (r *Room) VoiceStream(userName string, userSocket *websocket.Conn, stream i
 	theMessage[helpers.ServerActionVoiceStream].(map[string]interface{})["d"] = stream
 
 	//REMOVE SENDING USER FROM userMap
-	delete(userMap, userName); // COMMENT OUT FOR ECHO TESTS
+	delete(userMap, userName) // COMMENT OUT FOR ECHO TESTS
 
 	//SEND MESSAGE TO USERS
 	for _, u := range userMap {

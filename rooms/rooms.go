@@ -58,9 +58,9 @@ var (
 	roomsActionChan *helpers.ActionChannel = helpers.NewActionChannel()
 
 	//SERVER SETTINGS
-	serverStarted     bool   = false
+	serverStarted     bool = false
 	serverName        string
-	deleteRoomOnLeave bool   = true
+	deleteRoomOnLeave bool = true
 
 	//FOR user PACKAGE COMMUNICATION
 	userActionChannelRef *helpers.ActionChannel
