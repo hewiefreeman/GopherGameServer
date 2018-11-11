@@ -1,4 +1,4 @@
-// This package contains all the necessary tools to make and work with Rooms. A Room represents
+// Package rooms contains all the necessary tools to make and work with Rooms. A Room represents
 // a place on the server where a User can join other Users.
 //
 // A Room can either be public or private. Private Rooms must be assigned an "owner", which is the name of a User, or the ServerName
@@ -21,7 +21,7 @@ import (
 	"github.com/hewiefreeman/GopherGameServer/helpers"
 )
 
-//
+// Room represents a room on the server that Users can join and leave. Use rooms.New() to make a new Room.
 type Room struct {
 	name  string
 	rType string
@@ -39,7 +39,7 @@ type Room struct {
 	usersActionChannel    *helpers.ActionChannel
 }
 
-// A representation of a User in a Room. These store a User's variables. Note: These
+// RoomUser is the representation of a User in a Room. These store a User's variables. Note: These
 // are not the Users themselves. If you need to get a User type from one of these, use
 // users.Get() with the RoomUser's Name() function.
 type RoomUser struct {
@@ -59,18 +59,18 @@ var (
 
 	//SERVER SETTINGS
 	serverStarted     bool   = false
-	serverName        string = ""
+	serverName        string
 	deleteRoomOnLeave bool   = true
 
 	//FOR user PACKAGE COMMUNICATION
-	userActionChannelRef *helpers.ActionChannel = nil
+	userActionChannelRef *helpers.ActionChannel
 )
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //   MAKE A NEW ROOM   ////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// Adds a new room to the server. This can be called before or after starting the server.
+// New adds a new room to the server. This can be called before or after starting the server.
 // Parameters:
 //
 // - name (string): Name of the Room
@@ -139,7 +139,7 @@ func newRoom(p []interface{}) []interface{} {
 //   DELETE A ROOM   //////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// Deletes the Room from the server. Will also send a room leave message to all the Users in the Room that you can
+// Delete deletes the Room from the server. Will also send a room leave message to all the Users in the Room that you can
 // capture with the client APIs.
 func (r *Room) Delete() error {
 	//CONSUME THIS CHANNEL AND SET THE ROOM'S usersMap TO nil TO MAKE SURE NO MORE USERS ENTER
@@ -188,7 +188,7 @@ func deleteRoomInit(p []interface{}) []interface{} {
 
 func deleteRoom(p []interface{}) []interface{} {
 	roomName := p[0].(string)
-	var userList map[string]RoomUser = nil
+	var userList map[string]RoomUser
 	var err error
 	if room, ok := rooms[roomName]; ok {
 		userList = *((*room).usersMap)
@@ -213,7 +213,7 @@ func deleteRoomFinal(p []interface{}) []interface{} {
 //   GET A ROOM   /////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// Gets a Room. If the room does not exit, an error will be returned.
+// Get finds a Room on the server. If the room does not exit, an error will be returned.
 func Get(roomName string) (Room, error) {
 	//REJECT INCORRECT INPUT
 	if len(roomName) == 0 {
@@ -250,6 +250,8 @@ func getRoom(p []interface{}) []interface{} {
 //   ADD A USER   /////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+// AddUser adds a User to the Room.
+//
 // WARNING: This is only meant for internal Gopher Game Server mechanics. If you want to make a User to join a Room, use
 // *User.Join() instead. Using this will break some server mechanics and cause errors and/or memory leaks.
 // Also, the client API for the User entering will not have a way of knowing about the Room entrance using this function.
@@ -325,9 +327,8 @@ func userJoin(p []interface{}) []interface{} {
 	//ADD User TO ROOM
 	if _, ok := usrMap[userName]; ok {
 		return []interface{}{errors.New("User '" + userName + "' is already in room '" + room.name + "'")}
-	} else {
-		(*((*room).usersMap))[userName] = RoomUser{name: userName, roomIn: roomIn, socket: socket, vars: make(map[string]interface{})}
 	}
+	(*((*room).usersMap))[userName] = RoomUser{name: userName, roomIn: roomIn, socket: socket, vars: make(map[string]interface{})}
 
 	//
 	return []interface{}{nil, usrMap}
@@ -337,6 +338,8 @@ func userJoin(p []interface{}) []interface{} {
 //   REMOVE A USER   //////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+// RemoveUser removes a User from the room.
+//
 // WARNING: This is only meant for internal Gopher Game Server mechanics. If you want a User to leave a Room, use
 // *User.Leave() instead. Using this will break some server mechanics and potentially cause errors and/or memory leaks.
 // Also, the client API for the User leaving will not have a way of knowing about the Room leave using this function.
@@ -408,6 +411,8 @@ func userLeave(p []interface{}) []interface{} {
 //   ADD TO inviteList   //////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+// AddInvite adds a User to a private Room's invite list.
+//
 // NOTE: You can use this function safely, but remember that private rooms are designed to have an "owner",
 // and only the owner should be able to send an invite and revoke an invitation for their Rooms. Also, *User.Invite()
 // will send an invite message to the invited User that the client API can easily receive. Though if you wish to make
@@ -451,6 +456,8 @@ func inviteUser(p []interface{}) []interface{} {
 //   REMOVE FROM inviteList   /////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+// RemoveInvite removes a User from a private Room's invite list.
+//
 // NOTE: You can use this function safely, but remember that private rooms are designed to have an "owner",
 // and only the owner should be able to send an invite and revoke an invitation for their Rooms. But if you find the
 // need to break the rules here, by all means do so!
@@ -495,7 +502,7 @@ func uninviteUser(p []interface{}) []interface{} {
 //   GET A ROOM's inviteList   ////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// Get a private Room's invite list
+// InviteList gets a private Room's invite list.
 func (r *Room) InviteList() ([]string, error) {
 	response := r.roomVarsActionChannel.Execute(getInviteList, []interface{}{r})
 	if len(response) == 0 {
@@ -515,10 +522,10 @@ func getInviteList(p []interface{}) []interface{} {
 //   GET A Room's usersMap   //////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// Retrieves a Map of all the RoomUsers.
+// GetUserMap retrieves a Map of all the RoomUsers.
 func (r *Room) GetUserMap() (map[string]RoomUser, error) {
 	var err error
-	var userMap map[string]RoomUser = nil
+	var userMap map[string]RoomUser
 
 	response := r.usersActionChannel.Execute(userMapGet, []interface{}{r})
 	if len(response) == 0 {
@@ -535,7 +542,7 @@ func (r *Room) GetUserMap() (map[string]RoomUser, error) {
 func userMapGet(p []interface{}) []interface{} {
 	room := p[0].(*Room)
 	var err error
-	var m map[string]RoomUser = nil
+	var m map[string]RoomUser
 
 	if *((*room).usersMap) == nil {
 		err = errors.New("The room '" + room.name + "' does not exist")
@@ -550,32 +557,32 @@ func userMapGet(p []interface{}) []interface{} {
 //   Room ATTRIBUTE READERS   /////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// Gets the name of the Room.
+// Name gets the name of the Room.
 func (r *Room) Name() string {
 	return r.name
 }
 
-// Gets the type of the Room.
+// Type gets the type of the Room.
 func (r *Room) Type() string {
 	return r.rType
 }
 
-// Gets the type of the Room.
+// IsPrivate returns true of the Room is private.
 func (r *Room) IsPrivate() bool {
 	return r.private
 }
 
-// Gets the owner of the room
+// Owner gets the name of the owner of the room
 func (r *Room) Owner() string {
 	return r.owner
 }
 
-// Gets the maximum User capacity of the Room.
+// MaxUsers gets the maximum User capacity of the Room.
 func (r *Room) MaxUsers() int {
 	return r.maxUsers
 }
 
-// Gets the number of Users in the Room.
+// NumUsers gets the number of Users in the Room.
 func (r *Room) NumUsers() int {
 	m, e := r.GetUserMap()
 	if e != nil {
@@ -588,12 +595,12 @@ func (r *Room) NumUsers() int {
 //   RoomUser ATTRIBUTE READERS   /////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// Gets the name of the RoomUser.
+// Name gets the name of the RoomUser.
 func (u *RoomUser) Name() string {
 	return u.name
 }
 
-// Gets a Map of the RoomUser's variables.
+// Vars gets a Map of the RoomUser's variables.
 func (u *RoomUser) Vars() map[string]interface{} {
 	return u.vars
 }
@@ -602,14 +609,14 @@ func (u *RoomUser) Vars() map[string]interface{} {
 //   SERVER STARTUP FUNCTIONS   ///////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// For Gopher Game Server internal mechanics.
+// SetServerStarted is for Gopher Game Server internal mechanics.
 func SetServerStarted(val bool) {
 	if !serverStarted {
 		serverStarted = val
 	}
 }
 
-// For Gopher Game Server internal mechanics.
+// SettingsSet is for Gopher Game Server internal mechanics.
 func SettingsSet(name string, deleteOnLeave bool, userRef *helpers.ActionChannel) {
 	if !serverStarted {
 		serverName = name

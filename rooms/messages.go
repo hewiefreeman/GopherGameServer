@@ -22,7 +22,7 @@ const (
 //   CHAT MESSAGES   //////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// Sends a chat message to all Users in the Room.
+// ChatMessage sends a chat message to all Users in the Room.
 func (r *Room) ChatMessage(author string, message interface{}) error {
 	//REJECT INCORRECT INPUT
 	if len(author) == 0 {
@@ -38,7 +38,7 @@ func (r *Room) ChatMessage(author string, message interface{}) error {
 //   SERVER MESSAGES   ////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// Sends a server message to the specified recipients in the Room. The parameter recipients can be nil or an empty slice
+// ServerMessage sends a server message to the specified recipients in the Room. The parameter recipients can be nil or an empty slice
 // of string. In which case, the server message will be sent to all Users in the Room.
 func (r *Room) ServerMessage(message interface{}, messageType int, recipients []string) error {
 	if message == nil {
@@ -52,7 +52,7 @@ func (r *Room) ServerMessage(message interface{}, messageType int, recipients []
 //   DATA MESSAGES   //////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// Sends a data message to the specified recipients in the Room. The parameter recipients can be nil or an empty slice
+// DataMessage sends a data message to the specified recipients in the Room. The parameter recipients can be nil or an empty slice
 // of string. In which case, the data message will be sent to all Users in the Room.
 func (r *Room) DataMessage(message interface{}, recipients []string) error {
 	//GET USER MAP
