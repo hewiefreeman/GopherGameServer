@@ -9,7 +9,6 @@ import (
 	"github.com/mssola/user_agent"
 	"github.com/gorilla/websocket"
 	"errors"
-	"fmt"
 )
 
 const (
@@ -118,14 +117,14 @@ func clientCustomAction(params interface{}, userName *string, conn *websocket.Co
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
 func clientActionChangeStatus(params interface{}, userName *string) (interface{}, bool, error) {
-	if(*userName != ""){ return nil, true, errors.New("You must be logged in to change your status"); }
+	if(*userName == ""){ return nil, true, errors.New("You must be logged in to change your status"); }
 	user, userErr := users.Get(*userName);
 	if(userErr != nil){ return nil, true, userErr; }
 	//GET PARAMS
 	var ok bool;
-	var status int;
-
-	if status, ok = params.(int); !ok { return nil, true, errors.New(errorIncorrectFormat); }
+	var statusF float64;
+	if statusF, ok = params.(float64); !ok { return nil, true, errors.New(errorIncorrectFormat); }
+	status := int(statusF);
 	//
 	statusErr := user.SetStatus(status);
 	if(statusErr != nil){ return nil, true, statusErr; }
@@ -185,7 +184,6 @@ func clientActionDeleteAccount(params interface{}) (interface{}, bool, error) {
 	//DELETE ACCOUNT
 	deleteErr := database.DeleteAccount(userName, pass, customCols);
 	if(deleteErr != nil){ return nil, true, deleteErr; }
-	fmt.Println("got through delete...?");
 	//
 	return nil, true, nil;
 }
@@ -383,12 +381,13 @@ func clientActionCreateRoom(params interface{}, userName *string, roomIn *rooms.
 	var roomName string;
 	var roomType string;
 	var private bool;
-	var maxUsers int;
+	var maxUsersF float64;
 	if pMap, ok = params.(map[string]interface{}); !ok { return nil, true, errors.New(errorIncorrectFormat); }
 	if roomName, ok = pMap["n"].(string); !ok { return nil, true, errors.New(errorIncorrectFormatRoomName); }
 	if roomType, ok = pMap["t"].(string); !ok { return nil, true, errors.New(errorIncorrectFormatRoomType); }
 	if private, ok = pMap["t"].(bool); !ok { return nil, true, errors.New(errorIncorrectFormatPrivateRoom); }
-	if maxUsers, ok = pMap["m"].(int); !ok { return nil, true, errors.New(errorIncorrectFormatMaxRoomUsers); }
+	if maxUsersF, ok = pMap["m"].(float64); !ok { return nil, true, errors.New(errorIncorrectFormatMaxRoomUsers); }
+	maxUsers := int(maxUsersF)
 	//
 	if rType, ok := rooms.GetRoomTypes()[roomType]; !ok {
 		return nil, true, errors.New("Invalid room type");

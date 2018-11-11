@@ -1,7 +1,6 @@
 package helpers
 
 import (
-	"fmt"
 )
 
 //BUILT-IN CLIENT ACTION/RESPONSE MESSAGE TYPES
@@ -58,7 +57,6 @@ func MakeClientResponse(action string, responseVal interface{}, err error) map[s
 		response[ServerActionClientActionResponse] = make(map[string]interface{});
 		response[ServerActionClientActionResponse].(map[string]interface{})["a"] = action;
 		response[ServerActionClientActionResponse].(map[string]interface{})["e"] = err.Error();
-		fmt.Println("Response err: ", err);
 	}else{
 		response = make(map[string]interface{});
 		response[ServerActionClientActionResponse] = make(map[string]interface{});

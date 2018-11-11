@@ -225,12 +225,12 @@ func (u *User) RemoveFriend(friendName string) error {
 
 func removeFriends(params []interface{}) []interface{} {
 	userName, friendName := params[0].(string), params[1].(string);
-	//ACCEPT FRIEND FOR USER
+	//DELETE FRIEND FOR USER
 	if user, ok := users[userName]; ok {
 		if _, ok = user.friends[friendName]; !ok {
 			return []interface{}{ errors.New("Unexpected friend error") };
 		}
-		//ACCEPT FRIEND FOR FRIEND
+		//DELETE FRIEND FOR FRIEND
 		if user, ok = users[friendName]; ok {
 			if _, ok = user.friends[userName]; !ok {
 				return []interface{}{ errors.New("Unexpected friend error") };

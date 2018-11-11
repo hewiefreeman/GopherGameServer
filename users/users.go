@@ -23,7 +23,7 @@ type User struct {
 
 	status int
 
-	friends map[string]database.Friend
+	friends map[string]*database.Friend
 
 	socket *websocket.Conn
 }
@@ -73,7 +73,7 @@ func Login(userName string, dbID int, autologPass string, isGuest bool, remMe bo
 
 	//GET User's Friend LIST
 	var friends []map[string]interface{} = []map[string]interface{}{};
-	var friendsMap map[string]database.Friend;
+	var friendsMap map[string]*database.Friend;
 	var friendsErr error;
 	if(dbID != -1 && sqlFeatures){
 		friendsMap, friendsErr = database.GetFriends(dbID); // map[string]Friend
@@ -137,7 +137,7 @@ func Login(userName string, dbID int, autologPass string, isGuest bool, remMe bo
 }
 
 func loginUser(p []interface{}) []interface{} {
-	userName, dbID, isGuest, socket, friends := p[0].(string), p[1].(int), p[2].(bool), p[3].(*websocket.Conn), p[4].(map[string]database.Friend);
+	userName, dbID, isGuest, socket, friends := p[0].(string), p[1].(int), p[2].(bool), p[3].(*websocket.Conn), p[4].(map[string]*database.Friend);
 	var userRef User = User{};
 	var err error = nil;
 
@@ -181,6 +181,20 @@ func (u *User) LogOut() {
 		room, err := rooms.Get(u.room);
 		if(err == nil){
 			room.RemoveUser(u.name);
+		}
+	}
+
+	//SEND STATUS CHANGE TO FRIENDS
+	statusMessage := make(map[string]interface{});
+	statusMessage[helpers.ServerActionFriendStatusChange] = make(map[string]interface{});
+	statusMessage[helpers.ServerActionFriendStatusChange].(map[string]interface{})["n"] = u.name;
+	statusMessage[helpers.ServerActionFriendStatusChange].(map[string]interface{})["s"] = StatusOffline;
+	for key, val := range u.friends {
+		if(val.RequestStatus() == database.FriendStatusAccepted){
+			friend, friendErr := Get(key);
+			if(friendErr == nil){
+				friend.socket.WriteJSON(statusMessage);
+			}
 		}
 	}
 
@@ -441,7 +455,7 @@ func (u *User) DatabaseID() int {
 
 // Gets the Friend list of the User as a map[string]database.Friend where the key string is the friend's
 // User name.
-func (u *User) Friends() map[string]database.Friend {
+func (u *User) Friends() map[string]*database.Friend {
 	return u.friends;
 }
 
@@ -478,11 +492,11 @@ func SetServerStarted(val bool){
 }
 
 // For Gopher Game Server internal mechanics only.
-func SettingsSet(kickDups bool, name string, deleteOnLeave bool, sqlFeatures bool, remMe bool){
+func SettingsSet(kickDups bool, name string, deleteOnLeave bool, sqlFeat bool, remMe bool){
 	if(!serverStarted){
 		kickOnLogin = kickDups;
 		serverName = name;
-		sqlFeatures = sqlFeatures;
+		sqlFeatures = sqlFeat;
 		rememberMe = remMe;
 		rooms.SettingsSet(name, deleteOnLeave, usersActionChan);
 	}

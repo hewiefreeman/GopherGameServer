@@ -28,7 +28,11 @@ func setUp() error {
 			}
 			//CHECK IF UNIQUE
 			if(val.unique){
-				createQuery = createQuery+" UNIQUE, ";
+				createQuery = createQuery+" UNIQUE";
+			}
+			//CHECK IF NOT NULL
+			if(val.notNull){
+				createQuery = createQuery+" NOT NULL, ";
 			}else{
 				createQuery = createQuery+", ";
 			}
@@ -77,6 +81,7 @@ func setUp() error {
 			checkRows.Next();
 			_, colsErr := checkRows.Columns();
 			if(colsErr != nil){
+				fmt.Println("Adding AccountInfoColumn '"+key+"'...");
 				//THIS customAccountInfo COLUMN DOES NOT EXIST... YET, MY NERD.
 				query = query+"ADD COLUMN "+key+" "+dataTypes[val.dataType];
 				if(isSizeDataType(val.dataType)){
@@ -86,7 +91,11 @@ func setUp() error {
 				}
 				//CHECK IF UNIQUE
 				if(val.unique){
-					query = query+" UNIQUE, ";
+					query = query+" UNIQUE";
+				}
+				//CHECK IF NOT NULL
+				if(val.notNull){
+					query = query+" NOT NULL, ";
 				}else{
 					query = query+", ";
 				}

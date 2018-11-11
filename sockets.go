@@ -73,16 +73,16 @@ func clientActionListener(conn *websocket.Conn, ua *user_agent.UserAgent) {
 	var deviceUserID int = 0;
 
 	if((*settings).RememberMe){
-		//SEND TAG RETRIEVAL MESSAGE
 		var sentTagRequest bool = false;
 		//PARAMS
 		var ok bool;
 		var err error;
 		var pMap map[string]interface{};
 		var oldPass string = "";
-		//LOOP FOR TAGGING DEVICE - BREAKS WHEN THE DEVICE HAS BEEN TAGGED.
+		//PING-PONG FOR TAGGING DEVICE - BREAKS WHEN THE DEVICE HAS BEEN PROPERLY TAGGED OR AUTHENTICATED.
 		for{
 			if(!sentTagRequest){
+				//SEND TAG RETRIEVAL MESSAGE
 				tagMessage := make(map[string]interface{});
 				tagMessage[helpers.ServerActionRequestDeviceTag] = nil;
 				writeErr := conn.WriteJSON(tagMessage);
@@ -104,12 +104,13 @@ func clientActionListener(conn *websocket.Conn, ua *user_agent.UserAgent) {
 			//DETERMINE ACTION
 			if(action.A == "0"){
 				//NO DEVICE TAG. MAKE ONE AND SEND IT.
-				deviceTag, newTagErr := helpers.GenerateSecureString(32);
-				if(newTagErr != nil){
+				newDeviceTag, newDeviceTagErr := helpers.GenerateSecureString(32);
+				if(newDeviceTagErr != nil){
 					conn.WriteControl(websocket.CloseMessage, []byte{}, time.Now().Add(time.Second*1));
 					conn.Close();
 					return;
 				}
+				deviceTag = string(newDeviceTag);
 				tagMessage := make(map[string]interface{});
 				tagMessage[helpers.ServerActionSetDeviceTag] = deviceTag;
 				writeErr := conn.WriteJSON(tagMessage);
@@ -120,7 +121,13 @@ func clientActionListener(conn *websocket.Conn, ua *user_agent.UserAgent) {
 				}
 			}else if(action.A == "1"){
 				//THE CLIENT ONLY HAS A DEVICE TAG, BREAK
-				if deviceTag, ok = action.P.(string); ok {
+				if sentDeviceTag, ohK := action.P.(string); ohK {
+					if(len(deviceTag) > 0 && sentDeviceTag != deviceTag){
+						//CLIENT DIDN'T USE THE PROVIDED DEVICE CODE FROM THE SERVER
+						conn.WriteControl(websocket.CloseMessage, []byte{}, time.Now().Add(time.Second*1));
+						conn.Close();
+						return;
+					}
 					//SEND AUTO-LOG NOT FILED MESSAGE
 					notFiledMessage := make(map[string]interface{});
 					notFiledMessage[helpers.ServerActionAutoLoginNotFiled] = nil;
@@ -163,7 +170,15 @@ func clientActionListener(conn *websocket.Conn, ua *user_agent.UserAgent) {
 					conn.Close();
 					return;
 				}
-				if deviceUserID, ok = pMap["di"].(int); !ok {
+				var deviceUserIDStr string;
+				if deviceUserIDStr, ok = pMap["di"].(string); !ok {
+					conn.WriteControl(websocket.CloseMessage, []byte{}, time.Now().Add(time.Second*1));
+					conn.Close();
+					return;
+				}
+				//CONVERT di TO INT
+				deviceUserID, err = strconv.Atoi(deviceUserIDStr);
+				if(err != nil){
 					conn.WriteControl(websocket.CloseMessage, []byte{}, time.Now().Add(time.Second*1));
 					conn.Close();
 					return;

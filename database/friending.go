@@ -77,8 +77,8 @@ func RemoveFriend(userIndex int, friendIndex int) error {
 
 // WARNING: This is only meant for internal Gopher Game Server mechanics. Use the *User.Friends() function
 // instead to avoid errors when using the SQL features.
-func GetFriends(userIndex int) (map[string]Friend, error) {
-	var friends map[string]Friend = make(map[string]Friend);
+func GetFriends(userIndex int) (map[string]*Friend, error) {
+	var friends map[string]*Friend = make(map[string]*Friend);
 
 	//EXECUTE SELECT QUERY
 	friendRows, friendRowsErr := database.Query("Select "+friendsColumnFriend+", "+friendsColumnStatus+" FROM "+tableFriends+" WHERE "+friendsColumnUser+"="+strconv.Itoa(userIndex)+";");
@@ -100,8 +100,8 @@ func GetFriends(userIndex int) (map[string]Friend, error) {
 		if scanErr := friendInfoRows.Scan(&friendName); scanErr != nil {
 			return friends, scanErr;
 		}
-
-		friends[friendName] = Friend{name:friendName, dbID: friendID, status: friendStatus};
+		aFriend := Friend{name:friendName, dbID: friendID, status: friendStatus};
+		friends[friendName] = &aFriend;
 	}
 	//
 	return friends, nil;
@@ -111,8 +111,9 @@ func GetFriends(userIndex int) (map[string]Friend, error) {
 //   MAKE A Friend FROM PARAMETERS   /////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
-func NewFriend(name string, dbID int, status int) Friend {
-	return Friend{name: name, dbID: dbID, status: status};
+func NewFriend(name string, dbID int, status int) *Friend {
+	nFriend := Friend{name: name, dbID: dbID, status: status};
+	return &nFriend;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -120,21 +121,21 @@ func NewFriend(name string, dbID int, status int) Friend {
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // Gets the User name of the Friend.
-func (f Friend) Name() string {
+func (f *Friend) Name() string {
 	return f.name;
 }
 
 // Gets the database index of the Friend.
-func (f Friend) DatabaseID() int {
+func (f *Friend) DatabaseID() int {
 	return f.dbID;
 }
 
 // Gets the request status of the Friend. Could be either friendStatusRequested or friendStatusAccepted (0 or 1).
-func (f Friend) RequestStatus() int {
+func (f *Friend) RequestStatus() int {
 	return f.status;
 }
 
 // WARNING: This is only meant for internal Gopher Game Server mechanics.
-func (f Friend) SetStatus(status int) {
+func (f *Friend) SetStatus(status int) {
 	f.status = status;
 }

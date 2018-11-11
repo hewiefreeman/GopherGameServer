@@ -4,7 +4,6 @@ import(
 	"errors"
 	"strconv"
 	"github.com/hewiefreeman/GopherGameServer/helpers"
-	"fmt"
 )
 
 var(
@@ -437,20 +436,16 @@ func ChangeAccountInfo(userName string, password string, customCols map[string]i
 	}
 	selectQuery = selectQuery[0:len(selectQuery)-2]+" FROM "+tableUsers+" WHERE "+usersColumnName+"=\""+userName+"\" LIMIT 1;";
 
-	fmt.Println(selectQuery);
-
 	//EXECUTE SELECT QUERY
 	checkRows, err := database.Query(selectQuery);
 	if(err != nil){ return err; }
 	//
 	checkRows.Next();
 	if scanErr := checkRows.Scan(vals...); scanErr != nil {
-		fmt.Println(scanErr);
 		checkRows.Close();
 		return errors.New("Login or password is incorrect");
 	}
 	checkRows.Close();
-	fmt.Println("got past scan.");
 
 	//
 	dbIndex := *(vals[0]).(*int); // USE FOR SERVER CALLBACK & MAKE DATABASE RESPONSE MAP
@@ -460,7 +455,6 @@ func ChangeAccountInfo(userName string, password string, customCols map[string]i
 	if(!helpers.CheckPasswordHash(password, dbPass)){
 		return errors.New("Login or password is incorrect");
 	}
-	fmt.Println("got past password check");
 
 	//UPDATE THE AccountInfoColumns
 
@@ -535,12 +529,12 @@ func DeleteAccount(userName string, password string, customCols map[string]inter
 		return errors.New("Login or password is incorrect");
 	}
 
-	//EVERYTHING WENT FINE AND DANDY, DELETE THE ACCOUNT
-	_, deleteErr := database.Exec("DELETE FROM "+tableUsers+" WHERE "+usersColumnID+"="+strconv.Itoa(dbIndex)+" LIMIT 1;");
-	if(deleteErr != nil){ return deleteErr; }
-
 	//REMOVE INSTANCES FROM friends TABLE
 	database.Exec("DELETE FROM "+tableFriends+" WHERE "+friendsColumnUser+"="+strconv.Itoa(dbIndex)+" OR "+friendsColumnFriend+"="+strconv.Itoa(dbIndex)+";");
+
+	//DELETE THE ACCOUNT
+	_, deleteErr := database.Exec("DELETE FROM "+tableUsers+" WHERE "+usersColumnID+"="+strconv.Itoa(dbIndex)+" LIMIT 1;");
+	if(deleteErr != nil){ return deleteErr; }
 
 	//
 	return nil;

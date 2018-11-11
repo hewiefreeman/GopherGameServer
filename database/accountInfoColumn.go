@@ -19,6 +19,7 @@ type AccountInfoColumn struct {
 	dataType int
 	maxSize int
 	precision int
+	notNull bool
 	unique bool
 }
 
@@ -138,7 +139,7 @@ var (
 )
 
 // Use this to make a new AccountInfoColumn. You can only make new AccountInfoColumns before starting the server.
-func NewAccountInfoColumn(name string, dataType int, maxSize int, precision int, unique bool) error {
+func NewAccountInfoColumn(name string, dataType int, maxSize int, precision int, notNull bool, unique bool) error {
 	if(serverStarted){
 		return errors.New("You can't make a new AccountInfoColumn after the server has started");
 	}else if(len(name) == 0){
@@ -155,7 +156,7 @@ func NewAccountInfoColumn(name string, dataType int, maxSize int, precision int,
 		return errors.New("The data type '"+dataTypesSize[dataType]+"' requires a max size and precision");
 	}
 
-	customAccountInfo[name] = AccountInfoColumn{dataType: dataType, maxSize: maxSize, precision: precision, unique: unique};
+	customAccountInfo[name] = AccountInfoColumn{dataType: dataType, maxSize: maxSize, precision: precision, notNull: notNull, unique: unique};
 
 	//
 	return nil;
@@ -181,7 +182,7 @@ func isPrecisionDataType(dataType int) bool {
 	return false;
 }
 
-//CONVERTS DATA TYPE TO STRING
+//CONVERTS DATA TYPES TO STRING FOR SQL QUERIES
 func convertDataToString(dataType string, data interface{}) (string, error) {
 	switch data.(type) {
 		case int:
@@ -219,6 +220,5 @@ func convertDataToString(dataType string, data interface{}) (string, error) {
 
 //CHECKS IF THERE ARE ANY MALICIOUS CHARACTERS IN A STRING
 func checkStringSQLInjection(inputStr string) bool {
-	return (strings.Contains(inputStr, "\"") || strings.Contains(inputStr, "'") || strings.Contains(inputStr, ")") ||
-			strings.Contains(inputStr, "(") || strings.Contains(inputStr, ",") || strings.Contains(inputStr, "="));
+	return (strings.Contains(inputStr, "\"") || strings.Contains(inputStr, ")") || strings.Contains(inputStr, "(") || strings.Contains(inputStr, ";"));
 }

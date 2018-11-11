@@ -17,10 +17,6 @@ import (
 )
 
 /////////// TO DOs:
-///////////    - Authentication:
-///////////          - Test Client API remember me
-///////////          - Test Client API friending
-///////////          - Test Client API friend status changes
 ///////////    - Test chat/private chat
 ///////////    - Multi-connect
 ///////////          - Test
