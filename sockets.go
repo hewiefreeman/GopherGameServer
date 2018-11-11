@@ -68,9 +68,9 @@ func clientActionListener(conn *websocket.Conn, ua *user_agent.UserAgent) {
 	var roomIn rooms.Room = rooms.Room{}
 
 	// THE CLIENT'S AUTOLOG INFO
-	var deviceTag string = ""
-	var devicePass string = ""
-	var deviceUserID int = 0
+	var deviceTag string
+	var devicePass string
+	var deviceUserID int
 
 	if (*settings).RememberMe {
 		var sentTagRequest bool = false
@@ -78,7 +78,7 @@ func clientActionListener(conn *websocket.Conn, ua *user_agent.UserAgent) {
 		var ok bool
 		var err error
 		var pMap map[string]interface{}
-		var oldPass string = ""
+		var oldPass string
 		//PING-PONG FOR TAGGING DEVICE - BREAKS WHEN THE DEVICE HAS BEEN PROPERLY TAGGED OR AUTHENTICATED.
 		for {
 			if !sentTagRequest {

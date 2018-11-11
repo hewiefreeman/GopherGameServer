@@ -10,6 +10,7 @@ import (
 //   SEND A FRIEND REQUEST   /////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
+// FriendRequest sends a friend request to another User by their name.
 func (u *User) FriendRequest(friendName string) error {
 	if _, ok := u.friends[friendName]; ok {
 		return errors.New("The user '" + friendName + "' cannot be requested as a friend")
@@ -73,6 +74,7 @@ func addFriend(params []interface{}) []interface{} {
 //   ACCEPT A FRIEND REQUEST   ///////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
+// AcceptFriendRequest accepts a friend request from another User by their name.
 func (u *User) AcceptFriendRequest(friendName string) error {
 	if _, ok := u.friends[friendName]; !ok {
 		return errors.New("The user '" + friendName + "' has not requested you as a friend")
@@ -145,6 +147,7 @@ func friendAccepted(params []interface{}) []interface{} {
 //   DECLINE A FRIEND REQUEST   //////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
+// DeclineFriendRequest declines a friend request from another User by their name.
 func (u *User) DeclineFriendRequest(friendName string) error {
 	if _, ok := u.friends[friendName]; !ok {
 		return errors.New("The user '" + friendName + "' has not requested you as a friend")
@@ -194,6 +197,7 @@ func (u *User) DeclineFriendRequest(friendName string) error {
 //   REMOVE A FRIEND   ///////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
+// RemoveFriend removes a friend from this this User and this User from the friend's Friend list.
 func (u *User) RemoveFriend(friendName string) error {
 	if _, ok := u.friends[friendName]; !ok {
 		return errors.New("The user '" + friendName + "' is not your friend")

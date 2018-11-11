@@ -4,7 +4,7 @@ import (
 	"strconv"
 )
 
-// Represents one of your friends. A friend has a User name, a database index reference, and a status.
+// Friend represents a client's friend. A friend has a User name, a database index reference, and a status.
 // Their status could be FriendStatusRequested, FriendStatusPending, or FriendStatusAccepted (0, 1, or 2). If a User has a Friend
 // with the status FriendStatusRequested, they need to accept the request. If a User has a Friend
 // with the status FriendStatusPending, that friend has not yet accepted their request. If a User has a Friend
@@ -29,6 +29,8 @@ const (
 //   SEND FRIEND REQUEST   ///////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
+// FriendRequest stores the data for a friend request onto the database.
+//
 // WARNING: This is only meant for internal Gopher Game Server mechanics. Use the client APIs to send a
 // friend request when using the SQL features.
 func FriendRequest(userIndex int, friendIndex int) error {
@@ -50,6 +52,8 @@ func FriendRequest(userIndex int, friendIndex int) error {
 //   ACCEPT FRIEND REQUEST   /////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
+// FriendRequestAccepted stores the data for a friend accept onto the database.
+//
 // WARNING: This is only meant for internal Gopher Game Server mechanics. Use the client APIs to accept a
 // friend request when using the SQL features.
 func FriendRequestAccepted(userIndex int, friendIndex int) error {
@@ -67,6 +71,8 @@ func FriendRequestAccepted(userIndex int, friendIndex int) error {
 //   REMOVE FRIEND   /////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
+// RemoveFriend removes the data for a friendship from database.
+//
 // WARNING: This is only meant for internal Gopher Game Server mechanics. Use the client APIs to remove a
 // friend when using the SQL features.
 func RemoveFriend(userIndex int, friendIndex int) error {
@@ -83,6 +89,8 @@ func RemoveFriend(userIndex int, friendIndex int) error {
 //   GET FRIENDS   /////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
+// GetFriends gets a User's frinds list from the database.
+//
 // WARNING: This is only meant for internal Gopher Game Server mechanics. Use the *User.Friends() function
 // instead to avoid errors when using the SQL features.
 func GetFriends(userIndex int) (map[string]*Friend, error) {
@@ -123,6 +131,7 @@ func GetFriends(userIndex int) (map[string]*Friend, error) {
 //   MAKE A Friend FROM PARAMETERS   /////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
+// NewFriend makes a new Friend from given parameters. Used for Gopher Game Server inner mechanics only.
 func NewFriend(name string, dbID int, status int) *Friend {
 	nFriend := Friend{name: name, dbID: dbID, status: status}
 	return &nFriend
@@ -132,21 +141,23 @@ func NewFriend(name string, dbID int, status int) *Friend {
 //   Friend ATTRIBUTE READERS   //////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// Gets the User name of the Friend.
+// Name gets the User name of the Friend.
 func (f *Friend) Name() string {
 	return f.name
 }
 
-// Gets the database index of the Friend.
+// DatabaseID gets the database index of the Friend.
 func (f *Friend) DatabaseID() int {
 	return f.dbID
 }
 
-// Gets the request status of the Friend. Could be either friendStatusRequested or friendStatusAccepted (0 or 1).
+// RequestStatus gets the request status of the Friend. Could be either friendStatusRequested or friendStatusAccepted (0 or 1).
 func (f *Friend) RequestStatus() int {
 	return f.status
 }
 
+// SetStatus sets the request status of a Friend.
+//
 // WARNING: This is only meant for internal Gopher Game Server mechanics.
 func (f *Friend) SetStatus(status int) {
 	f.status = status

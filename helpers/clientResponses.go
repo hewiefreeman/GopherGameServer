@@ -49,6 +49,7 @@ const (
 	ServerActionAutoLoginNotFiled          = "ai"
 )
 
+// MakeClientResponse is used for Gopher Game Server inner mechanics only.
 func MakeClientResponse(action string, responseVal interface{}, err error) map[string]interface{} {
 	var response map[string]interface{}
 	if err != nil {

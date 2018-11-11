@@ -115,7 +115,7 @@ func checkCustomRequirements(customCols map[string]interface{}, requirements map
 		if len(customCols) == 0 {
 			return false
 		}
-		for key, _ := range customCols {
+		for key := range customCols {
 			if _, ok := requirements[key]; !ok {
 				return false
 			}
@@ -225,7 +225,7 @@ func LoginClient(userName string, password string, deviceTag string, remMe bool,
 	//CONSTRUCT SELECT QUERY
 	selectQuery := "Select " + usersColumnID + ", " + usersColumnPassword + ", " + usersColumnName + ", "
 	if customCols != nil {
-		for key, _ := range customCols {
+		for key := range customCols {
 			selectQuery = selectQuery + key + ", "
 			//MAINTAIN THE ORDER IN WHICH THE COLUMNS WERE DECLARED VIA A SLICE
 			vals = append(vals, new(interface{}))
@@ -261,7 +261,7 @@ func LoginClient(userName string, password string, deviceTag string, remMe bool,
 	}
 
 	//AUTO-LOGGING
-	var devicePass string = ""
+	var devicePass string
 	var devicePassErr error
 
 	if rememberMe && remMe {
@@ -535,7 +535,7 @@ func DeleteAccount(userName string, password string, customCols map[string]inter
 	//CONSTRUCT SELECT QUERY
 	selectQuery := "Select " + usersColumnID + ", " + usersColumnPassword + ", "
 	if customCols != nil {
-		for key, _ := range customCols {
+		for key := range customCols {
 			selectQuery = selectQuery + key + ", "
 			//MAINTAIN THE ORDER IN WHICH THE COLUMNS WERE DECLARED VIA A SLICE
 			vals = append(vals, new(interface{}))

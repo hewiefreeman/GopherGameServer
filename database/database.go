@@ -1,4 +1,4 @@
-// This package contains helpers for customizing your database with the SQL features enabled.
+// Package database contains helpers for customizing your database with the SQL features enabled.
 // It mostly contains a bunch of mixed Gopher Server only functions and customizing methods.
 // It would probably be easier to take a look at the database usage section on the Github page
 // for the project before looking through here for more info.
@@ -8,18 +8,18 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	_ "github.com/go-sql-driver/mysql"
+	_ "github.com/go-sql-driver/mysql" // Github project page specifies to use blank import
 	"strconv"
 )
 
 var (
 	//THE DATABASE
-	database *sql.DB = nil
+	database *sql.DB
 
 	//SERVER SETTINGS
 	serverStarted bool   = false
 	rememberMe    bool   = false
-	databaseName  string = ""
+	databaseName  string
 	inited        bool   = false
 )
 
@@ -45,6 +45,8 @@ const (
 	autologsColumnDevicePass = "da"
 )
 
+// Init initializes the database connection and sets up the database according to your custom parameters.
+//
 // WARNING: This is only meant for internal Gopher Game Server mechanics. If you want to enable SQL authorization
 // and friending, use the EnableSqlFeatures and corresponding options in ServerSetting.
 func Init(userName string, password string, dbName string, protocol string, ip string, port int, encryptCost int, remMe bool, custLoginCol string) error {
@@ -105,7 +107,7 @@ func Init(userName string, password string, dbName string, protocol string, ip s
 //   GET User's DATABASE INDEX   /////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// Gets the database index of a User by their name.
+// GetUserDatabaseIndex gets the database index of a User by their name.
 func GetUserDatabaseIndex(userName string) (int, error) {
 	if checkStringSQLInjection(userName) {
 		return 0, errors.New("Malicious characters detected")
@@ -131,7 +133,7 @@ func GetUserDatabaseIndex(userName string) (int, error) {
 //   SERVER STARTUP FUNCTIONS   ///////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// For Gopher Game Server internal mechanics.
+// SetServerStarted is for Gopher Game Server internal mechanics only.
 func SetServerStarted(val bool) {
 	if !serverStarted {
 		serverStarted = val

@@ -1,4 +1,4 @@
-// This package contains helpers for the inner mechanics of the Gopher Game Server.
+// Package helpers contains helpers for the inner mechanics of the Gopher Game Server.
 // You can disregard this package entirely, as you will hopefully never need to use it.
 package helpers
 
@@ -6,6 +6,7 @@ import (
 	"sync"
 )
 
+// ActionChannel is used for Gopher Game Server inner mechanics only.
 type ActionChannel struct {
 	c   *chan channelAction
 	mux sync.Mutex
@@ -41,6 +42,7 @@ func actionChannelListener(c *chan channelAction) {
 	}
 }
 
+// NewActionChannel is used for Gopher Game Server inner mechanics only.
 func NewActionChannel() *ActionChannel {
 	c := make(chan channelAction)
 	go actionChannelListener(&c)
@@ -48,6 +50,7 @@ func NewActionChannel() *ActionChannel {
 	return &newAC
 }
 
+// Execute is used for Gopher Game Server inner mechanics only.
 func (a *ActionChannel) Execute(action func([]interface{}) []interface{}, params []interface{}) []interface{} {
 	//
 	a.mux.Lock()
@@ -68,6 +71,7 @@ func (a *ActionChannel) Execute(action func([]interface{}) []interface{}, params
 	return <-returnChan
 }
 
+// Kill is used for Gopher Game Server inner mechanics only.
 func (a *ActionChannel) Kill() {
 	(*a).mux.Lock()
 	//

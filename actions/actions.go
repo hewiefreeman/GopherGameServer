@@ -1,4 +1,4 @@
-// This package contains all the tools for making your custom client actions.
+// Package actions contains all the tools for making your custom client actions.
 package actions
 
 import (
@@ -7,7 +7,7 @@ import (
 	"github.com/hewiefreeman/GopherGameServer/helpers"
 )
 
-// A CustomClientAction is an action that you can handle on the server from
+// CustomClientAction is an action that you can handle on the server from
 // a connected client. For instance, a client can send to the server a
 // CustomClientAction type "setPosition" that comes with parameters as an object {x: 2, y: 3}.
 // You just need to make a callback function for the CustomClientAction type "setPosition", and as soon as the
@@ -18,7 +18,7 @@ type CustomClientAction struct {
 	callback func(interface{}, Client)
 }
 
-// A Client object is created and sent along with your CustomClientAction callback function when a
+// Client objects are created and sent along with your CustomClientAction callback function when a
 // client sends an action.
 type Client struct {
 	name   string
@@ -47,9 +47,8 @@ const (
 	DataTypeNil           // nil data type
 )
 
-// Note: This function can only be called BEFORE starting the server.
-//
-// Creates a new CustomClientAction with the corresponding parameters:
+
+// New creates a new CustomClientAction with the corresponding parameters:
 //
 // - actionType (string): The type of action
 //
@@ -66,6 +65,9 @@ const (
 // - actionData: The data the client sent along with the action
 //
 // - client: A Client object representing the client that sent the action
+//
+//
+// Note: This function can only be called BEFORE starting the server.
 func New(actionType string, dataType int, callback func(interface{}, Client)) error {
 	if serverStarted {
 		return errors.New("Cannot make a new CustomClientAction once the server has started")
@@ -80,6 +82,8 @@ func New(actionType string, dataType int, callback func(interface{}, Client)) er
 //   SEND A CustomClientAction RESPONSE TO THE Client   ///////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+// HandleCustomClientAction handles your custom client actions.
+//
 // WARNING: This is only meant for internal Gopher Game Server mechanics. Your CustomClientAction callbacks are called
 // from this function. This could spawn errors and/or memory leaks.
 func HandleCustomClientAction(action string, data interface{}, userName string, conn *websocket.Conn) {
@@ -159,7 +163,7 @@ func typesMatch(data interface{}, theType int) bool {
 //   SEND A CustomClientAction RESPONSE TO THE Client   ///////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// Sends a CustomClientAction response to the client. If an error is provided, only the error mesage will be received
+// Respond sends a CustomClientAction response to the client. If an error is provided, only the error mesage will be received
 // by the Client (the response parameter will not be sent as well).
 //
 // NOTE: A response can only be sent once to a Client. Any more calls to Respond() on the same Client will not send a response,
@@ -189,14 +193,14 @@ func (c *Client) Respond(response interface{}, err error) {
 //   Client ATTRIBUTE READERS   ///////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// Gets the name of the Client, provided they are logged in. If their name is a empty string, you can assume they are
+// Name gets the name of the Client, provided they are logged in. If their name is a empty string, you can assume they are
 // not logged in. You can, for instance, use this to get the User object of a logged in client with the users.Get() function,
 // or just to check if the Client is even logged in.
 func (c *Client) Name() string {
 	return c.name
 }
 
-// Gets the type of action the Client sent.
+// Action gets the type of action the Client sent.
 func (c *Client) Action() string {
 	return c.action
 }
@@ -205,7 +209,7 @@ func (c *Client) Action() string {
 //   SERVER STARTUP FUNCTIONS   ///////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// For Gopher Game Server internal mechanics.
+// SetServerStarted is for Gopher Game Server internal mechanics only.
 func SetServerStarted(val bool) {
 	if !serverStarted {
 		serverStarted = val

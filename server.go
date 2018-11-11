@@ -126,8 +126,8 @@ type ServerCallbacks struct {
 }
 
 var (
-	settings  *ServerSettings  = nil
-	callbacks *ServerCallbacks = nil
+	settings  *ServerSettings
+	callbacks *ServerCallbacks
 
 	//SERVER VERSION NUMBER
 	version string = "1.0 ALPHA"
