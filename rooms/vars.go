@@ -8,7 +8,7 @@ import (
 //   ROOM VARIABLES   /////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// Set a Room variable.
+// SetVariable sets a Room variable.
 func (r *Room) SetVariable(key string, value interface{}) error {
 	//REJECT INCORRECT INPUT
 	if len(key) == 0 {
@@ -33,14 +33,14 @@ func roomVarSet(p []interface{}) []interface{} {
 	return []interface{}{nil}
 }
 
-// Get one of the Room's variables.
+// GetVariable gets one of the Room's variables.
 func (r *Room) GetVariable(key string) (interface{}, error) {
 	//REJECT INCORRECT INPUT
 	if len(key) == 0 {
 		return nil, errors.New("*Room.GetVariable() requires a key")
 	}
 
-	var val interface{} = nil
+	var val interface{}
 	var err error
 
 	response := r.roomVarsActionChannel.Execute(roomVarGet, []interface{}{key, r})
@@ -59,7 +59,7 @@ func roomVarGet(p []interface{}) []interface{} {
 	return []interface{}{(*room.vars)[key]}
 }
 
-// Get a Map of all the Room variables.
+// GetVariableMap gets a Map of all the Room variables.
 func (r *Room) GetVariableMap() (map[string]interface{}, error) {
 	var val map[string]interface{} = nil
 	var err error
@@ -83,7 +83,7 @@ func roomVarMapGet(p []interface{}) []interface{} {
 //   USER VARIABLES   /////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// Set a User's variable using their name.
+// SetUserVariable sets a User's variable using their name.
 func (r *Room) SetUserVariable(userName string, key string, value interface{}) error {
 	//REJECT INCORRECT INPUT
 	if len(key) == 0 {
@@ -118,14 +118,14 @@ func userVarSet(p []interface{}) []interface{} {
 	return []interface{}{err}
 }
 
-// Get a User's variable using their name.
+// GetUserVariable gets a User's variable using their name.
 func (r *Room) GetUserVariable(userName string, key string) interface{} {
 	//REJECT INCORRECT INPUT
 	if len(key) == 0 {
 		return errors.New("*Room.GetUserVariable() requires a key")
 	}
 
-	var value interface{} = nil
+	var value interface{}
 
 	response := r.usersActionChannel.Execute(userVarGet, []interface{}{userName, key, r})
 	if len(response) != 0 && response[0] != nil {
@@ -138,7 +138,7 @@ func (r *Room) GetUserVariable(userName string, key string) interface{} {
 
 func userVarGet(p []interface{}) []interface{} {
 	userName, key, room := p[0].(string), p[1].(string), p[2].(*Room)
-	var value interface{} = nil
+	var value interface{}
 
 	if _, ok := (*room.usersMap)[userName]; ok {
 		value = (*room.usersMap)[userName].vars[key]
