@@ -98,7 +98,7 @@ func New(name string, rType string, isPrivate bool, maxUsers int, owner string) 
 		return Room{}, errors.New("Invalid room type");
 	}
 
-	var err error = nil;
+	var err error;
 
 	response := roomsActionChan.Execute(newRoom, []interface{}{name, maxUsers, isPrivate, rType, owner});
 	if(response[1] != nil){ err = response[1].(error); }
@@ -114,7 +114,7 @@ func New(name string, rType string, isPrivate bool, maxUsers int, owner string) 
 func newRoom(p []interface{}) []interface{} {
 	roomName, maxUsers, isPrivate, rt, owner := p[0].(string), p[1].(int), p[2].(bool), p[3].(string), p[4].(string);
 	var room Room = Room{};
-	var err error = nil;
+	var err error;
 
 	if _, ok := rooms[roomName]; ok {
 		err = errors.New("A Room with the name '"+roomName+"' already exists");
@@ -183,7 +183,7 @@ func deleteRoomInit(p []interface{}) []interface{} {
 func deleteRoom(p []interface{}) []interface{} {
 	roomName := p[0].(string);
 	var userList map[string]RoomUser = nil;
-	var err error = nil;
+	var err error;
 	if room, ok := rooms[roomName]; ok {
 		userList = *((*room).usersMap);
 		delete(rooms, room.name);
@@ -212,7 +212,7 @@ func Get(roomName string) (Room, error) {
 	//REJECT INCORRECT INPUT
 	if(len(roomName) == 0){ return Room{}, errors.New("rooms.Get() requires a room name"); }
 
-	var err error = nil;
+	var err error;
 
 	response := roomsActionChan.Execute(getRoom, []interface{}{roomName});
 	if(response[1] != nil){
@@ -225,7 +225,7 @@ func Get(roomName string) (Room, error) {
 
 func getRoom(p []interface{}) []interface{} {
 	roomName := p[0].(string);
-	var err error = nil;
+	var err error;
 	var room Room = Room{}
 
 	if r, ok := rooms[roomName]; ok {
@@ -367,7 +367,7 @@ func (r *Room) RemoveUser(userName string) error {
 
 func userLeave(p []interface{}) []interface{} {
 	userName, room := p[0].(string), p[1].(*Room);
-	var err error = nil;
+	var err error;
 
 	usrMap := *((*room).usersMap);
 
@@ -389,7 +389,7 @@ func userLeave(p []interface{}) []interface{} {
 
 // NOTE: You can use this function safely, but remember that private rooms are designed to have an "owner",
 // and only the owner should be able to send an invite and revoke an invitation for their Rooms. Also, *User.Invite()
-// will send an invite message to the invited User that the client API can easily recieve. Though if you wish to make
+// will send an invite message to the invited User that the client API can easily receive. Though if you wish to make
 // your own implementations for this, don't hesitate!
 //
 // WARNING: This is only meant for internal Gopher Game Server mechanics. If you want a User to invite someone to a private room,
@@ -496,7 +496,7 @@ func getInviteList(p []interface{}) []interface{} {
 
 // Retrieves a Map of all the RoomUsers.
 func (r *Room) GetUserMap() (map[string]RoomUser, error) {
-	var err error = nil;
+	var err error;
 	var userMap map[string]RoomUser = nil;
 
 	response := r.usersActionChannel.Execute(userMapGet, []interface{}{r});
@@ -513,7 +513,7 @@ func (r *Room) GetUserMap() (map[string]RoomUser, error) {
 
 func userMapGet(p []interface{}) []interface{} {
 	room := p[0].(*Room);
-	var err error = nil;
+	var err error;
 	var m map[string]RoomUser = nil;
 
 	if(*((*room).usersMap) == nil){

@@ -25,7 +25,7 @@ type RoomType struct {
 	userLeaveCallback func(Room,string) // roomFrom, userName
 }
 
-// Adds a RoomType to the server. A RoomType is used in conjunction with it's cooresponding callbacks
+// Adds a RoomType to the server. A RoomType is used in conjunction with it's corresponding callbacks
 // and options. You cannot make a Room on the server until you have at least one RoomType to set it to.
 // A RoomType requires at least a name and the serverOnly option, which when set to true will prevent
 // the client API from being able to create, destroy, invite or revoke an invitation with that RoomType.

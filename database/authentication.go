@@ -256,7 +256,7 @@ func LoginClient(userName string, password string, deviceTag string, remMe bool,
 
 	//AUTO-LOGGING
 	var devicePass string = "";
-	var devicePassErr error = nil;
+	var devicePassErr error;
 
 	if(rememberMe && remMe){
 		//MAKE AUTO-LOG ENTRY

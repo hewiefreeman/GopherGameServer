@@ -35,7 +35,7 @@ func (r *Room) GetVariable(key string) (interface{}, error) {
 	if(len(key) == 0){ return nil, errors.New("*Room.GetVariable() requires a key"); }
 
 	var val interface{} = nil;
-	var err error = nil;
+	var err error;
 
 	response := r.roomVarsActionChannel.Execute(roomVarGet, []interface{}{key, r});
 	if(len(response) == 0){
@@ -56,7 +56,7 @@ func roomVarGet(p []interface{}) []interface{} {
 // Get a Map of all the Room variables.
 func (r *Room) GetVariableMap() (map[string]interface{}, error) {
 	var val map[string]interface{} = nil;
-	var err error = nil;
+	var err error;
 
 	response := r.roomVarsActionChannel.Execute(roomVarMapGet, []interface{}{r});
 	if(len(response) == 0){
@@ -86,7 +86,7 @@ func (r *Room) SetUserVariable(userName string, key string, value interface{}) e
 		return errors.New("*Room.SetUserVariable() requires a user name");
 	}
 
-	var err error = nil;
+	var err error;
 
 	response := r.usersActionChannel.Execute(userVarSet, []interface{}{userName, key, value, r});
 	if(len(response) == 0){
@@ -100,7 +100,7 @@ func (r *Room) SetUserVariable(userName string, key string, value interface{}) e
 
 func userVarSet(p []interface{}) []interface{} {
 	userName, key, value, room := p[0].(string), p[1].(string), p[2], p[3].(*Room);
-	var err error = nil;
+	var err error;
 
 	if _, ok := (*room.usersMap)[userName]; ok {
 		(*room.usersMap)[userName].vars[key] = value;

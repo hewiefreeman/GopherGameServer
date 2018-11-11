@@ -139,7 +139,7 @@ func Login(userName string, dbID int, autologPass string, isGuest bool, remMe bo
 func loginUser(p []interface{}) []interface{} {
 	userName, dbID, isGuest, socket, friends := p[0].(string), p[1].(int), p[2].(bool), p[3].(*websocket.Conn), p[4].(map[string]*database.Friend);
 	var userRef User = User{};
-	var err error = nil;
+	var err error;
 
 	if _, ok := users[userName]; ok {
 		err = errors.New("User '"+userName+"' is already logged in");
@@ -156,7 +156,7 @@ func loginUser(p []interface{}) []interface{} {
 //   AUTOLOG A USER IN   /////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// AutologIn logs a user in automatically with RememberMe and SqlFeatures enabled in ServerSettings.
+// AutoLogIn logs a user in automatically with RememberMe and SqlFeatures enabled in ServerSettings.
 //
 // WARNING: This is only meant for internal Gopher Game Server mechanics. If you want the "Remember Me"
 // (AKA auto login) feature, enable it in ServerSettings along with the SqlFeatures and corresponding
@@ -176,7 +176,7 @@ func AutoLogIn(tag string, pass string, newPass string, dbID int, conn *websocke
 //   LOG A USER OUT   ////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// Logout logs a User out from the service.
+// LogOut logs a User out from the service.
 func (u *User) LogOut() {
 	//REMOVE USER FROM THEIR ROOM
 	if(u.room != ""){
@@ -220,7 +220,7 @@ func logUserOut(p []interface{}) []interface{} {
 
 // Get finds a logged in User by their name. Returns an error if the User is not online.
 func Get(userName string) (User, error) {
-	var err error = nil;
+	var err error;
 
 	//REJECT INCORRECT INPUT
 	if(len(userName) == 0){ return User{}, errors.New("users.Get() requires a user name"); }
@@ -235,7 +235,7 @@ func Get(userName string) (User, error) {
 func getUser(p []interface{}) []interface{} {
 	userName := p[0].(string);
 	var userRef User = User{};
-	var err error = nil;
+	var err error;
 
 	if user, ok := users[userName]; ok {
 		userRef = *user;
@@ -304,8 +304,8 @@ func (u *User) Leave() error {
 
 func changeUserRoomName(p []interface{}) []interface{} {
 	theUser, roomName := p[0].(*User), p[1].(string);
-	var err error = nil;
-	var roomIn *string = nil;
+	var err error;
+	var roomIn *string;
 
 	if _, ok := users[(*theUser).name]; ok {
 		(*users[(*theUser).name]).room = roomName;
@@ -350,7 +350,7 @@ func (u *User) SetStatus(status int) error {
 
 func changeUserStatus(p []interface{}) []interface{} {
 	theUser, theStatus := p[0].(*User), p[1].(int);
-	var err error = nil;
+	var err error;
 
 	if _, ok := users[(*theUser).name]; ok {
 		(*users[(*theUser).name]).status = theStatus;

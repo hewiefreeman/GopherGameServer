@@ -9,7 +9,7 @@ import(
 
 // An AccountInfoColumn is the representation of an extra column on the users table that you can define. You can define as many
 // as you want. These work with the ServerCallbacks and client APIs to provide you with information on data retrieved from
-// the database when the cooresponding callback is triggered.
+// the database when the corresponding callback is triggered.
 //
 // You can make an AccountInfoColumn unique, which means when someone tries to update or insert into a unique column, the server
 // will first check if any other row has that same value in that unique column. If a unique column cannot be updated because another

@@ -46,7 +46,7 @@ const (
 )
 
 // WARNING: This is only meant for internal Gopher Game Server mechanics. If you want to enable SQL authorization
-// and friending, use the EnableSqlFeatures and cooresponding options in ServerSetting.
+// and friending, use the EnableSqlFeatures and corresponding options in ServerSetting.
 func Init(userName string, password string, dbName string, protocol string, ip string, port int, encryptCost int, remMe bool, custLoginCol string) error {
 	if(inited){
 		return errors.New("sql package is already initialized");

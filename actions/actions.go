@@ -11,7 +11,7 @@ import (
 // a connected client. For instance, a client can send to the server a
 // CustomClientAction type "setPosition" that comes with parameters as an object {x: 2, y: 3}.
 // You just need to make a callback function for the CustomClientAction type "setPosition", and as soon as the
-// action is recieved by the server, the callback function will be executed concurrently in a Goroutine.
+// action is received by the server, the callback function will be executed concurrently in a Goroutine.
 type CustomClientAction struct {
 	dataType int
 
@@ -49,7 +49,7 @@ const (
 
 // Note: This function can only be called BEFORE starting the server.
 //
-// Creates a new CustomClientAction with the cooresponding parameters:
+// Creates a new CustomClientAction with the corresponding parameters:
 //
 // - actionType (string): The type of action
 //
@@ -137,7 +137,7 @@ func typesMatch(data interface{}, theType int) bool {
 //   SEND A CustomClientAction RESPONSE TO THE Client   ///////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// Sends a CustomClientAction response to the client. If an error is provided, only the error mesage will be recieved
+// Sends a CustomClientAction response to the client. If an error is provided, only the error mesage will be received
 // by the Client (the response parameter will not be sent as well).
 //
 // NOTE: A response can only be sent once to a Client. Any more calls to Respond() on the same Client will not send a response,

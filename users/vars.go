@@ -9,7 +9,7 @@ import (
 //   USER VARIABLES   /////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// Sets a User variable.
+// SetVariable sets a User variable.
 func (u *User) SetVariable(key string, value interface{}) error {
 	//REJECT INCORRECT INPUT
 	if(len(key) == 0){
@@ -29,7 +29,7 @@ func (u *User) SetVariable(key string, value interface{}) error {
 	return addErr;
 }
 
-// Gets one of the User's variables.
+// GetVariable gets one of the User's variables.
 func (u *User) GetVariable(key string) interface{} {
 	//REJECT INCORRECT INPUT
 	if(len(key) == 0 || u.room == ""){ return nil; }
