@@ -64,7 +64,7 @@ func (r *Room) GetVariables() (map[string]interface{}, error) {
 //   USER VARIABLES   /////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// SetUserVariable sets a User's variable using their name.
+// SetVariable sets a RoomUser's variable.
 func (r *RoomUser) SetVariable(varName string, value interface{}) {
 	//REJECT INCORRECT INPUT
 	if len(varName) == 0 {
@@ -75,7 +75,7 @@ func (r *RoomUser) SetVariable(varName string, value interface{}) {
 	(*r.mux).Unlock()
 }
 
-// GetUserVariable gets a User's variable.
+// GetUserVariable gets a RoomUser's variable.
 func (r *RoomUser) GetVariable(varName string) interface{} {
 	//REJECT INCORRECT INPUT
 	if len(varName) == 0 {
@@ -92,7 +92,7 @@ func (r *RoomUser) GetVariable(varName string) interface{} {
 	return value
 }
 
-// GetUserVariables gets all the User's variables using their name.
+// GetVariables gets all the RoomUser's variables as a map[string]interface{}.
 func (r *RoomUser) GetVariables() map[string]interface{} {
 	var value map[string]interface{}
 

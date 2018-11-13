@@ -17,6 +17,7 @@ import (
 )
 
 /////////// TO DOs:
+///////////    - Test Room/User vars
 ///////////    - Test chat/private chat
 ///////////    - Multi-connect
 ///////////          - Test
@@ -104,13 +105,13 @@ type ServerSettings struct {
 // the emails match. The DeleteAccount callback returns a boolean, which will prevent the client from deleting the account if it returns false, so you could
 // use this with the email example to prevent a user from deleting an account without a correct email attached to that user's account.
 //
-// 5) AccountInfoChange: The `string` is the user name. The `int` is the database index of the user in the database, provided you're
+// 5) AccountInfoChange: The `*User` is the user that took action. The `int` is the database index of the user in the database, provided you're
 // using SQL features (otherwise it is -1). The first map[string]interface{} are your AccountInfoColumns retrieved from the server
 // if you are using the SQL features (otherwise it is nil). The second map[string]interface{} are the client's input from the client API
 // that made the first map retrieve items from the database. You can use these maps to compare the client's input against the result columns from
 // the database. Works exactly the same as the DeleteAccount callback, but updates a row instead (of course).
 //
-// 5) PasswordChange: The `string` is the user name. The `int` is the database index of the user in the database, provided you're
+// 5) PasswordChange: The `*User` is the user that took action. The `int` is the database index of the user in the database, provided you're
 // using SQL features (otherwise it is -1). The first map[string]interface{} are your AccountInfoColumns retrieved from the server
 // if you are using the SQL features (otherwise it is nil). The second map[string]interface{} are the client's input from the client API
 // that made the first map retrieve items from the database. You can use these maps to compare the client's input against the result columns from
@@ -121,8 +122,8 @@ type ServerCallbacks struct {
 	Logout            func(string, int)                                                      // Triggers when a client logs out
 	Signup            func(string, int, map[string]interface{}) bool                         // Triggers when a client tries to sign up using the built-in SQL features
 	DeleteAccount     func(string, int, map[string]interface{}, map[string]interface{}) bool // Triggers when a client tries to delete an account using the built-in SQL features
-	AccountInfoChange func(string, int, map[string]interface{}, map[string]interface{}) bool // Triggers when a client tries to change an AccountInfoColumn for an account
-	PasswordChange    func(string, int, map[string]interface{}, map[string]interface{}) bool // Triggers when a client tries to change the password for an account
+	AccountInfoChange func(*users.User, int, map[string]interface{}, map[string]interface{}) bool // Triggers when a client tries to change an AccountInfoColumn for an account
+	PasswordChange    func(*users.User, int, map[string]interface{}, map[string]interface{}) bool // Triggers when a client tries to change the password for an account
 }
 
 var (

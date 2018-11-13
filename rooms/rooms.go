@@ -349,7 +349,6 @@ func (r *Room) RemoveUser(userName string) error {
 // and only the owner should be able to send an invite and revoke an invitation for their Rooms. Also, *User.Invite()
 // will send an invite message to the invited User that the client API can easily receive. Though if you wish to make
 // your own implementations for this, don't hesitate!
-
 func (r *Room) AddInvite(userName string) error {
 	if !r.private {
 		return errors.New("Room is not private")
@@ -504,7 +503,7 @@ func (u *RoomUser) IsGuest() bool {
 	return u.isGuest
 }
 
-// IsGuest returns true if the RoomUser is a guest.
+// DatabaseID gets the database index of the RoomUser.
 func (u *RoomUser) DatabaseID() int {
 	return u.dbID
 }
