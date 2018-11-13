@@ -3,11 +3,11 @@ package users
 
 import (
 	"errors"
-	"sync"
 	"github.com/gorilla/websocket"
 	"github.com/hewiefreeman/GopherGameServer/database"
 	"github.com/hewiefreeman/GopherGameServer/helpers"
 	"github.com/hewiefreeman/GopherGameServer/rooms"
+	"sync"
 )
 
 // User represents a client who has logged into the service. A User can
@@ -23,24 +23,24 @@ type User struct {
 	socket *websocket.Conn
 
 	//mux LOCKS ALL FIELDS BELOW
-	mux sync.Mutex
-	room *rooms.Room
-	status int
+	mux     sync.Mutex
+	room    *rooms.Room
+	status  int
 	friends map[string]*database.Friend
-	vars map[string]interface{}
+	vars    map[string]interface{}
 
 	onlineMux sync.Mutex
-	online bool
+	online    bool
 }
 
 var (
-	users map[string]*User = make(map[string]*User)
-	usersMux sync.Mutex
-	serverStarted   bool                   = false
-	serverName      string
-	kickOnLogin     bool = false
-	sqlFeatures     bool = false
-	rememberMe      bool = false
+	users         map[string]*User = make(map[string]*User)
+	usersMux      sync.Mutex
+	serverStarted bool = false
+	serverName    string
+	kickOnLogin   bool = false
+	sqlFeatures   bool = false
+	rememberMe    bool = false
 )
 
 // These represent the four statuses a User could be.
@@ -103,7 +103,7 @@ func Login(userName string, dbID int, autologPass string, isGuest bool, remMe bo
 		}
 	}
 	//MAKE *User IN users MAP
-	usersMux.Lock();
+	usersMux.Lock()
 	if userOnline, ok := users[userName]; ok {
 		if kickOnLogin {
 			//REMOVE USER FROM THEIR CURRENT ROOM IF ANY
@@ -129,7 +129,7 @@ func Login(userName string, dbID int, autologPass string, isGuest bool, remMe bo
 	//ADD THE User TO THE users MAP
 	vars := make(map[string]interface{})
 	newUser := User{name: userName, databaseID: databaseID, isGuest: isGuest, friends: friendsMap, status: 0, socket: socket,
-					room: nil, vars: vars, online: true}
+		room: nil, vars: vars, online: true}
 	users[userName] = &newUser
 	user := users[userName]
 	usersMux.Unlock()
@@ -200,7 +200,7 @@ func (u *User) Logout() {
 	}
 
 	//GET FRIENDS
-	friends := u.Friends();
+	friends := u.Friends()
 
 	//SEND STATUS CHANGE TO FRIENDS
 	statusMessage := make(map[string]interface{})
@@ -332,7 +332,7 @@ func (u *User) SetStatus(status int) error {
 func (u *User) Invite(invUser *User, room *rooms.Room) error {
 	currRoom := u.RoomIn()
 	if currRoom == nil || currRoom.Name() == "" {
-		return errors.New("The user '"+u.name+"' is not in the room '"+room.Name()+"'")
+		return errors.New("The user '" + u.name + "' is not in the room '" + room.Name() + "'")
 	} else if !room.IsPrivate() {
 		return errors.New("The room '" + room.Name() + "' is not private")
 	} else if room.Owner() != u.name {
@@ -367,7 +367,7 @@ func (u *User) Invite(invUser *User, room *rooms.Room) error {
 func (u *User) RevokeInvite(revokeUser string, room *rooms.Room) error {
 	currRoom := u.RoomIn()
 	if currRoom == nil || currRoom.Name() == "" {
-		return errors.New("The user '"+u.name+"' is not in the room '"+room.Name()+"'")
+		return errors.New("The user '" + u.name + "' is not in the room '" + room.Name() + "'")
 	} else if !room.IsPrivate() {
 		return errors.New("The room '" + room.Name() + "' is not private")
 	} else if room.Owner() != u.name {
@@ -422,7 +422,7 @@ func (u *User) DatabaseID() int {
 // User name.
 func (u *User) Friends() map[string]database.Friend {
 	u.mux.Lock()
-	friends := make(map[string]database.Friend);
+	friends := make(map[string]database.Friend)
 	for key, val := range u.friends {
 		friends[key] = *val
 	}
@@ -433,7 +433,7 @@ func (u *User) Friends() map[string]database.Friend {
 // RoomIn gets the Room that the User is currently in. A nil Room pointer means the User is not in a Room.
 func (u *User) RoomIn() *rooms.Room {
 	u.mux.Lock()
-	room := u.room;
+	room := u.room
 	u.mux.Unlock()
 	return room
 }
@@ -441,7 +441,7 @@ func (u *User) RoomIn() *rooms.Room {
 // Status gets the status of the User.
 func (u *User) Status() int {
 	u.mux.Lock()
-	status := u.status;
+	status := u.status
 	u.mux.Unlock()
 	return status
 }

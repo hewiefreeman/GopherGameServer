@@ -151,7 +151,7 @@ func clientActionChangeStatus(params interface{}, user **users.User) (interface{
 func clientActionSignup(params interface{}, user **users.User) (interface{}, bool, error) {
 	if (*user).IsOnline() {
 		return nil, true, errors.New("You must be logged out to sign up")
-	}else if !(*settings).EnableSqlFeatures {
+	} else if !(*settings).EnableSqlFeatures {
 		return nil, true, errors.New("Required server features are not enabled")
 	}
 	//GET ITEMS FROM PARAMS
@@ -187,7 +187,7 @@ func clientActionSignup(params interface{}, user **users.User) (interface{}, boo
 func clientActionDeleteAccount(params interface{}, user **users.User) (interface{}, bool, error) {
 	if (*user).IsOnline() {
 		return nil, true, errors.New("You must be logged out to delete your account")
-	}else if !(*settings).EnableSqlFeatures {
+	} else if !(*settings).EnableSqlFeatures {
 		return nil, true, errors.New("Required server features are not enabled")
 	}
 	//GET ITEMS FROM PARAMS

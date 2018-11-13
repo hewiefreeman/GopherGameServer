@@ -75,7 +75,7 @@ func (r *RoomUser) SetVariable(varName string, value interface{}) {
 	(*r.mux).Unlock()
 }
 
-// GetUserVariable gets a RoomUser's variable.
+// GetVariable gets a RoomUser's variable.
 func (r *RoomUser) GetVariable(varName string) interface{} {
 	//REJECT INCORRECT INPUT
 	if len(varName) == 0 {

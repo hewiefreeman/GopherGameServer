@@ -117,11 +117,11 @@ type ServerSettings struct {
 // that made the first map retrieve items from the database. You can use these maps to compare the client's input against the result columns from
 // the database. Works exactly the same as the DeleteAccount callback, but updates only the password in a row (of course).
 type ServerCallbacks struct {
-	ClientConnect     func(*websocket.Conn, *user_agent.UserAgent) bool                      // Triggers when a client tries to connect to the server
-	Login             func(string, int, map[string]interface{}, map[string]interface{}) bool // Triggers when a client tries to log in as a User
-	Logout            func(string, int)                                                      // Triggers when a client logs out
-	Signup            func(string, int, map[string]interface{}) bool                         // Triggers when a client tries to sign up using the built-in SQL features
-	DeleteAccount     func(string, int, map[string]interface{}, map[string]interface{}) bool // Triggers when a client tries to delete an account using the built-in SQL features
+	ClientConnect     func(*websocket.Conn, *user_agent.UserAgent) bool                           // Triggers when a client tries to connect to the server
+	Login             func(string, int, map[string]interface{}, map[string]interface{}) bool      // Triggers when a client tries to log in as a User
+	Logout            func(string, int)                                                           // Triggers when a client logs out
+	Signup            func(string, int, map[string]interface{}) bool                              // Triggers when a client tries to sign up using the built-in SQL features
+	DeleteAccount     func(string, int, map[string]interface{}, map[string]interface{}) bool      // Triggers when a client tries to delete an account using the built-in SQL features
 	AccountInfoChange func(*users.User, int, map[string]interface{}, map[string]interface{}) bool // Triggers when a client tries to change an AccountInfoColumn for an account
 	PasswordChange    func(*users.User, int, map[string]interface{}, map[string]interface{}) bool // Triggers when a client tries to change the password for an account
 }

@@ -17,45 +17,45 @@ package rooms
 
 import (
 	"errors"
-	"sync"
 	"github.com/gorilla/websocket"
 	"github.com/hewiefreeman/GopherGameServer/helpers"
+	"sync"
 )
 
 // Room represents a room on the server that Users can join and leave. Use rooms.New() to make a new Room.
 type Room struct {
-	name  string
-	rType string
-	private    bool
-	owner      string
+	name     string
+	rType    string
+	private  bool
+	owner    string
 	maxUsers int
 
 	//mux LOCKS ALL FIELDS BELOW
-	mux sync.Mutex
+	mux        sync.Mutex
 	inviteList []string
-	usersMap map[string]*RoomUser
-	vars map[string]interface{}
+	usersMap   map[string]*RoomUser
+	vars       map[string]interface{}
 }
 
 // RoomUser is the representation of a User in a Room. These store a User's variables. Note: These
 // are not the Users themselves. If you really need to get a User type from one of these, use
 // users.Get() with the RoomUser's Name() function.
 type RoomUser struct {
-	name string
+	name    string
 	isGuest bool
-	dbID int
-	socket *websocket.Conn
+	dbID    int
+	socket  *websocket.Conn
 
 	//mux LOCKS ALL FIELDS BELOW
-	mux *sync.Mutex // Pointer to the User's mux
-	roomIn **Room // Pointer to the User's Room pointer
-	vars *map[string]interface{} // Pointer to the User's variables
+	mux    *sync.Mutex             // Pointer to the User's mux
+	roomIn **Room                  // Pointer to the User's Room pointer
+	vars   *map[string]interface{} // Pointer to the User's variables
 }
 
 var (
 	//THE Rooms AND Rooms MUTEX
-	rooms           map[string]*Room       = make(map[string]*Room)
-	roomsMux sync.Mutex //LOCKS rooms
+	rooms    map[string]*Room = make(map[string]*Room)
+	roomsMux sync.Mutex       //LOCKS rooms
 
 	//SERVER SETTINGS
 	serverStarted     bool = false
@@ -105,7 +105,7 @@ func New(name string, rType string, isPrivate bool, maxUsers int, owner string) 
 	roomVars := make(map[string]interface{})
 	invList := []string{}
 	theRoom := Room{name: name, private: isPrivate, inviteList: invList, usersMap: userMap, maxUsers: maxUsers, vars: roomVars,
-				owner: owner, rType: rType}
+		owner: owner, rType: rType}
 	rooms[name] = &theRoom
 	room := rooms[name]
 	roomsMux.Unlock()
@@ -179,7 +179,7 @@ func Get(roomName string) (*Room, error) {
 	roomsMux.Lock()
 	if room, ok = rooms[roomName]; !ok {
 		roomsMux.Unlock()
-		return &Room{}, errors.New("The room '"+roomName+"' does not exist")
+		return &Room{}, errors.New("The room '" + roomName + "' does not exist")
 	}
 	roomsMux.Unlock()
 
@@ -196,7 +196,7 @@ func Get(roomName string) (*Room, error) {
 // WARNING: This is only meant for internal Gopher Game Server mechanics. If you want to make a User to join a Room, use
 // *User.Join() instead. Using this improperly will break server mechanics and cause errors and/or memory leaks.
 func (r *Room) AddUser(userName string, dbID int, isGuest bool, socket *websocket.Conn, roomIn **Room, userVars *map[string]interface{},
-					userStatus *int, userMux *sync.Mutex) error {
+	userStatus *int, userMux *sync.Mutex) error {
 	// REJECT INCORRECT INPUT
 	if len(userName) == 0 {
 		return errors.New("*Room.AddUser() requires a user name")
@@ -216,7 +216,7 @@ func (r *Room) AddUser(userName string, dbID int, isGuest bool, socket *websocke
 	// CHECK IF THE ROOM IS PRIVATE, OWNER JOINS FREELY
 	if r.private && userName != r.owner {
 		// IF SO, CHECK IF THIS USER IS ON THE INVITE LIST
-		if(len(r.inviteList) > 0){
+		if len(r.inviteList) > 0 {
 			for i := 0; i < len(r.inviteList); i++ {
 				if (r.inviteList)[i] == userName {
 					// INVITED User HAS JOINED, SO REMOVE THEM FROM THE LIST
@@ -228,7 +228,7 @@ func (r *Room) AddUser(userName string, dbID int, isGuest bool, socket *websocke
 					return errors.New("User '" + userName + "' is not on the invite list")
 				}
 			}
-		}else{
+		} else {
 			r.mux.Unlock()
 			return errors.New("User '" + userName + "' is not on the invite list")
 		}
