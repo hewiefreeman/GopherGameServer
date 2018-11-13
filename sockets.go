@@ -3,7 +3,6 @@ package gopher
 import (
 	"github.com/gorilla/websocket"
 	"github.com/hewiefreeman/GopherGameServer/helpers"
-	"github.com/hewiefreeman/GopherGameServer/rooms"
 	"github.com/hewiefreeman/GopherGameServer/users"
 	"github.com/mssola/user_agent"
 	"net/http"
@@ -62,10 +61,8 @@ func clientActionListener(conn *websocket.Conn, ua *user_agent.UserAgent) {
 	// CLIENT ACTION INPUT
 	var action clientAction
 
-	// THE CLIENT'S User NAME
-	var userName string
-	// Room THE CLIENT'S CURRENTLY IN
-	var roomIn rooms.Room = rooms.Room{}
+	// THE CLIENT'S User OBJECT
+	var user *users.User = &users.User{}
 
 	// THE CLIENT'S AUTOLOG INFO
 	var deviceTag string
@@ -200,7 +197,7 @@ func clientActionListener(conn *websocket.Conn, ua *user_agent.UserAgent) {
 					return
 				}
 				//AUTO-LOG THE CLIENT
-				clientName, autoLogErr := users.AutoLogIn(deviceTag, oldPass, devicePass, deviceUserID, conn)
+				clientUser, autoLogErr := users.AutoLogIn(deviceTag, oldPass, devicePass, deviceUserID, conn)
 				if autoLogErr != nil {
 					//ERROR AUTO-LOGGING - RUN AUTOLOGCOMPLETE AND DELETE KEYS FOR CLIENT, AND SILENTLY CHANGE DEVICE KEY
 					newTag, newTagErr := helpers.GenerateSecureString(32)
@@ -223,7 +220,7 @@ func clientActionListener(conn *websocket.Conn, ua *user_agent.UserAgent) {
 					//
 					break
 				}
-				userName = clientName
+				user = clientUser
 				//
 				break
 			}
@@ -236,20 +233,20 @@ func clientActionListener(conn *websocket.Conn, ua *user_agent.UserAgent) {
 		readErr := conn.ReadJSON(&action)
 		if readErr != nil || action.A == "" {
 			//DISCONNECT USER
-			sockedDropped(userName)
+			sockedDropped(user)
 			conn.WriteControl(websocket.CloseMessage, []byte{}, time.Now().Add(time.Second*1))
 			conn.Close()
 			return
 		}
 
 		//TAKE ACTION
-		responseVal, respond, actionErr := clientActionHandler(action, &userName, &roomIn, conn, ua, &deviceTag, &devicePass, &deviceUserID)
+		responseVal, respond, actionErr := clientActionHandler(action, &user, conn, ua, &deviceTag, &devicePass, &deviceUserID)
 
 		if respond {
 			//SEND RESPONSE
 			if writeErr := conn.WriteJSON(helpers.MakeClientResponse(action.A, responseVal, actionErr)); writeErr != nil {
 				//DISCONNECT USER
-				sockedDropped(userName)
+				sockedDropped(user)
 				conn.WriteControl(websocket.CloseMessage, []byte{}, time.Now().Add(time.Second*1))
 				conn.Close()
 				return
@@ -261,13 +258,10 @@ func clientActionListener(conn *websocket.Conn, ua *user_agent.UserAgent) {
 	}
 }
 
-func sockedDropped(userName string) {
-	if userName != "" {
+func sockedDropped(user *users.User) {
+	if user.IsOnline() {
 		//CLIENT WAS LOGGED IN. LOG THEM OUT
-		user, err := users.Get(userName)
-		if err == nil {
-			user.LogOut()
-		}
+		user.Logout()
 	}
 	conns.subtract()
 }

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"github.com/gorilla/websocket"
 	"github.com/hewiefreeman/GopherGameServer/helpers"
+	"github.com/hewiefreeman/GopherGameServer/users"
 )
 
 // CustomClientAction is an action that you can handle on the server from
@@ -21,7 +22,7 @@ type CustomClientAction struct {
 // Client objects are created and sent along with your CustomClientAction callback function when a
 // client sends an action.
 type Client struct {
-	name   string
+	user   *users.User
 	action string
 
 	socket    *websocket.Conn
@@ -85,8 +86,8 @@ func New(actionType string, dataType int, callback func(interface{}, Client)) er
 //
 // WARNING: This is only meant for internal Gopher Game Server mechanics. Your CustomClientAction callbacks are called
 // from this function. This could spawn errors and/or memory leaks.
-func HandleCustomClientAction(action string, data interface{}, userName string, conn *websocket.Conn) {
-	client := Client{name: userName, action: action, socket: conn, responded: false}
+func HandleCustomClientAction(action string, data interface{}, user *users.User, conn *websocket.Conn) {
+	client := Client{user: user, action: action, socket: conn, responded: false}
 	// CHECK IF ACTION EXISTS
 	if customAction, ok := customClientActions[action]; ok {
 		// CHECK IF THE TYPE OF data MATCHES THE TYPE action SPECIFIES
@@ -192,11 +193,9 @@ func (c *Client) Respond(response interface{}, err error) {
 //   Client ATTRIBUTE READERS   ///////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// Name gets the name of the Client, provided they are logged in. If their name is a empty string, you can assume they are
-// not logged in. You can, for instance, use this to get the User object of a logged in client with the users.Get() function,
-// or just to check if the Client is even logged in.
-func (c *Client) Name() string {
-	return c.name
+// User gets the *User of the Client.
+func (c *Client) User() *users.User {
+	return c.user
 }
 
 // Action gets the type of action the Client sent.

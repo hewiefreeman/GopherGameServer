@@ -30,10 +30,16 @@ func (u *User) FriendRequest(friendName string) error {
 		friendOnline = true
 	}
 
-	//ADD TO THE Users' Friends
-	response := usersActionChan.Execute(addFriend, []interface{}{u.name, u.databaseID, friendName, friendID})
-	if len(response) == 0 || response[0] != nil {
-		return response[0].(error)
+	//ADD REQUESTED FRIEND FOR USER
+	u.mux.Lock()
+	u.friends[friendName] = database.NewFriend(friendName, friendID, database.FriendStatusPending)
+	u.mux.Unlock()
+
+	//ADD REQUESTED FRIEND FOR FRIEND
+	if friendOnline {
+		friend.mux.Lock()
+		friend.friends[u.name] = database.NewFriend(u.name, u.databaseID, database.FriendStatusRequested)
+		friend.mux.Unlock()
 	}
 
 	//MAKE THE FRIEND REQUEST ON DATABASE
@@ -52,22 +58,6 @@ func (u *User) FriendRequest(friendName string) error {
 
 	//
 	return nil
-}
-
-func addFriend(params []interface{}) []interface{} {
-	userName, userID, friendName, friendID := params[0].(string), params[1].(int), params[2].(string), params[3].(int)
-	//ADD PENDING FRIEND FOR USER
-	if _, ok := users[userName]; ok {
-		(*users[userName]).friends[friendName] = database.NewFriend(friendName, friendID, database.FriendStatusPending)
-	} else {
-		return []interface{}{errors.New("User '" + userName + "' is not logged in")}
-	}
-	//ADD REQUESTED FRIEND FOR FRIEND
-	if _, ok := users[friendName]; ok {
-		(*users[friendName]).friends[userName] = database.NewFriend(userName, userID, database.FriendStatusRequested)
-	}
-	//
-	return []interface{}{nil}
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -96,12 +86,16 @@ func (u *User) AcceptFriendRequest(friendName string) error {
 		friendOnline = true
 	}
 
-	//UPDATE THE Users' Friends
-	response := usersActionChan.Execute(friendAccepted, []interface{}{u.name, friendName})
-	if len(response) == 0 || response[0] != nil {
-		return response[0].(error)
+	//ACCEPT FRIEND FOR USER
+	u.mux.Lock()
+	u.friends[friendName].SetStatus(database.FriendStatusAccepted)
+	u.mux.Unlock()
+	//ACCEPT FRIEND FOR FRIEND
+	if friendOnline {
+		friend.mux.Lock()
+		friend.friends[u.name].SetStatus(database.FriendStatusAccepted)
+		friend.mux.Unlock()
 	}
-
 	//UPDATE FRIENDS ON DATABASE
 	friendingErr := database.FriendRequestAccepted(u.databaseID, friendID)
 	if friendingErr != nil {
@@ -119,28 +113,6 @@ func (u *User) AcceptFriendRequest(friendName string) error {
 
 	//
 	return nil
-}
-
-func friendAccepted(params []interface{}) []interface{} {
-	userName, friendName := params[0].(string), params[1].(string)
-	//ACCEPT FRIEND FOR USER
-	if user, ok := users[userName]; ok {
-		if _, ok = user.friends[friendName]; !ok {
-			return []interface{}{errors.New("Unexpected friend error")}
-		}
-		//ACCEPT FRIEND FOR FRIEND
-		if user, ok = users[friendName]; ok {
-			if _, ok = user.friends[userName]; !ok {
-				return []interface{}{errors.New("Unexpected friend error")}
-			}
-			(*users[friendName]).friends[userName].SetStatus(database.FriendStatusAccepted)
-		}
-		(*users[userName]).friends[friendName].SetStatus(database.FriendStatusAccepted)
-	} else {
-		return []interface{}{errors.New("User '" + userName + "' is not logged in")}
-	}
-	//
-	return []interface{}{nil}
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -170,9 +142,14 @@ func (u *User) DeclineFriendRequest(friendName string) error {
 	}
 
 	//DELETE THE Users' Friends
-	response := usersActionChan.Execute(removeFriends, []interface{}{u.name, friendName})
-	if len(response) == 0 || response[0] != nil {
-		return response[0].(error)
+	u.mux.Lock()
+	delete(u.friends, friendName)
+	u.mux.Unlock()
+	//ACCEPT FRIEND FOR FRIEND
+	if friendOnline {
+		friend.mux.Lock()
+		delete(friend.friends, u.name)
+		friend.mux.Unlock()
 	}
 
 	//UPDATE FRIENDS ON DATABASE
@@ -220,9 +197,14 @@ func (u *User) RemoveFriend(friendName string) error {
 	}
 
 	//DELETE THE Users' Friends
-	response := usersActionChan.Execute(removeFriends, []interface{}{u.name, friendName})
-	if len(response) == 0 || response[0] != nil {
-		return response[0].(error)
+	u.mux.Lock()
+	delete(u.friends, friendName)
+	u.mux.Unlock()
+	//ACCEPT FRIEND FOR FRIEND
+	if friendOnline {
+		friend.mux.Lock()
+		delete(friend.friends, u.name)
+		friend.mux.Unlock()
 	}
 
 	//UPDATE FRIENDS ON DATABASE
@@ -241,26 +223,4 @@ func (u *User) RemoveFriend(friendName string) error {
 
 	//
 	return nil
-}
-
-func removeFriends(params []interface{}) []interface{} {
-	userName, friendName := params[0].(string), params[1].(string)
-	//DELETE FRIEND FOR USER
-	if user, ok := users[userName]; ok {
-		if _, ok = user.friends[friendName]; !ok {
-			return []interface{}{errors.New("Unexpected friend error")}
-		}
-		//DELETE FRIEND FOR FRIEND
-		if user, ok = users[friendName]; ok {
-			if _, ok = user.friends[userName]; !ok {
-				return []interface{}{errors.New("Unexpected friend error")}
-			}
-			delete((*users[friendName]).friends, userName)
-		}
-		delete((*users[userName]).friends, friendName)
-	} else {
-		return []interface{}{errors.New("User '" + userName + "' is not logged in")}
-	}
-	//
-	return []interface{}{nil}
 }

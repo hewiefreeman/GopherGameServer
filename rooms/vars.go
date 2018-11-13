@@ -15,22 +15,16 @@ func (r *Room) SetVariable(key string, value interface{}) error {
 		return errors.New("*Room.SetVariable() requires a key")
 	}
 
-	response := r.roomVarsActionChannel.Execute(roomVarSet, []interface{}{key, value, r})
-	if len(response) == 0 {
+	r.mux.Lock()
+	if r.usersMap == nil {
+		r.mux.Unlock()
 		return errors.New("Room '" + r.name + "' does not exist")
 	}
+	r.vars[key] = value
+	r.mux.Unlock()
 
 	//
 	return nil
-}
-
-func roomVarSet(p []interface{}) []interface{} {
-	key, value, room := p[0].(string), p[1], p[2].(*Room)
-
-	(*room.vars)[key] = value
-
-	//
-	return []interface{}{nil}
 }
 
 // GetVariable gets one of the Room's variables.
@@ -40,43 +34,30 @@ func (r *Room) GetVariable(key string) (interface{}, error) {
 		return nil, errors.New("*Room.GetVariable() requires a key")
 	}
 
-	var val interface{}
-	var err error
-
-	response := r.roomVarsActionChannel.Execute(roomVarGet, []interface{}{key, r})
-	if len(response) == 0 {
-		err = errors.New("Room '" + r.name + "' does not exist")
-	} else {
-		val = response[0]
+	r.mux.Lock()
+	if r.usersMap == nil {
+		r.mux.Unlock()
+		return nil, errors.New("Room '" + r.name + "' does not exist")
 	}
+	value := r.vars[key]
+	r.mux.Unlock()
+
 	//
-	return val, err
+	return value, nil
 }
 
-func roomVarGet(p []interface{}) []interface{} {
-	key, room := p[0].(string), p[1].(*Room)
-	//
-	return []interface{}{(*room.vars)[key]}
-}
-
-// GetVariableMap gets a Map of all the Room variables.
-func (r *Room) GetVariableMap() (map[string]interface{}, error) {
-	var val map[string]interface{}
-	var err error
-
-	response := r.roomVarsActionChannel.Execute(roomVarMapGet, []interface{}{r})
-	if len(response) == 0 {
-		err = errors.New("Room '" + r.name + "' does not exist")
-	} else {
-		val = response[0].(map[string]interface{})
+// GetVariables gets all the Room variables as a map[string]interface{}.
+func (r *Room) GetVariables() (map[string]interface{}, error) {
+	r.mux.Lock()
+	if r.usersMap == nil {
+		r.mux.Unlock()
+		return nil, errors.New("Room '" + r.name + "' does not exist")
 	}
-	//
-	return val, err
-}
+	value := r.vars
+	r.mux.Unlock()
 
-func roomVarMapGet(p []interface{}) []interface{} {
-	room := p[0].(*Room)
-	return []interface{}{*room.vars}
+	//
+	return value, nil
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -84,66 +65,41 @@ func roomVarMapGet(p []interface{}) []interface{} {
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // SetUserVariable sets a User's variable using their name.
-func (r *Room) SetUserVariable(userName string, key string, value interface{}) error {
+func (r *RoomUser) SetVariable(varName string, value interface{}) {
 	//REJECT INCORRECT INPUT
-	if len(key) == 0 {
-		return errors.New("*Room.SetUserVariable() requires a key")
-	} else if len(userName) == 0 {
-		return errors.New("*Room.SetUserVariable() requires a user name")
+	if len(varName) == 0 {
+		return
 	}
-
-	var err error
-
-	response := r.usersActionChannel.Execute(userVarSet, []interface{}{userName, key, value, r})
-	if len(response) == 0 {
-		err = errors.New("Room '" + r.name + "' does not exist")
-	} else if response[0] != nil {
-		err = response[0].(error)
-	}
-	//
-	return err
+	(*r.mux).Lock()
+	(*r.vars)[varName] = value
+	(*r.mux).Unlock()
 }
 
-func userVarSet(p []interface{}) []interface{} {
-	userName, key, value, room := p[0].(string), p[1].(string), p[2], p[3].(*Room)
-	var err error
-
-	if _, ok := (*room.usersMap)[userName]; ok {
-		(*room.usersMap)[userName].vars[key] = value
-	} else {
-		err = errors.New("User '" + userName + "' is not in room '" + room.name + "'")
-	}
-
-	//
-	return []interface{}{err}
-}
-
-// GetUserVariable gets a User's variable using their name.
-func (r *Room) GetUserVariable(userName string, key string) interface{} {
+// GetUserVariable gets a User's variable.
+func (r *RoomUser) GetVariable(varName string) interface{} {
 	//REJECT INCORRECT INPUT
-	if len(key) == 0 {
-		return errors.New("*Room.GetUserVariable() requires a key")
+	if len(varName) == 0 {
+		return errors.New("*Room.GetUserVariable() requires a variable name")
 	}
 
 	var value interface{}
 
-	response := r.usersActionChannel.Execute(userVarGet, []interface{}{userName, key, r})
-	if len(response) != 0 && response[0] != nil {
-		value = response[0]
-	}
+	(*r.mux).Lock()
+	value = (*r.vars)[varName]
+	(*r.mux).Unlock()
 
 	//
 	return value
 }
 
-func userVarGet(p []interface{}) []interface{} {
-	userName, key, room := p[0].(string), p[1].(string), p[2].(*Room)
-	var value interface{}
+// GetUserVariables gets all the User's variables using their name.
+func (r *RoomUser) GetVariables() map[string]interface{} {
+	var value map[string]interface{}
 
-	if _, ok := (*room.usersMap)[userName]; ok {
-		value = (*room.usersMap)[userName].vars[key]
-	}
+	(*r.mux).Lock()
+	value = *r.vars
+	(*r.mux).Unlock()
 
 	//
-	return []interface{}{value}
+	return value
 }

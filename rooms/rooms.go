@@ -17,6 +17,7 @@ package rooms
 
 import (
 	"errors"
+	"sync"
 	"github.com/gorilla/websocket"
 	"github.com/hewiefreeman/GopherGameServer/helpers"
 )
@@ -25,45 +26,41 @@ import (
 type Room struct {
 	name  string
 	rType string
-
 	private    bool
 	owner      string
-	inviteList *[]string
-
-	usersMap *map[string]RoomUser
 	maxUsers int
 
-	vars *map[string]interface{}
-
-	roomVarsActionChannel *helpers.ActionChannel
-	usersActionChannel    *helpers.ActionChannel
+	//mux LOCKS ALL FIELDS BELOW
+	mux sync.Mutex
+	inviteList []string
+	usersMap map[string]*RoomUser
+	vars map[string]interface{}
 }
 
 // RoomUser is the representation of a User in a Room. These store a User's variables. Note: These
-// are not the Users themselves. If you need to get a User type from one of these, use
+// are not the Users themselves. If you really need to get a User type from one of these, use
 // users.Get() with the RoomUser's Name() function.
 type RoomUser struct {
 	name string
-
-	vars map[string]interface{}
-
-	roomIn *string
-
+	isGuest bool
+	dbID int
 	socket *websocket.Conn
+
+	//mux LOCKS ALL FIELDS BELOW
+	mux *sync.Mutex // Pointer to the User's mux
+	roomIn **Room // Pointer to the User's Room pointer
+	vars *map[string]interface{} // Pointer to the User's variables
 }
 
 var (
-	//THE Rooms AND Room ActionChannel
+	//THE Rooms AND Rooms MUTEX
 	rooms           map[string]*Room       = make(map[string]*Room)
-	roomsActionChan *helpers.ActionChannel = helpers.NewActionChannel()
+	roomsMux sync.Mutex //LOCKS rooms
 
 	//SERVER SETTINGS
 	serverStarted     bool = false
 	serverName        string
 	deleteRoomOnLeave bool = true
-
-	//FOR user PACKAGE COMMUNICATION
-	userActionChannelRef *helpers.ActionChannel
 )
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -82,10 +79,10 @@ var (
 // - maxUsers (int): Maximum User capacity (Note: 0 means no limit)
 //
 // - owner (string): The owner of the room. If provided a blank string, will set the owner to the ServerName from ServerSettings
-func New(name string, rType string, isPrivate bool, maxUsers int, owner string) (Room, error) {
+func New(name string, rType string, isPrivate bool, maxUsers int, owner string) (*Room, error) {
 	//REJECT INCORRECT INPUT
 	if len(name) == 0 {
-		return Room{}, errors.New("rooms.New() requires a name")
+		return &Room{}, errors.New("rooms.New() requires a name")
 	} else if maxUsers < 0 {
 		maxUsers = 0
 	} else if owner == "" {
@@ -95,44 +92,30 @@ func New(name string, rType string, isPrivate bool, maxUsers int, owner string) 
 	var roomType *RoomType
 	var ok bool
 	if roomType, ok = roomTypes[rType]; !ok {
-		return Room{}, errors.New("Invalid room type")
+		return &Room{}, errors.New("Invalid room type")
 	}
 
-	var err error
-
-	response := roomsActionChan.Execute(newRoom, []interface{}{name, maxUsers, isPrivate, rType, owner})
-	if response[1] != nil {
-		err = response[1].(error)
+	//ADD THE ROOM
+	roomsMux.Lock()
+	if _, ok := rooms[name]; ok {
+		roomsMux.Unlock()
+		return &Room{}, errors.New("A Room with the name '" + name + "' already exists")
 	}
+	userMap := make(map[string]*RoomUser)
+	roomVars := make(map[string]interface{})
+	invList := []string{}
+	theRoom := Room{name: name, private: isPrivate, inviteList: invList, usersMap: userMap, maxUsers: maxUsers, vars: roomVars,
+				owner: owner, rType: rType}
+	rooms[name] = &theRoom
+	room := rooms[name]
+	roomsMux.Unlock()
 
 	//CALLBACK
 	if roomType.HasCreateCallback() {
-		roomType.CreateCallback()(response[0].(Room))
+		roomType.CreateCallback()(room)
 	}
 
-	return response[0].(Room), err
-}
-
-func newRoom(p []interface{}) []interface{} {
-	roomName, maxUsers, isPrivate, rt, owner := p[0].(string), p[1].(int), p[2].(bool), p[3].(string), p[4].(string)
-	var room Room = Room{}
-	var err error
-
-	if _, ok := rooms[roomName]; ok {
-		err = errors.New("A Room with the name '" + roomName + "' already exists")
-	} else {
-		userMap := make(map[string]RoomUser)
-		roomVars := make(map[string]interface{})
-		roomVarsActionChan := helpers.NewActionChannel()
-		roomUsersActionChan := helpers.NewActionChannel()
-		invList := []string{}
-		theRoom := Room{name: roomName, private: isPrivate, inviteList: &invList, usersMap: &userMap, maxUsers: maxUsers, vars: &roomVars,
-			owner: owner, rType: rt, roomVarsActionChannel: roomVarsActionChan, usersActionChannel: roomUsersActionChan}
-		rooms[roomName] = &theRoom
-		room = *rooms[roomName]
-	}
-	//
-	return []interface{}{room, err}
+	return room, nil
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -142,71 +125,41 @@ func newRoom(p []interface{}) []interface{} {
 // Delete deletes the Room from the server. Will also send a room leave message to all the Users in the Room that you can
 // capture with the client APIs.
 func (r *Room) Delete() error {
-	//CONSUME THIS CHANNEL AND SET THE ROOM'S usersMap TO nil TO MAKE SURE NO MORE USERS ENTER
-	initResponse := r.usersActionChannel.Execute(deleteRoomInit, []interface{}{r})
-	if len(initResponse) == 0 {
+	r.mux.Lock()
+	if r.usersMap == nil {
+		r.mux.Unlock()
 		return errors.New("The room '" + r.name + "' does not exist")
 	}
 
-	//KILL CHANNELS
-	r.usersActionChannel.Kill()
-	r.roomVarsActionChannel.Kill()
-
-	//DELETE ROOM
-	response := roomsActionChan.Execute(deleteRoom, []interface{}{r.name})
-	if response[0] != nil {
-		return response[0].(error)
-	}
-	userList := response[1].(map[string]RoomUser)
-
-	//MAKE LEAVE MESSAGE
+	// MAKE LEAVE MESSAGE
 	leaveMessage := helpers.MakeClientResponse(helpers.ClientActionLeaveRoom, nil, nil)
 
-	//SEND ROOM LEAVE MESSAGE TO Users IN ROOM
-	for _, v := range userList {
+	// GO THROUGH ALL Users IN ROOM
+	for _, v := range r.usersMap {
+		//SEND ROOM LEAVE MESSAGE
 		v.socket.WriteJSON(leaveMessage)
+		//CHANGE User's room POINTER TO nil
+		v.mux.Lock()
+		*v.roomIn = nil
+		v.mux.Unlock()
 	}
 
-	//CALLBACK
+	r.usersMap = nil
+	r.mux.Unlock()
+
+	// DELETE THE ROOM
+	roomsMux.Lock()
+	delete(rooms, r.name)
+	roomsMux.Unlock()
+
+	// CALLBACK
 	rType := roomTypes[r.rType]
 	if rType.HasDeleteCallback() {
-		rType.DeleteCallback()(*r)
+		rType.DeleteCallback()(r)
 	}
-
-	//CONSUME users.usersActionChan TO CHANGE THE Users' room STRINGS TO NOTHING
-	userActionChannelRef.Execute(deleteRoomFinal, []interface{}{userList})
 
 	//
 	return nil
-}
-
-func deleteRoomInit(p []interface{}) []interface{} {
-	room := p[0].(*Room)
-	*((*room).usersMap) = nil
-	return []interface{}{nil}
-}
-
-func deleteRoom(p []interface{}) []interface{} {
-	roomName := p[0].(string)
-	var userList map[string]RoomUser
-	var err error
-	if room, ok := rooms[roomName]; ok {
-		userList = *((*room).usersMap)
-		delete(rooms, room.name)
-	} else {
-		err = errors.New("The room '" + room.name + "' does not exist")
-	}
-
-	return []interface{}{err, userList}
-}
-
-func deleteRoomFinal(p []interface{}) []interface{} {
-	userList := p[0].(map[string]RoomUser)
-	for _, val := range userList {
-		*val.roomIn = ""
-	}
-
-	return []interface{}{nil}
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -214,36 +167,24 @@ func deleteRoomFinal(p []interface{}) []interface{} {
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // Get finds a Room on the server. If the room does not exit, an error will be returned.
-func Get(roomName string) (Room, error) {
+func Get(roomName string) (*Room, error) {
 	//REJECT INCORRECT INPUT
 	if len(roomName) == 0 {
-		return Room{}, errors.New("rooms.Get() requires a room name")
+		return &Room{}, errors.New("rooms.Get() requires a room name")
 	}
 
-	var err error
+	var room *Room
+	var ok bool
 
-	response := roomsActionChan.Execute(getRoom, []interface{}{roomName})
-	if response[1] != nil {
-		err = response[1].(error)
+	roomsMux.Lock()
+	if room, ok = rooms[roomName]; !ok {
+		roomsMux.Unlock()
+		return &Room{}, errors.New("The room '"+roomName+"' does not exist")
 	}
+	roomsMux.Unlock()
 
 	//
-	return response[0].(Room), err
-}
-
-func getRoom(p []interface{}) []interface{} {
-	roomName := p[0].(string)
-	var err error
-	var room Room = Room{}
-
-	if r, ok := rooms[roomName]; ok {
-		room = *r
-	} else {
-		err = errors.New("The room '" + roomName + "' does not exist")
-	}
-
-	//
-	return []interface{}{room, err}
+	return room, nil
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -253,85 +194,85 @@ func getRoom(p []interface{}) []interface{} {
 // AddUser adds a User to the Room.
 //
 // WARNING: This is only meant for internal Gopher Game Server mechanics. If you want to make a User to join a Room, use
-// *User.Join() instead. Using this will break some server mechanics and cause errors and/or memory leaks.
-// Also, the client API for the User entering will not have a way of knowing about the Room entrance using this function.
-func (r *Room) AddUser(userName string, isGuest bool, socket *websocket.Conn, roomIn *string) error {
-	//REJECT INCORRECT INPUT
+// *User.Join() instead. Using this improperly will break server mechanics and cause errors and/or memory leaks.
+func (r *Room) AddUser(userName string, dbID int, isGuest bool, socket *websocket.Conn, roomIn **Room, userVars *map[string]interface{},
+					userStatus *int, userMux *sync.Mutex) error {
+	// REJECT INCORRECT INPUT
 	if len(userName) == 0 {
 		return errors.New("*Room.AddUser() requires a user name")
 	} else if socket == nil {
 		return errors.New("*Room.AddUser() requires a user socket")
 	}
 
-	response := r.usersActionChannel.Execute(userJoin, []interface{}{userName, socket, r, roomIn})
-	if len(response) == 0 {
+	r.mux.Lock()
+	if r.usersMap == nil {
+		r.mux.Unlock()
 		return errors.New("The room '" + r.name + "' does not exist")
-	} else if response[0] != nil {
-		return response[0].(error)
+	} else if r.maxUsers != 0 && len(r.usersMap) == r.maxUsers {
+		r.mux.Unlock()
+		return errors.New("The room '" + r.name + "' is full")
 	}
 
+	// CHECK IF THE ROOM IS PRIVATE, OWNER JOINS FREELY
+	if r.private && userName != r.owner {
+		// IF SO, CHECK IF THIS USER IS ON THE INVITE LIST
+		if(len(r.inviteList) > 0){
+			for i := 0; i < len(r.inviteList); i++ {
+				if (r.inviteList)[i] == userName {
+					// INVITED User HAS JOINED, SO REMOVE THEM FROM THE LIST
+					r.inviteList = append((r.inviteList)[:i], (r.inviteList)[i+1:]...)
+					break
+				}
+				if i == len(r.inviteList)-1 {
+					r.mux.Unlock()
+					return errors.New("User '" + userName + "' is not on the invite list")
+				}
+			}
+		}else{
+			r.mux.Unlock()
+			return errors.New("User '" + userName + "' is not on the invite list")
+		}
+	}
+
+	// ADD User TO ROOM
+	if _, ok := (r.usersMap)[userName]; ok {
+		r.mux.Unlock()
+		return errors.New("User '" + userName + "' is already in room '" + r.name + "'")
+	}
+	userList := r.usersMap
+	newUser := RoomUser{name: userName, isGuest: isGuest, dbID: dbID, roomIn: roomIn, socket: socket, mux: userMux, vars: userVars}
+	r.usersMap[userName] = &newUser
+	r.mux.Unlock()
+
+	// CHANGE USER'S ROOM
+	(*userMux).Lock()
+	*roomIn = r
+	(*userMux).Unlock()
+
+	//
 	roomType := roomTypes[r.rType]
 	if roomType.BroadcastUserEnter() {
 		//BROADCAST ENTER TO USERS IN ROOM
-		userList := response[1].(map[string]RoomUser)
-		//CONSTRUCT MESSAGE
 		message := make(map[string]interface{})
 		message[helpers.ServerActionUserEnter] = make(map[string]interface{})
 		message[helpers.ServerActionUserEnter].(map[string]interface{})["u"] = userName
 		message[helpers.ServerActionUserEnter].(map[string]interface{})["g"] = isGuest
-
 		for _, u := range userList {
 			u.socket.WriteJSON(message)
 		}
 	}
 
-	//CALLBACK
+	// CALLBACK
 	if roomType.HasUserEnterCallback() {
-		roomType.UserEnterCallback()(*r, userName)
+		roomType.UserEnterCallback()(r, userName)
 	}
+
+	// SEND RESPONSE TO CLIENT
+	clientResp := helpers.MakeClientResponse(helpers.ClientActionJoinRoom, r.Name(), nil)
+	socket.WriteJSON(clientResp)
 
 	//
 	return nil
-}
-
-func userJoin(p []interface{}) []interface{} {
-	userName, socket, room, roomIn := p[0].(string), p[1].(*websocket.Conn), p[2].(*Room), p[3].(*string)
-
-	usrMap := *((*room).usersMap)
-
-	if usrMap == nil {
-		return []interface{}{errors.New("The room '" + room.name + "' does not exist")}
-	}
-
-	//CHECK IF THE ROOM IS FULL
-	if room.maxUsers != 0 && len(usrMap) == room.maxUsers {
-		return []interface{}{errors.New("The room '" + room.name + "' is full")}
-	}
-
-	//CHECK IF THE ROOM IS PRIVATE, OWNER JOINS FREELY
-	if room.private && userName != (*room).owner {
-		//IF SO, CHECK IF THIS USER IS ON THE INVITE LIST
-		theList := *(*room).inviteList
-		for i := 0; i < len(theList); i++ {
-			if theList[i] == userName {
-				//INVITED User HAS JOINED, SO REMOVE THEM FROM THE LIST
-				*(*room).inviteList = append((*(*room).inviteList)[:i], (*(*room).inviteList)[i+1:]...)
-				break
-			}
-			if i == len(theList)-1 {
-				return []interface{}{errors.New("User '" + (userName) + "' is not on the invite list")}
-			}
-		}
-	}
-
-	//ADD User TO ROOM
-	if _, ok := usrMap[userName]; ok {
-		return []interface{}{errors.New("User '" + userName + "' is already in room '" + room.name + "'")}
-	}
-	(*((*room).usersMap))[userName] = RoomUser{name: userName, roomIn: roomIn, socket: socket, vars: make(map[string]interface{})}
-
-	//
-	return []interface{}{nil, usrMap}
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -339,22 +280,25 @@ func userJoin(p []interface{}) []interface{} {
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // RemoveUser removes a User from the room.
-//
-// WARNING: This is only meant for internal Gopher Game Server mechanics. If you want a User to leave a Room, use
-// *User.Leave() instead. Using this will break some server mechanics and potentially cause errors and/or memory leaks.
-// Also, the client API for the User leaving will not have a way of knowing about the Room leave using this function.
 func (r *Room) RemoveUser(userName string) error {
 	//REJECT INCORRECT INPUT
 	if len(userName) == 0 {
 		return errors.New("*Room.RemoveUser() requires a user name")
 	}
 	//
-	response := r.usersActionChannel.Execute(userLeave, []interface{}{userName, r})
-	if len(response) == 0 {
+	r.mux.Lock()
+	if r.usersMap == nil {
+		r.mux.Unlock()
 		return errors.New("The room '" + r.name + "' does not exist")
-	} else if response[0] != nil {
-		return response[0].(error)
 	}
+	if _, ok := r.usersMap[userName]; !ok {
+		r.mux.Unlock()
+		return errors.New("User '" + userName + "' is not in room '" + r.name + "'")
+	}
+	user := (*r.usersMap[userName])
+	delete(r.usersMap, userName)
+	userList := r.usersMap
+	r.mux.Unlock()
 	//
 	roomType := roomTypes[r.rType]
 
@@ -365,9 +309,7 @@ func (r *Room) RemoveUser(userName string) error {
 			return deleteErr
 		}
 	} else if roomType.BroadcastUserLeave() {
-		//BROADCAST ENTER TO USERS IN ROOM
-		userList := response[1].(map[string]RoomUser)
-		//CONSTRUCT MESSAGE
+		//CONSTRUCT LEAVE MESSAGE
 		message := make(map[string]interface{})
 		message[helpers.ServerActionUserLeave] = make(map[string]interface{})
 		message[helpers.ServerActionUserLeave].(map[string]interface{})["u"] = userName
@@ -378,48 +320,36 @@ func (r *Room) RemoveUser(userName string) error {
 		}
 	}
 
+	// CHANGE USER'S ROOM
+	(*user.mux).Lock()
+	*(user.roomIn) = nil
+	(*user.mux).Unlock()
+
 	//CALLBACK
 	if roomType.HasUserLeaveCallback() {
-		roomType.UserLeaveCallback()(*r, userName)
+		roomType.UserLeaveCallback()(r, userName)
 	}
+
+	//SEND RESPONSE TO CLIENT
+	clientResp := helpers.MakeClientResponse(helpers.ClientActionLeaveRoom, nil, nil)
+	user.socket.WriteJSON(clientResp)
 
 	//
 	return nil
-}
-
-func userLeave(p []interface{}) []interface{} {
-	userName, room := p[0].(string), p[1].(*Room)
-	var err error
-
-	usrMap := *((*room).usersMap)
-
-	if usrMap == nil {
-		return []interface{}{errors.New("The room '" + room.name + "' does not exist")}
-	}
-
-	if _, ok := usrMap[userName]; ok {
-		delete(*((*room).usersMap), userName)
-	} else {
-		err = errors.New("User '" + userName + "' is not in room '" + room.name + "'")
-	}
-
-	//
-	return []interface{}{err, usrMap}
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //   ADD TO inviteList   //////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// AddInvite adds a User to a private Room's invite list.
+// AddInvite adds a User to a private Room's invite list. This is only meant for internal Gopher Game Server mechanics.
+// If you want a User to invite someone to a private room, use the *User.Invite() function instead.
 //
 // NOTE: You can use this function safely, but remember that private rooms are designed to have an "owner",
 // and only the owner should be able to send an invite and revoke an invitation for their Rooms. Also, *User.Invite()
 // will send an invite message to the invited User that the client API can easily receive. Though if you wish to make
 // your own implementations for this, don't hesitate!
-//
-// WARNING: This is only meant for internal Gopher Game Server mechanics. If you want a User to invite someone to a private room,
-// use the *User.Invite() function instead.
+
 func (r *Room) AddInvite(userName string) error {
 	if !r.private {
 		return errors.New("Room is not private")
@@ -427,29 +357,22 @@ func (r *Room) AddInvite(userName string) error {
 		return errors.New("*Room.AddInvite() requires a userName")
 	}
 
-	response := r.roomVarsActionChannel.Execute(inviteUser, []interface{}{userName, r})
-	if len(response) == 0 {
+	r.mux.Lock()
+	if r.usersMap == nil {
+		r.mux.Unlock()
 		return errors.New("The room '" + r.name + "' does not exist")
-	} else if response[0] != nil {
-		return response[0].(error)
 	}
+	for i := 0; i < len(r.inviteList); i++ {
+		if r.inviteList[i] == userName {
+			r.mux.Unlock()
+			return errors.New("User '" + userName + "' is already on the invite list")
+		}
+	}
+	r.inviteList = append(r.inviteList, userName)
+	r.mux.Unlock()
 
 	//
 	return nil
-}
-
-func inviteUser(p []interface{}) []interface{} {
-	userName, room := p[0].(string), p[1].(*Room)
-
-	theList := *(*room).inviteList
-	for i := 0; i < len(theList); i++ {
-		if theList[i] == userName {
-			return []interface{}{errors.New("User '" + userName + "' is already on the invite list")}
-		}
-	}
-	*(*room).inviteList = append(*(*room).inviteList, userName)
-	//
-	return []interface{}{nil}
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -471,31 +394,25 @@ func (r *Room) RemoveInvite(userName string) error {
 		return errors.New("*Room.RemoveInvite() requires a userName")
 	}
 
-	response := r.roomVarsActionChannel.Execute(uninviteUser, []interface{}{userName, r})
-	if len(response) == 0 {
+	r.mux.Lock()
+	if r.usersMap == nil {
+		r.mux.Unlock()
 		return errors.New("The room '" + r.name + "' does not exist")
-	} else if response[0] != nil {
-		return response[0].(error)
 	}
+	for i := 0; i < len(r.inviteList); i++ {
+		if r.inviteList[i] == userName {
+			r.inviteList = append(r.inviteList[:i], r.inviteList[i+1:]...)
+			break
+		}
+		if i == len(r.inviteList)-1 {
+			r.mux.Unlock()
+			return errors.New("User '" + userName + "' is not on the invite list")
+		}
+	}
+	r.mux.Unlock()
 
 	//
 	return nil
-}
-
-func uninviteUser(p []interface{}) []interface{} {
-	userName, room := p[0].(string), p[1].(*Room)
-	theList := *(*room).inviteList
-	for i := 0; i < len(theList); i++ {
-		if theList[i] == userName {
-			*(*room).inviteList = append((*(*room).inviteList)[:i], (*(*room).inviteList)[i+1:]...)
-			break
-		}
-		if i == len(theList)-1 {
-			return []interface{}{errors.New("User '" + userName + "' is not on the invite list")}
-		}
-	}
-	//
-	return []interface{}{nil}
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -504,53 +421,35 @@ func uninviteUser(p []interface{}) []interface{} {
 
 // InviteList gets a private Room's invite list.
 func (r *Room) InviteList() ([]string, error) {
-	response := r.roomVarsActionChannel.Execute(getInviteList, []interface{}{r})
-	if len(response) == 0 {
-		return nil, errors.New("The room '" + r.name + "' does not exist")
+	r.mux.Lock()
+	if r.usersMap == nil {
+		r.mux.Unlock()
+		return []string{}, errors.New("The room '" + r.name + "' does not exist")
 	}
-
+	list := r.inviteList
+	r.mux.Unlock()
 	//
-	return response[0].([]string), nil
-}
-
-func getInviteList(p []interface{}) []interface{} {
-	room := p[0].(*Room)
-	return []interface{}{*(*room).inviteList}
+	return list, nil
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //   GET A Room's usersMap   //////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// GetUserMap retrieves a Map of all the RoomUsers.
-func (r *Room) GetUserMap() (map[string]RoomUser, error) {
+// GetUserMap retrieves all the RoomUsers as a map[string]*RoomUser.
+func (r *Room) GetUserMap() (map[string]*RoomUser, error) {
 	var err error
-	var userMap map[string]RoomUser
+	var userMap map[string]*RoomUser
 
-	response := r.usersActionChannel.Execute(userMapGet, []interface{}{r})
-	if len(response) == 0 {
-		err = errors.New("Room '" + r.name + "' does not exist")
-	} else if response[0] != nil {
-		err = response[0].(error)
+	r.mux.Lock()
+	if r.usersMap == nil {
+		err = errors.New("The room '" + r.name + "' does not exist")
 	} else {
-		userMap = response[1].(map[string]RoomUser)
+		userMap = r.usersMap
 	}
+	r.mux.Unlock()
 
 	return userMap, err
-}
-
-func userMapGet(p []interface{}) []interface{} {
-	room := p[0].(*Room)
-	var err error
-	var m map[string]RoomUser
-
-	if *((*room).usersMap) == nil {
-		err = errors.New("The room '" + room.name + "' does not exist")
-	} else {
-		m = *((*room).usersMap)
-	}
-
-	return []interface{}{err, m}
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -600,9 +499,22 @@ func (u *RoomUser) Name() string {
 	return u.name
 }
 
+// IsGuest returns true if the RoomUser is a guest.
+func (u *RoomUser) IsGuest() bool {
+	return u.isGuest
+}
+
+// IsGuest returns true if the RoomUser is a guest.
+func (u *RoomUser) DatabaseID() int {
+	return u.dbID
+}
+
 // Vars gets a Map of the RoomUser's variables.
 func (u *RoomUser) Vars() map[string]interface{} {
-	return u.vars
+	(*u.mux).Lock()
+	vars := *u.vars
+	(*u.mux).Unlock()
+	return vars
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -617,10 +529,9 @@ func SetServerStarted(val bool) {
 }
 
 // SettingsSet is for Gopher Game Server internal mechanics.
-func SettingsSet(name string, deleteOnLeave bool, userRef *helpers.ActionChannel) {
+func SettingsSet(name string, deleteOnLeave bool) {
 	if !serverStarted {
 		serverName = name
 		deleteRoomOnLeave = deleteOnLeave
-		userActionChannelRef = userRef
 	}
 }

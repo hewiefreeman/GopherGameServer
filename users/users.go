@@ -3,6 +3,7 @@ package users
 
 import (
 	"errors"
+	"sync"
 	"github.com/gorilla/websocket"
 	"github.com/hewiefreeman/GopherGameServer/database"
 	"github.com/hewiefreeman/GopherGameServer/helpers"
@@ -19,18 +20,22 @@ type User struct {
 	databaseID int
 	isGuest    bool
 
-	room string
-
-	status int
-
-	friends map[string]*database.Friend
-
 	socket *websocket.Conn
+
+	//mux LOCKS ALL FIELDS BELOW
+	mux sync.Mutex
+	room *rooms.Room
+	status int
+	friends map[string]*database.Friend
+	vars map[string]interface{}
+
+	onlineMux sync.Mutex
+	online bool
 }
 
 var (
-	users           map[string]*User       = make(map[string]*User)
-	usersActionChan *helpers.ActionChannel = helpers.NewActionChannel()
+	users map[string]*User = make(map[string]*User)
+	usersMux sync.Mutex
 	serverStarted   bool                   = false
 	serverName      string
 	kickOnLogin     bool = false
@@ -55,16 +60,16 @@ const (
 // NOTE: If you are using the SQL authentication features, do not use this! Use the client APIs to log in
 // your clients, and you can customize your log in process with the database package. Only use this if
 // you are making a proper custom authentication for your project.
-func Login(userName string, dbID int, autologPass string, isGuest bool, remMe bool, socket *websocket.Conn) (User, error) {
+func Login(userName string, dbID int, autologPass string, isGuest bool, remMe bool, socket *websocket.Conn) (*User, error) {
 	//REJECT INCORRECT INPUT
 	if len(userName) == 0 {
-		return User{}, errors.New("users.Login() requires a user name")
+		return &User{}, errors.New("users.Login() requires a user name")
 	} else if userName == serverName {
-		return User{}, errors.New("The name '" + userName + "' is unavailable")
+		return &User{}, errors.New("The name '" + userName + "' is unavailable")
 	} else if dbID < -1 {
-		return User{}, errors.New("users.Login() requires a database ID (or -1 for no ID)")
+		return &User{}, errors.New("users.Login() requires a database ID (or -1 for no ID)")
 	} else if socket == nil {
-		return User{}, errors.New("users.Login() requires a socket")
+		return &User{}, errors.New("users.Login() requires a socket")
 	}
 
 	//ALWAYS SET A GUEST'S id TO -1
@@ -76,8 +81,8 @@ func Login(userName string, dbID int, autologPass string, isGuest bool, remMe bo
 	//GET User's Friend LIST
 	var friends []map[string]interface{} = []map[string]interface{}{}
 	var friendsMap map[string]*database.Friend
-	var friendsErr error
 	if dbID != -1 && sqlFeatures {
+		var friendsErr error
 		friendsMap, friendsErr = database.GetFriends(dbID) // map[string]Friend
 		if friendsErr == nil {
 			for _, val := range friendsMap {
@@ -90,34 +95,51 @@ func Login(userName string, dbID int, autologPass string, isGuest bool, remMe bo
 					if userErr != nil {
 						friendEntry["s"] = StatusOffline
 					} else {
-						friendEntry["s"] = user.status
+						friendEntry["s"] = user.Status()
 					}
 				}
 				friends = append(friends, friendEntry)
 			}
 		}
 	}
-
-	response := usersActionChan.Execute(loginUser, []interface{}{userName, databaseID, isGuest, socket, friendsMap})
-	if response[1] != nil {
+	//MAKE *User IN users MAP
+	usersMux.Lock();
+	if userOnline, ok := users[userName]; ok {
 		if kickOnLogin {
-			DropUser(userName)
-			//TRY AGAIN
-			response = usersActionChan.Execute(loginUser, []interface{}{userName, databaseID, isGuest, socket, friendsMap})
-			if response[1] != nil {
-				return User{}, errors.New("Unexpected error while logging in")
+			//REMOVE USER FROM THEIR CURRENT ROOM IF ANY
+			userRoom := userOnline.RoomIn()
+			if userRoom != nil && userOnline.RoomIn().Name() != "" {
+				userOnline.RoomIn().RemoveUser(userOnline.name)
 			}
+
+			//SEND LOGOUT MESSAGE TO CLIENT
+			clientResp := helpers.MakeClientResponse(helpers.ClientActionLogout, nil, nil)
+			userOnline.socket.WriteJSON(clientResp)
+
+			//LOG USER OUT
+			userOnline.onlineMux.Lock()
+			userOnline.online = false
+			userOnline.onlineMux.Unlock()
+			delete(users, userName)
 		} else {
-			return User{}, response[1].(error)
+			usersMux.Unlock()
+			return &User{}, errors.New("User '" + userName + "' is already logged in")
 		}
 	}
-	user := response[0].(User)
+	//ADD THE User TO THE users MAP
+	vars := make(map[string]interface{})
+	newUser := User{name: userName, databaseID: databaseID, isGuest: isGuest, friends: friendsMap, status: 0, socket: socket,
+					room: nil, vars: vars, online: true}
+	users[userName] = &newUser
+	user := users[userName]
+	usersMux.Unlock()
+
 	//SEND ONLINE MESSAGE TO FRIENDS
 	message := make(map[string]interface{})
 	message[helpers.ServerActionFriendStatusChange] = make(map[string]interface{})
 	message[helpers.ServerActionFriendStatusChange].(map[string]interface{})["n"] = userName
 	message[helpers.ServerActionFriendStatusChange].(map[string]interface{})["s"] = 0
-	for key, val := range user.friends {
+	for key, val := range friendsMap {
 		if val.RequestStatus() == database.FriendStatusAccepted {
 			friend, friendErr := Get(key)
 			if friendErr == nil {
@@ -125,6 +147,7 @@ func Login(userName string, dbID int, autologPass string, isGuest bool, remMe bo
 			}
 		}
 	}
+
 	//SUCCESS, SEND RESPONSE TO CLIENT
 	responseVal := make(map[string]interface{})
 	responseVal["n"] = userName
@@ -140,22 +163,6 @@ func Login(userName string, dbID int, autologPass string, isGuest bool, remMe bo
 	return user, nil
 }
 
-func loginUser(p []interface{}) []interface{} {
-	userName, dbID, isGuest, socket, friends := p[0].(string), p[1].(int), p[2].(bool), p[3].(*websocket.Conn), p[4].(map[string]*database.Friend)
-	var userRef User = User{}
-	var err error
-
-	if _, ok := users[userName]; ok {
-		err = errors.New("User '" + userName + "' is already logged in")
-	} else {
-		newUser := User{name: userName, databaseID: dbID, isGuest: isGuest, friends: friends, status: 0, socket: socket}
-		users[userName] = &newUser
-		userRef = *users[userName]
-	}
-
-	return []interface{}{userRef, err}
-}
-
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 //   AUTOLOG A USER IN   /////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -165,41 +172,42 @@ func loginUser(p []interface{}) []interface{} {
 // WARNING: This is only meant for internal Gopher Game Server mechanics. If you want the "Remember Me"
 // (AKA auto login) feature, enable it in ServerSettings along with the SqlFeatures and corresponding
 // options. You can read more about the "Remember Me" login in the project's usage section.
-func AutoLogIn(tag string, pass string, newPass string, dbID int, conn *websocket.Conn) (string, error) {
+func AutoLogIn(tag string, pass string, newPass string, dbID int, conn *websocket.Conn) (*User, error) {
 	//VERIFY AND GET USER NAME FROM DATABASE
 	userName, autoLogErr := database.AutoLoginClient(tag, pass, newPass, dbID)
 	if autoLogErr != nil {
-		return "", autoLogErr
+		return &User{}, autoLogErr
 	}
 	//
-	_, userErr := Login(userName, dbID, newPass, false, true, conn)
+	user, userErr := Login(userName, dbID, newPass, false, true, conn)
 	if userErr != nil {
-		return "", userErr
+		return &User{}, userErr
 	}
 	//
-	return userName, nil
+	return user, nil
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 //   LOG A USER OUT   ////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// LogOut logs a User out from the service.
-func (u *User) LogOut() {
+// Logout logs a User out from the service.
+func (u *User) Logout() {
 	//REMOVE USER FROM THEIR ROOM
-	if u.room != "" {
-		room, err := rooms.Get(u.room)
-		if err == nil {
-			room.RemoveUser(u.name)
-		}
+	currRoom := u.RoomIn()
+	if currRoom != nil && currRoom.Name() != "" {
+		currRoom.RemoveUser(u.name)
 	}
+
+	//GET FRIENDS
+	friends := u.Friends();
 
 	//SEND STATUS CHANGE TO FRIENDS
 	statusMessage := make(map[string]interface{})
 	statusMessage[helpers.ServerActionFriendStatusChange] = make(map[string]interface{})
 	statusMessage[helpers.ServerActionFriendStatusChange].(map[string]interface{})["n"] = u.name
 	statusMessage[helpers.ServerActionFriendStatusChange].(map[string]interface{})["s"] = StatusOffline
-	for key, val := range u.friends {
+	for key, val := range friends {
 		if val.RequestStatus() == database.FriendStatusAccepted {
 			friend, friendErr := Get(key)
 			if friendErr == nil {
@@ -213,13 +221,12 @@ func (u *User) LogOut() {
 	u.socket.WriteJSON(clientResp)
 
 	//LOG USER OUT
-	usersActionChan.Execute(logUserOut, []interface{}{u.name})
-}
-
-func logUserOut(p []interface{}) []interface{} {
-	userName := p[0].(string)
-	delete(users, userName)
-	return []interface{}{}
+	u.onlineMux.Lock()
+	u.online = false
+	u.onlineMux.Unlock()
+	usersMux.Lock()
+	delete(users, u.name)
+	usersMux.Unlock()
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -227,35 +234,24 @@ func logUserOut(p []interface{}) []interface{} {
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // Get finds a logged in User by their name. Returns an error if the User is not online.
-func Get(userName string) (User, error) {
-	var err error
-
+func Get(userName string) (*User, error) {
 	//REJECT INCORRECT INPUT
 	if len(userName) == 0 {
-		return User{}, errors.New("users.Get() requires a user name")
+		return &User{}, errors.New("users.Get() requires a user name")
 	}
 
-	response := usersActionChan.Execute(getUser, []interface{}{userName})
-	if response[1] != nil {
-		err = response[1].(error)
+	var user *User
+	var ok bool
+
+	usersMux.Lock()
+	if user, ok = users[userName]; !ok {
+		usersMux.Unlock()
+		return &User{}, errors.New("User '" + userName + "' is not logged in")
 	}
+	usersMux.Unlock()
 
 	//
-	return response[0].(User), err
-}
-
-func getUser(p []interface{}) []interface{} {
-	userName := p[0].(string)
-	var userRef User = User{}
-	var err error
-
-	if user, ok := users[userName]; ok {
-		userRef = *user
-	} else {
-		err = errors.New("User '" + userName + "' is not logged in")
-	}
-
-	return []interface{}{userRef, err}
+	return user, nil
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -263,33 +259,20 @@ func getUser(p []interface{}) []interface{} {
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // Join makes a User join a Room.
-func (u *User) Join(r rooms.Room) error {
-	if u.room == r.Name() {
+func (u *User) Join(r *rooms.Room) error {
+	currRoom := u.RoomIn()
+	if currRoom != nil && currRoom.Name() == r.Name() {
 		return errors.New("User '" + u.name + "' is already in room '" + r.Name() + "'")
-	} else if u.room != "" {
+	} else if currRoom == nil || currRoom.Name() != "" {
 		//LEAVE USER'S CURRENT ROOM
 		u.Leave()
 	}
 
-	//CHANGE User's ROOM NAME
-	response := usersActionChan.Execute(changeUserRoomName, []interface{}{u, r.Name()})
-	if response[0] != nil {
-		return response[0].(error)
-	}
-
 	//ADD USER TO DESIGNATED ROOM
-	addErr := r.AddUser(u.name, u.isGuest, u.socket, response[1].(*string))
+	addErr := r.AddUser(u.name, u.databaseID, u.isGuest, u.socket, &u.room, &u.vars, &u.status, &u.mux)
 	if addErr != nil {
-		//CHANGE User's ROOM NAME BACK
-		response = usersActionChan.Execute(changeUserRoomName, []interface{}{u, ""})
-		if response[0] != nil {
-			return response[0].(error)
-		}
+		return addErr
 	}
-
-	//SEND RESPONSE TO CLIENT
-	clientResp := helpers.MakeClientResponse(helpers.ClientActionJoinRoom, r.Name(), nil)
-	u.socket.WriteJSON(clientResp)
 
 	//
 	return nil
@@ -297,13 +280,9 @@ func (u *User) Join(r rooms.Room) error {
 
 // Leave makes a User leave their current room.
 func (u *User) Leave() error {
-	if u.room != "" {
-		room, roomErr := rooms.Get(u.room)
-		if roomErr != nil {
-			return roomErr
-		}
-		//
-		removeErr := room.RemoveUser(u.name)
+	currRoom := u.RoomIn()
+	if currRoom != nil && currRoom.Name() != "" {
+		removeErr := currRoom.RemoveUser(u.name)
 		if removeErr != nil {
 			return removeErr
 		}
@@ -311,34 +290,7 @@ func (u *User) Leave() error {
 		return errors.New("User '" + u.name + "' is not in a room.")
 	}
 
-	//CHANGE User's ROOM NAME
-	response := usersActionChan.Execute(changeUserRoomName, []interface{}{u, ""})
-	if response[0] != nil {
-		return response[0].(error)
-	}
-
-	//SEND RESPONSE TO CLIENT
-	clientResp := helpers.MakeClientResponse(helpers.ClientActionLeaveRoom, nil, nil)
-	u.socket.WriteJSON(clientResp)
-
 	return nil
-}
-
-func changeUserRoomName(p []interface{}) []interface{} {
-	theUser, roomName := p[0].(*User), p[1].(string)
-	var err error
-	var roomIn *string
-
-	if _, ok := users[(*theUser).name]; ok {
-		(*users[(*theUser).name]).room = roomName
-		(*theUser).room = roomName
-		roomIn = &(*users[(*theUser).name]).room
-	} else {
-		err = errors.New("User '" + theUser.name + "' is not logged in")
-	}
-
-	//
-	return []interface{}{err, roomIn}
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -348,18 +300,17 @@ func changeUserRoomName(p []interface{}) []interface{} {
 // SetStatus sets the status of a User. Also sends a notification to all the User's Friends (with the request
 // status "accepted") that they changed their status.
 func (u *User) SetStatus(status int) error {
-	//CHANGE User's STATUS
-	response := usersActionChan.Execute(changeUserStatus, []interface{}{u, status})
-	if response[0] != nil {
-		return response[0].(error)
-	}
+	friends := u.Friends()
+	u.mux.Lock()
+	u.status = status
+	u.mux.Unlock()
 
 	//SEND STATUS CHANGE MESSAGE TO User's FRIENDS WHOM ARE "ACCEPTED"
 	message := make(map[string]interface{})
 	message[helpers.ServerActionFriendStatusChange] = make(map[string]interface{})
 	message[helpers.ServerActionFriendStatusChange].(map[string]interface{})["n"] = u.name
 	message[helpers.ServerActionFriendStatusChange].(map[string]interface{})["s"] = status
-	for key, val := range u.friends {
+	for key, val := range friends {
 		if val.RequestStatus() == database.FriendStatusAccepted {
 			friend, friendErr := Get(key)
 			if friendErr == nil {
@@ -372,43 +323,24 @@ func (u *User) SetStatus(status int) error {
 	return nil
 }
 
-func changeUserStatus(p []interface{}) []interface{} {
-	theUser, theStatus := p[0].(*User), p[1].(int)
-	var err error
-
-	if _, ok := users[(*theUser).name]; ok {
-		(*users[(*theUser).name]).status = theStatus
-	} else {
-		err = errors.New("User '" + theUser.name + "' is not logged in")
-	}
-
-	//
-	return []interface{}{err}
-}
-
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 //   INVITE TO User's PRIVATE ROOM   /////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// Invite sends a Room invite to the specified user by name, provided they are online, the Room is private, and this User
-// is the owner of the Room.
-func (u *User) Invite(userName string, room rooms.Room) error {
-	if len(userName) == 0 {
-		return errors.New("*User.Invite() requires a userName")
+// Invite allows Users to invite other Users to their private Rooms. The inviting User must be in the Room,
+// and the Room must be private and owned by the inviting User.
+func (u *User) Invite(invUser *User, room *rooms.Room) error {
+	currRoom := u.RoomIn()
+	if currRoom == nil || currRoom.Name() == "" {
+		return errors.New("The user '"+u.name+"' is not in the room '"+room.Name()+"'")
 	} else if !room.IsPrivate() {
 		return errors.New("The room '" + room.Name() + "' is not private")
 	} else if room.Owner() != u.name {
 		return errors.New("The user '" + u.name + "' is not the owner of the room '" + room.Name() + "'")
 	}
 
-	//GET THE USER
-	user, userErr := Get(userName)
-	if userErr != nil {
-		return userErr
-	}
-
 	//ADD TO INVITE LIST
-	addErr := room.AddInvite(userName)
+	addErr := room.AddInvite(invUser.name)
 	if addErr != nil {
 		return addErr
 	}
@@ -420,7 +352,7 @@ func (u *User) Invite(userName string, room rooms.Room) error {
 	invMessage[helpers.ServerActionRoomInvite].(map[string]interface{})["r"] = room.Name()
 
 	//SEND MESSAGE
-	user.socket.WriteJSON(invMessage)
+	invUser.socket.WriteJSON(invMessage)
 
 	//
 	return nil
@@ -432,9 +364,10 @@ func (u *User) Invite(userName string, room rooms.Room) error {
 
 // RevokeInvite revokes the invite to the specified user to the specified Room, provided they are online, the Room is private, and this User
 // is the owner of the Room.
-func (u *User) RevokeInvite(userName string, room rooms.Room) error {
-	if len(userName) == 0 {
-		return errors.New("*User.RevokeInvite() requires a userName")
+func (u *User) RevokeInvite(revokeUser string, room *rooms.Room) error {
+	currRoom := u.RoomIn()
+	if currRoom == nil || currRoom.Name() == "" {
+		return errors.New("The user '"+u.name+"' is not in the room '"+room.Name()+"'")
 	} else if !room.IsPrivate() {
 		return errors.New("The room '" + room.Name() + "' is not private")
 	} else if room.Owner() != u.name {
@@ -442,7 +375,7 @@ func (u *User) RevokeInvite(userName string, room rooms.Room) error {
 	}
 
 	//REMOVE FROM INVITE LIST
-	removeErr := room.RemoveInvite(userName)
+	removeErr := room.RemoveInvite(revokeUser)
 	if removeErr != nil {
 		return removeErr
 	}
@@ -455,10 +388,10 @@ func (u *User) RevokeInvite(userName string, room rooms.Room) error {
 //   KICK A USER   ///////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// DropUser logs a User out by their name. Also used by KickDupOnLogin in ServerSettings.
-func DropUser(userName string) error {
+// KickUser logs a User out by their name. Also used by KickDupOnLogin in ServerSettings.
+func KickUser(userName string) error {
 	if len(userName) == 0 {
-		return errors.New("users.DropUser() requires a user name")
+		return errors.New("users.KickUser() requires a user name")
 	}
 	//
 	user, err := Get(userName)
@@ -466,7 +399,7 @@ func DropUser(userName string) error {
 		return err
 	}
 	//
-	user.LogOut()
+	user.Logout()
 	//
 	return nil
 }
@@ -487,19 +420,30 @@ func (u *User) DatabaseID() int {
 
 // Friends gets the Friend list of the User as a map[string]database.Friend where the key string is the friend's
 // User name.
-func (u *User) Friends() map[string]*database.Friend {
-	return u.friends
+func (u *User) Friends() map[string]database.Friend {
+	u.mux.Lock()
+	friends := make(map[string]database.Friend);
+	for key, val := range u.friends {
+		friends[key] = *val
+	}
+	u.mux.Unlock()
+	return friends
 }
 
-// RoomName gets the name of the Room that the User is currently in. If you get a blank string, this simply means
-// the User is not in a room.
-func (u *User) RoomName() string {
-	return u.room
+// RoomIn gets the Room that the User is currently in. A nil Room pointer means the User is not in a Room.
+func (u *User) RoomIn() *rooms.Room {
+	u.mux.Lock()
+	room := u.room;
+	u.mux.Unlock()
+	return room
 }
 
 // Status gets the status of the User.
 func (u *User) Status() int {
-	return u.status
+	u.mux.Lock()
+	status := u.status;
+	u.mux.Unlock()
+	return status
 }
 
 // Socket gets the WebSocket connection of a User.
@@ -510,6 +454,14 @@ func (u *User) Socket() *websocket.Conn {
 // IsGuest returns true if the User is a guest.
 func (u *User) IsGuest() bool {
 	return u.isGuest
+}
+
+// IsOnline returns true if the User is online.
+func (u *User) IsOnline() bool {
+	u.onlineMux.Lock()
+	online := u.online
+	u.onlineMux.Unlock()
+	return online
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -530,6 +482,6 @@ func SettingsSet(kickDups bool, name string, deleteOnLeave bool, sqlFeat bool, r
 		serverName = name
 		sqlFeatures = sqlFeat
 		rememberMe = remMe
-		rooms.SettingsSet(name, deleteOnLeave, usersActionChan)
+		rooms.SettingsSet(name, deleteOnLeave)
 	}
 }

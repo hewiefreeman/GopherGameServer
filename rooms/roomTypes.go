@@ -17,10 +17,10 @@ type RoomType struct {
 	broadcastUserEnter bool
 	broadcastUserLeave bool
 
-	createCallback    func(Room)         // roomCreated
-	deleteCallback    func(Room)         // roomDeleted
-	userEnterCallback func(Room, string) // roomFrom, userName
-	userLeaveCallback func(Room, string) // roomFrom, userName
+	createCallback    func(*Room)         // roomCreated
+	deleteCallback    func(*Room)         // roomDeleted
+	userEnterCallback func(*Room, string) // roomFrom, userName
+	userLeaveCallback func(*Room, string) // roomFrom, userName
 }
 
 // NewRoomType Adds a RoomType to the server. A RoomType is used in conjunction with it's corresponding callbacks
@@ -106,7 +106,7 @@ func (r *RoomType) EnableBroadcastUserLeave() *RoomType {
 // callback. Your function must take in a Room object as the parameter which is a reference of the created room.
 //
 // Note: You must call this BEFORE starting the server in order for it to take effect.
-func (r *RoomType) SetCreateCallback(callback func(Room)) *RoomType {
+func (r *RoomType) SetCreateCallback(callback func(*Room)) *RoomType {
 	if serverStarted {
 		return r
 	}
@@ -118,7 +118,7 @@ func (r *RoomType) SetCreateCallback(callback func(Room)) *RoomType {
 // callback. Your function must take in a Room object as the parameter which is a reference of the deleted room.
 //
 // Note: You must call this BEFORE starting the server in order for it to take effect.
-func (r *RoomType) SetDeleteCallback(callback func(Room)) *RoomType {
+func (r *RoomType) SetDeleteCallback(callback func(*Room)) *RoomType {
 	if serverStarted {
 		return r
 	}
@@ -131,7 +131,7 @@ func (r *RoomType) SetDeleteCallback(callback func(Room)) *RoomType {
 // and the string is the name of the User that entered.
 //
 // Note: You must call this BEFORE starting the server in order for it to take effect.
-func (r *RoomType) SetUserEnterCallback(callback func(Room, string)) *RoomType {
+func (r *RoomType) SetUserEnterCallback(callback func(*Room, string)) *RoomType {
 	if serverStarted {
 		return r
 	}
@@ -144,7 +144,7 @@ func (r *RoomType) SetUserEnterCallback(callback func(Room, string)) *RoomType {
 // and the string is the name of the User that left.
 //
 // Note: You must call this BEFORE starting the server in order for it to take effect.
-func (r *RoomType) SetUserLeaveCallback(callback func(Room, string)) *RoomType {
+func (r *RoomType) SetUserLeaveCallback(callback func(*Room, string)) *RoomType {
 	if serverStarted {
 		return r
 	}
@@ -177,7 +177,7 @@ func (r *RoomType) BroadcastUserLeave() bool {
 }
 
 // CreateCallback returns the function that this RoomType calls when a Room of this RoomType is created.
-func (r *RoomType) CreateCallback() func(Room) {
+func (r *RoomType) CreateCallback() func(*Room) {
 	return r.createCallback
 }
 
@@ -187,7 +187,7 @@ func (r *RoomType) HasCreateCallback() bool {
 }
 
 // DeleteCallback returns the function that this RoomType calls when a Room of this RoomType is deleted.
-func (r *RoomType) DeleteCallback() func(Room) {
+func (r *RoomType) DeleteCallback() func(*Room) {
 	return r.deleteCallback
 }
 
@@ -197,7 +197,7 @@ func (r *RoomType) HasDeleteCallback() bool {
 }
 
 // UserEnterCallback returns the function that this RoomType calls when a User enters a Room of this RoomType.
-func (r *RoomType) UserEnterCallback() func(Room, string) {
+func (r *RoomType) UserEnterCallback() func(*Room, string) {
 	return r.userEnterCallback
 }
 
@@ -207,7 +207,7 @@ func (r *RoomType) HasUserEnterCallback() bool {
 }
 
 // UserLeaveCallback returns the function that this RoomType calls when a User leaves a Room of this RoomType.
-func (r *RoomType) UserLeaveCallback() func(Room, string) {
+func (r *RoomType) UserLeaveCallback() func(*Room, string) {
 	return r.userLeaveCallback
 }
 
