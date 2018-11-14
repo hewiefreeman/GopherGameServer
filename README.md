@@ -5,11 +5,11 @@ Gopher Game Server is a full featured, super fast, and fully customizable game s
 
 -**PROJECT IN DEVELOPMENT**-
 
-Gopher's aim is to provide all the tools necessary to make any type of online game (or any real-time app/chat) a breeze to develop. Gopher will take care of all server-side synchronizing and data type conversions, so you can receive client actions, set variables, send messages, and much more without having to worry about a thing!
+Gopher Game Server is designed to provide all necessary tools to ease developments of any type of online game (or any real-time app/chat). Gopher will handle all server-side synchronizing and data type conversions, therefore, client actions receiving, variable setting, message sending, and other functionalities are unproblematic.
 
-Gopher uses WebSockets and JSON to pass messages between the clients and the server. JSON enabled the server to be designed to let you pass any data type from client to server (or vice versa) without the need to worry about type conversions on either end. WebSockets makes the server as efficient as possible on the network, since the WebSocket protocol is newer and doesn't send nearly as much header and meta data that HTTP and most other protocols require.
+Gopher uses WebSockets and JSON to pass messages between the clients and the server. The JSON enabled server is designed to pass any types of data between client and server without cares of type conversions on either end. WebSockets increases efficiency of the server as far as possible on the network, since the WebSocket protocol is newer and doesn't send as much header and meta data that HTTP and most other protocols require.
 
-Gopher also has a built-in, fully customizable MySQL client authentication mechanism that manages your users' accounts for you. It even ties in a friending tool, so your users can befriend and invite one another to groups, check each other's status, and more. All easily configurable and customizable for your project's needs.
+Moreover, Gopher has a built-in, fully customizable MySQL client authentication mechanism that manages users' accounts. It even ties in a friending tool, so users can befriend and invite one another to groups, check each other's status, and more. All components are easily configurable and customizable for specific project's needs.
 
 ### Main features:
 
