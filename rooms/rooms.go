@@ -23,6 +23,10 @@ import (
 )
 
 // Room represents a room on the server that Users can join and leave. Use rooms.New() to make a new Room.
+//
+// WARNING: When you use a *User object in your code, DO NOT dereference it. Instead, there are
+// many methods for *User for retrieving any information about them you could possibly need.
+// Dereferencing them could cause data races in the User fields that get locked by mutexes.
 type Room struct {
 	name     string
 	rType    string

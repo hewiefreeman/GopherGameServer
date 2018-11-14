@@ -24,6 +24,10 @@ const (
 	ClientActionAcceptFriend      = "fa"
 	ClientActionDeclineFriend     = "fd"
 	ClientActionRemoveFriend      = "fr"
+	ClientActionSetVariable       = "vs"
+	ClientActionSetVariables      = "vx"
+	ClientActionGetVariable       = "vg"
+	ClientActionGetVariables      = "va"
 )
 
 //BUILT-IN SERVER ACTION RESPONSES

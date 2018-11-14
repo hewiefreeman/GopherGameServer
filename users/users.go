@@ -1,4 +1,7 @@
-// Package users contains all the necessary tools to make and work with Users.
+// Package users contains all the necessary tools to make and working with Users. A User is a client
+// who has successfully logged into the server. You can think of clients who are not attached to a User
+// as, for instance, someone in the login screen, but are still connected to the server. A client doesn't
+// have to be a User to be able to call your CustomClientActions, so keep that in mind when making them!
 package users
 
 import (
@@ -14,7 +17,14 @@ import (
 // be a guest, join/leave/create rooms, and call any client action, including your
 // custom client actions. If you are not using the built-in authentication, be aware
 // that you will need to make sure any client who has not been authenticated by the server
-// can't simply log themselves in through the client API.
+// can't simply log themselves in through the client API. A User has a lot of useful information,
+// so it's highly recommended you look through all the *User methods to get a good understanding
+// about everything you can do with them.
+//
+// WARNING: When you use a *User object in your code, DO NOT dereference it. Instead, there are
+// many methods for *User for retrieving any information about them you could possibly need.
+// Dereferencing them could cause data races (which will panic and stop the server) in the User
+// fields that get locked for synchronizing access.
 type User struct {
 	name       string
 	databaseID int
@@ -59,7 +69,7 @@ const (
 //
 // NOTE: If you are using the SQL authentication features, do not use this! Use the client APIs to log in
 // your clients, and you can customize your log in process with the database package. Only use this if
-// you are making a proper custom authentication for your project.
+// you are making a proper custom authentication process for your project.
 func Login(userName string, dbID int, autologPass string, isGuest bool, remMe bool, socket *websocket.Conn) (*User, error) {
 	//REJECT INCORRECT INPUT
 	if len(userName) == 0 {
