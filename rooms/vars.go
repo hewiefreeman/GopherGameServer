@@ -24,7 +24,7 @@ func (r *Room) SetVariable(key string, value interface{}) {
 	r.mux.Unlock()
 
 	//
-	return nil
+	return
 }
 
 // SetVariables sets all the specified Room variables at once.
@@ -32,7 +32,7 @@ func (r *Room) SetVariables(values map[string]interface{}) {
 	r.mux.Lock()
 	if r.usersMap == nil {
 		r.mux.Unlock()
-		return errors.New("Room '" + r.name + "' does not exist")
+		return
 	}
 	for key, val := range values {
 		r.vars[key] = val
@@ -40,7 +40,7 @@ func (r *Room) SetVariables(values map[string]interface{}) {
 	r.mux.Unlock()
 
 	//
-	return nil
+	return
 }
 
 // GetVariable gets one of the Room's variables.
@@ -74,7 +74,7 @@ func (r *Room) GetVariables(keys []string) (map[string]interface{}, error) {
 		value = r.vars
 	} else {
 		for i := 0; i < len(keys); i++ {
-			value[keys[i]] := r.vars[keys[i]]
+			value[keys[i]] = r.vars[keys[i]]
 		}
 	}
 	r.mux.Unlock()

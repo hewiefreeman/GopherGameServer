@@ -60,6 +60,9 @@ const (
 //
 //     func yourFunction(actionData interface{}, client Client) {
 //         //...
+//
+//         // optional client response
+//         client.Respond("example", nil);
 //     }
 //
 // - actionData: The data the client sent along with the action
@@ -164,7 +167,8 @@ func typesMatch(data interface{}, theType int) bool {
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // Respond sends a CustomClientAction response to the client. If an error is provided, only the error mesage will be received
-// by the Client (the response parameter will not be sent as well).
+// by the Client (the response parameter will not be sent as well). It's perfectly fine to not send back any response if none
+// is needed.
 //
 // NOTE: A response can only be sent once to a Client. Any more calls to Respond() on the same Client will not send a response,
 // nor do anything at all. If you want to send a stream of messages to the Client, first get their User object with users.Get() using

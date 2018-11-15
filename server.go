@@ -17,8 +17,6 @@ import (
 )
 
 /////////// TO DOs:
-///////////    - Test Room/User vars
-///////////    - Test chat/private chat
 ///////////    - Multi-connect
 ///////////          - Test
 ///////////	- ServerCallbacks

@@ -31,82 +31,80 @@ func clientActionHandler(action clientAction, user **users.User, conn *websocket
 	deviceTag *string, devicePass *string, deviceUserID *int) (interface{}, bool, error) {
 	switch _action := action.A; _action {
 
-	// HIGH PRIORITY
+		// HIGH LOOK-UP PRIORITY ITEMS
 
-	case helpers.ClientActionCustomAction:
-		return clientCustomAction(action.P, user, conn)
-	case helpers.ClientActionVoiceStream:
-		return clientActionVoiceStream(action.P, user, conn)
+		case helpers.ClientActionCustomAction:
+			return clientCustomAction(action.P, user, conn)
+		case helpers.ClientActionVoiceStream:
+			return clientActionVoiceStream(action.P, user, conn)
 
-	// USER VARIABLES
+		// USER VARIABLES
 
-	case helpers.ClientActionSetVariable:
-		return clientActionSetVariable(action.P, user, conn);
-	case helpers.ClientActionSetVariables:
-		return clientActionSetVariables(action.P, user, conn);
-	case helpers.ClientActionGetVariable:
-		return clientActionGetVariable(action.P, user, conn);
-	case helpers.ClientActionGetVariables:
-		return clientActionGetVariables(action.P, user, conn);
+		case helpers.ClientActionSetVariable:
+			return clientActionSetVariable(action.P, user);
+		case helpers.ClientActionSetVariables:
+			return clientActionSetVariables(action.P, user);
 
-	// CHAT
+		// CHAT
 
-	case helpers.ClientActionChatMessage:
-		return clientActionChatMessage(action.P, user)
+		case helpers.ClientActionChatMessage:
+			return clientActionChatMessage(action.P, user)
+		case helpers.ClientActionPrivateMessage:
+			return clientActionPrivateMessage(action.P, user)
 
-	// CHANGE STATUS
+		// CHANGE STATUS
 
-	case helpers.ClientActionChangeStatus:
-		return clientActionChangeStatus(action.P, user)
+		case helpers.ClientActionChangeStatus:
+			return clientActionChangeStatus(action.P, user)
 
-	// LOGIN/LOGOUT
+		// LOGIN/LOGOUT
 
-	case helpers.ClientActionLogin:
-		return clientActionLogin(action.P, user, deviceTag, devicePass, deviceUserID, conn)
-	case helpers.ClientActionLogout:
-		return clientActionLogout(user, deviceTag, devicePass, deviceUserID)
+		case helpers.ClientActionLogin:
+			return clientActionLogin(action.P, user, deviceTag, devicePass, deviceUserID, conn)
+		case helpers.ClientActionLogout:
+			return clientActionLogout(user, deviceTag, devicePass, deviceUserID)
 
-	// ROOM ACTIONS
+		// ROOM ACTIONS
 
-	case helpers.ClientActionJoinRoom:
-		return clientActionJoinRoom(action.P, user)
-	case helpers.ClientActionLeaveRoom:
-		return clientActionLeaveRoom(user)
-	case helpers.ClientActionCreateRoom:
-		return clientActionCreateRoom(action.P, user)
-	case helpers.ClientActionDeleteRoom:
-		return clientActionDeleteRoom(action.P, user)
-	case helpers.ClientActionRoomInvite:
-		return clientActionRoomInvite(action.P, user)
-	case helpers.ClientActionRevokeInvite:
-		return clientActionRevokeInvite(action.P, user)
+		case helpers.ClientActionJoinRoom:
+			return clientActionJoinRoom(action.P, user)
+		case helpers.ClientActionLeaveRoom:
+			return clientActionLeaveRoom(user)
+		case helpers.ClientActionCreateRoom:
+			return clientActionCreateRoom(action.P, user)
+		case helpers.ClientActionDeleteRoom:
+			return clientActionDeleteRoom(action.P, user)
+		case helpers.ClientActionRoomInvite:
+			return clientActionRoomInvite(action.P, user)
+		case helpers.ClientActionRevokeInvite:
+			return clientActionRevokeInvite(action.P, user)
 
-	// FRIENDING
+		// FRIENDING
 
-	case helpers.ClientActionFriendRequest:
-		return clientActionFriendRequest(action.P, user)
-	case helpers.ClientActionAcceptFriend:
-		return clientActionAcceptFriend(action.P, user)
-	case helpers.ClientActionDeclineFriend:
-		return clientActionDeclineFriend(action.P, user)
-	case helpers.ClientActionRemoveFriend:
-		return clientActionRemoveFriend(action.P, user)
+		case helpers.ClientActionFriendRequest:
+			return clientActionFriendRequest(action.P, user)
+		case helpers.ClientActionAcceptFriend:
+			return clientActionAcceptFriend(action.P, user)
+		case helpers.ClientActionDeclineFriend:
+			return clientActionDeclineFriend(action.P, user)
+		case helpers.ClientActionRemoveFriend:
+			return clientActionRemoveFriend(action.P, user)
 
-	// DATABASE
+		// DATABASE
 
-	case helpers.ClientActionSignup:
-		return clientActionSignup(action.P, user)
-	case helpers.ClientActionDeleteAccount:
-		return clientActionDeleteAccount(action.P, user)
-	case helpers.ClientActionChangePassword:
-		return clientActionChangePassword(action.P, user)
-	case helpers.ClientActionChangeAccountInfo:
-		return clientActionChangeAccountInfo(action.P, user)
+		case helpers.ClientActionSignup:
+			return clientActionSignup(action.P, user)
+		case helpers.ClientActionDeleteAccount:
+			return clientActionDeleteAccount(action.P, user)
+		case helpers.ClientActionChangePassword:
+			return clientActionChangePassword(action.P, user)
+		case helpers.ClientActionChangeAccountInfo:
+			return clientActionChangeAccountInfo(action.P, user)
 
-	// INVALID CLIENT ACTION
+		// INVALID CLIENT ACTION
 
-	default:
-		return nil, true, errors.New("Unrecognized client action")
+		default:
+			return nil, true, errors.New("Unrecognized client action")
 	}
 }
 
@@ -635,74 +633,61 @@ func clientActionChatMessage(params interface{}, user **users.User) (interface{}
 	return nil, false, nil
 }
 
+func clientActionPrivateMessage(params interface{}, user **users.User) (interface{}, bool, error) {
+	if !(*user).IsOnline() {
+		return nil, false, nil
+	}
+	//GET PARAMS
+	var ok bool
+	var pMap map[string]interface{}
+	var userName string
+	if pMap, ok = params.(map[string]interface{}); !ok { return nil, false, nil }
+	if userName, ok = pMap["u"].(string); !ok { return nil, false, nil }
+	//GET CURRENT ROOM
+	currRoom := (*user).RoomIn()
+	if currRoom == nil || currRoom.Name() == "" {
+		return nil, false, nil
+	}
+	//SEND CHAT MESSAGE
+	(*user).PrivateMessage(userName, pMap["m"])
+	//
+	return nil, false, nil
+}
+
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 //   USER VARIABLES   ////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
 func clientActionSetVariable(params interface{}, user **users.User) (interface{}, bool, error) {
 	if !(*user).IsOnline() {
-		return nil, true, errors.New("You must be logged in to manipulate your variables")
+		return nil, false, nil
 	}
 	//GET PARAMS
 	var ok bool
 	var pMap map[string]interface{}
 	var varKey string
 	var varVal interface{}
-	if pMap, ok = params.(map[string]interface{}); !ok { return nil, true, errors.New(errorIncorrectFormat) }
-	if varKey, ok = pMap["k"].(string); !ok { return nil, true, errors.New(errorIncorrectFormatVarKey) }
+	if pMap, ok = params.(map[string]interface{}); !ok { return nil, false, nil }
+	if varKey, ok = pMap["k"].(string); !ok { return nil, false, nil }
 	varVal =  pMap["v"]
 	//SET THE VARIABLE
 	(*user).SetVariable(varKey, varVal)
 	//
-	return nil, true, nil
+	return nil, false, nil
 }
 
 func clientActionSetVariables(params interface{}, user **users.User) (interface{}, bool, error) {
 	if !(*user).IsOnline() {
-		return nil, true, errors.New("You must be logged in to manipulate your variables")
+		return nil, false, nil
 	}
 	//GET PARAMS
 	var ok bool
 	var pMap map[string]interface{}
-	if pMap, ok = params.(map[string]interface{}); !ok { return nil, true, errors.New(errorIncorrectFormat) }
-	//SET THE VARIABLE
+	if pMap, ok = params.(map[string]interface{}); !ok { return nil, false, nil }
+	//SET THE VARIABLES
 	(*user).SetVariables(pMap)
 	//
-	return nil, true, nil
-}
-
-func clientActionGetVariable(params interface{}, user **users.User) (interface{}, bool, error) {
-	if !(*user).IsOnline() {
-		return nil, true, errors.New("You must be logged in to manipulate your variables")
-	}
-	//GET PARAMS
-	var ok bool
-	var pMap map[string]interface{}
-	var varKey string
-	if pMap, ok = params.(map[string]interface{}); !ok { return nil, true, errors.New(errorIncorrectFormat) }
-	if varKey, ok = pMap["k"].(string); !ok { return nil, true, errors.New(errorIncorrectFormatVarKey) }
-	//SET THE VARIABLE
-	val := (*user).GetVariable(varKey)
-	//
-	return val, true, nil
-}
-
-func clientActionGetVariables(params interface{}, user **users.User) (interface{}, bool, error) {
-	if !(*user).IsOnline() {
-		return nil, true, errors.New("You must be logged in to manipulate your variables")
-	}
-	//GET PARAMS
-	var ok bool
-	var varKeys []string
-	if(params != nil){
-		if varKeys, ok = params.([]string); !ok { return nil, true, errors.New(errorIncorrectFormatVarKey) }
-	}else{
-		varKeys = nil
-	}
-	//SET THE VARIABLES
-	vars := (*user).GetVariables(varKeys)
-	//
-	return vars, true, nil
+	return nil, false, nil
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////

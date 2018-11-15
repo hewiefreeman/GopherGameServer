@@ -17,6 +17,7 @@ const (
 	ClientActionRoomInvite        = "i"
 	ClientActionRevokeInvite      = "ri"
 	ClientActionChatMessage       = "c"
+	ClientActionPrivateMessage    = "p"
 	ClientActionVoiceStream       = "v"
 	ClientActionChangeStatus      = "sc"
 	ClientActionCustomAction      = "a"
@@ -26,8 +27,6 @@ const (
 	ClientActionRemoveFriend      = "fr"
 	ClientActionSetVariable       = "vs"
 	ClientActionSetVariables      = "vx"
-	ClientActionGetVariable       = "vg"
-	ClientActionGetVariables      = "va"
 )
 
 //BUILT-IN SERVER ACTION RESPONSES

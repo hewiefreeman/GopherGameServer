@@ -9,24 +9,23 @@ import (
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // PrivateMessage sends a private message to another User by name.
-func (u *User) PrivateMessage(userName string, message string) error {
+func (u *User) PrivateMessage(userName string, message interface{}) {
 	user, userErr := Get(userName)
 	if userErr != nil {
-		return userErr
+		return
 	}
 
 	//CONSTRUCT MESSAGE
 	theMessage := make(map[string]interface{})
 	theMessage[helpers.ServerActionPrivateMessage] = make(map[string]interface{})
-	theMessage[helpers.ServerActionPrivateMessage].(map[string]interface{})["a"] = u.name
-	theMessage[helpers.ServerActionPrivateMessage].(map[string]interface{})["m"] = message
+	theMessage[helpers.ServerActionPrivateMessage].(map[string]interface{})["f"] = u.name // from
+	theMessage[helpers.ServerActionPrivateMessage].(map[string]interface{})["t"] = user.name // to
+	theMessage[helpers.ServerActionPrivateMessage].(map[string]interface{})["m"] = message // message
 
-	sendErr := user.socket.WriteJSON(theMessage)
-	if sendErr != nil {
-		return sendErr
-	}
+	user.socket.WriteJSON(theMessage)
+	u.socket.WriteJSON(theMessage)
 
-	return nil
+	return
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -34,14 +33,11 @@ func (u *User) PrivateMessage(userName string, message string) error {
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // DataMessage sends a data message directly to the User.
-func (u *User) DataMessage(data interface{}) error {
+func (u *User) DataMessage(data interface{}) {
 	//CONSTRUCT MESSAGE
 	message := make(map[string]interface{})
 	message[helpers.ServerActionDataMessage] = data
 
 	//SEND MESSAGE TO USERS
 	u.socket.WriteJSON(message)
-
-	//
-	return nil
 }
