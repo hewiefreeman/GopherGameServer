@@ -28,7 +28,9 @@ func (r *Room) VoiceStream(userName string, userSocket *websocket.Conn, stream i
 
 	//SEND MESSAGE TO USERS
 	for _, u := range userMap {
-		u.socket.WriteJSON(theMessage)
+		for _, conn := range u.conns {
+			(*conn).socket.WriteJSON(theMessage)
+		}
 	}
 
 	//CONSTRUCT PING MESSAGE

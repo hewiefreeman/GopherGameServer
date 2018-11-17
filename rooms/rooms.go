@@ -41,17 +41,23 @@ type Room struct {
 	vars       map[string]interface{}
 }
 
-// RoomUser is the representation of a User in a Room. These store a User's variables. Note: These
-// are not the Users themselves. If you really need to get a User type from one of these, use
+// RoomUser is the representation of a User in a Room. Note: These
+// are not the Users themselves. There are RoomUser methods that provide the same
+// functionality as the matching User methods, but if you really need to get a User type from one of these, use
 // users.Get() with the RoomUser's Name() function.
 type RoomUser struct {
 	name    string
 	isGuest bool
 	dbID    int
-	socket  *websocket.Conn
 
 	//mux LOCKS ALL FIELDS BELOW
-	mux    *sync.Mutex             // Pointer to the User's mux
+	mux    *sync.Mutex // Pointer to the User's mux
+	conns  map[string]*roomUserConn // User's conns info
+
+}
+
+type roomUserConn struct {
+	socket  *websocket.Conn
 	roomIn **Room                  // Pointer to the User's Room pointer
 	vars   *map[string]interface{} // Pointer to the User's variables
 }
@@ -65,6 +71,7 @@ var (
 	serverStarted     bool = false
 	serverName        string
 	deleteRoomOnLeave bool = true
+	multiConnect      bool = false
 )
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -140,11 +147,12 @@ func (r *Room) Delete() error {
 
 	// GO THROUGH ALL Users IN ROOM
 	for _, v := range r.usersMap {
-		//SEND ROOM LEAVE MESSAGE
-		v.socket.WriteJSON(leaveMessage)
-		//CHANGE User's room POINTER TO nil
+		//CHANGE User's room POINTER TO nil & SEND MESSAGES
 		v.mux.Lock()
-		*v.roomIn = nil
+		for key, _ := range v.conns {
+			(*v.conns[key]).socket.WriteJSON(leaveMessage)
+			*((*v.conns[key]).roomIn) = nil
+		}
 		v.mux.Unlock()
 	}
 
@@ -197,15 +205,19 @@ func Get(roomName string) (*Room, error) {
 
 // AddUser adds a User to the Room.
 //
-// WARNING: This is only meant for internal Gopher Game Server mechanics. If you want to make a User to join a Room, use
+// WARNING: This is only meant for internal Gopher Game Server mechanics. If you want to make a User join a Room, use
 // *User.Join() instead. Using this improperly will break server mechanics and cause errors and/or memory leaks.
 func (r *Room) AddUser(userName string, dbID int, isGuest bool, socket *websocket.Conn, roomIn **Room, userVars *map[string]interface{},
-	userStatus *int, userMux *sync.Mutex) error {
+	userStatus *int, userMux *sync.Mutex, connID string) error {
 	// REJECT INCORRECT INPUT
 	if len(userName) == 0 {
 		return errors.New("*Room.AddUser() requires a user name")
 	} else if socket == nil {
 		return errors.New("*Room.AddUser() requires a user socket")
+	} else if multiConnect && len(connID) == 0 {
+		return errors.New("Must provide a connID when MultiConnect is enabled")
+	} else if !multiConnect {
+		connID = "1"
 	}
 
 	r.mux.Lock()
@@ -223,8 +235,7 @@ func (r *Room) AddUser(userName string, dbID int, isGuest bool, socket *websocke
 		if len(r.inviteList) > 0 {
 			for i := 0; i < len(r.inviteList); i++ {
 				if (r.inviteList)[i] == userName {
-					// INVITED User HAS JOINED, SO REMOVE THEM FROM THE LIST
-					r.inviteList = append((r.inviteList)[:i], (r.inviteList)[i+1:]...)
+					// INVITED User
 					break
 				}
 				if i == len(r.inviteList)-1 {
@@ -238,14 +249,34 @@ func (r *Room) AddUser(userName string, dbID int, isGuest bool, socket *websocke
 		}
 	}
 
-	// ADD User TO ROOM
-	if _, ok := (r.usersMap)[userName]; ok {
-		r.mux.Unlock()
-		return errors.New("User '" + userName + "' is already in room '" + r.name + "'")
+	// CHECK IF USER IS ALREADY IN THE ROOM
+	var roomUserExists bool = false
+	if rUser, ok := r.usersMap[userName]; ok {
+		roomUserExists = true
+		if !multiConnect {
+			r.mux.Unlock()
+			return errors.New("User '" + userName + "' is already in room '" + r.name + "'")
+		} else {
+			(*rUser.mux).Lock()
+			if _, ok := rUser.conns[connID]; ok {
+				r.mux.Unlock()
+				(*rUser.mux).Unlock()
+				return errors.New("User '" + userName + "' is already in room '" + r.name + "'")
+			}
+			(*rUser.mux).Unlock()
+		}
 	}
 	userList := r.usersMap
-	newUser := RoomUser{name: userName, isGuest: isGuest, dbID: dbID, roomIn: roomIn, socket: socket, mux: userMux, vars: userVars}
-	r.usersMap[userName] = &newUser
+	newConn := roomUserConn{socket: socket, roomIn: roomIn, vars: userVars}
+	// ADD User TO ROOM
+	if roomUserExists {
+		(*r.usersMap[userName]).conns[connID] = &newConn
+	} else {
+		conns := make(map[string]*roomUserConn)
+		conns[connID] = &newConn
+		newUser := RoomUser{name: userName, isGuest: isGuest, dbID: dbID, mux: userMux, conns: conns}
+		r.usersMap[userName] = &newUser
+	}
 	r.mux.Unlock()
 
 	// CHANGE USER'S ROOM
@@ -262,7 +293,11 @@ func (r *Room) AddUser(userName string, dbID int, isGuest bool, socket *websocke
 		message[helpers.ServerActionUserEnter].(map[string]interface{})["u"] = userName
 		message[helpers.ServerActionUserEnter].(map[string]interface{})["g"] = isGuest
 		for _, u := range userList {
-			u.socket.WriteJSON(message)
+			u.mux.Lock()
+			for _, conn := range u.conns {
+				(*conn).socket.WriteJSON(message)
+			}
+			u.mux.Unlock()
 		}
 	}
 
@@ -283,11 +318,17 @@ func (r *Room) AddUser(userName string, dbID int, isGuest bool, socket *websocke
 //   REMOVE A USER   //////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// RemoveUser removes a User from the room.
-func (r *Room) RemoveUser(userName string) error {
+// RemoveUser removes a User from the room. If you are using MultiConnect in ServerSettings, the connID
+// parameter is the connection ID associated with one of the connections attached to that User. This must
+// be provided when removing a User from a Room with MultiConnect enabled. Otherwise, an empty string can be used.
+func (r *Room) RemoveUser(userName string, connID string) error {
 	//REJECT INCORRECT INPUT
 	if len(userName) == 0 {
 		return errors.New("*Room.RemoveUser() requires a user name")
+	} else if multiConnect && len(connID) == 0 {
+		return errors.New("Must provide a connID when MultiConnect is enabled")
+	} else if !multiConnect {
+		connID = "1"
 	}
 	//
 	r.mux.Lock()
@@ -299,8 +340,16 @@ func (r *Room) RemoveUser(userName string) error {
 		r.mux.Unlock()
 		return errors.New("User '" + userName + "' is not in room '" + r.name + "'")
 	}
-	user := (*r.usersMap[userName])
-	delete(r.usersMap, userName)
+	if _, ok := (*r.usersMap[userName]).conns[connID]; !ok {
+		r.mux.Unlock()
+		return errors.New("Invalid connID")
+	}
+	uConn := *((*r.usersMap[userName]).conns[connID])
+	uMux := (*r.usersMap[userName]).mux
+	delete((*r.usersMap[userName]).conns, connID)
+	if len((*r.usersMap[userName]).conns) == 0 {
+		delete(r.usersMap, userName)
+	}
 	userList := r.usersMap
 	r.mux.Unlock()
 	//
@@ -320,14 +369,18 @@ func (r *Room) RemoveUser(userName string) error {
 
 		//SEND MESSAGE TO USERS
 		for _, u := range userList {
-			u.socket.WriteJSON(message)
+			u.mux.Lock()
+			for _, conn := range u.conns {
+				conn.socket.WriteJSON(message)
+			}
+			u.mux.Unlock()
 		}
 	}
 
 	// CHANGE USER'S ROOM
-	(*user.mux).Lock()
-	*(user.roomIn) = nil
-	(*user.mux).Unlock()
+	uMux.Lock()
+	*(uConn.roomIn) = nil
+	uMux.Unlock()
 
 	//CALLBACK
 	if roomType.HasUserLeaveCallback() {
@@ -336,7 +389,7 @@ func (r *Room) RemoveUser(userName string) error {
 
 	//SEND RESPONSE TO CLIENT
 	clientResp := helpers.MakeClientResponse(helpers.ClientActionLeaveRoom, nil, nil)
-	user.socket.WriteJSON(clientResp)
+	uConn.socket.WriteJSON(clientResp)
 
 	//
 	return nil
@@ -512,14 +565,6 @@ func (u *RoomUser) DatabaseID() int {
 	return u.dbID
 }
 
-// Vars gets a Map of the RoomUser's variables.
-func (u *RoomUser) Vars() map[string]interface{} {
-	(*u.mux).Lock()
-	vars := *u.vars
-	(*u.mux).Unlock()
-	return vars
-}
-
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //   SERVER STARTUP FUNCTIONS   ///////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -532,9 +577,10 @@ func SetServerStarted(val bool) {
 }
 
 // SettingsSet is for Gopher Game Server internal mechanics.
-func SettingsSet(name string, deleteOnLeave bool) {
+func SettingsSet(name string, deleteOnLeave bool, multiConn bool) {
 	if !serverStarted {
 		serverName = name
 		deleteRoomOnLeave = deleteOnLeave
+		multiConnect = multiConn
 	}
 }

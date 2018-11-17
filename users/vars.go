@@ -8,68 +8,90 @@ import (
 //   USER VARIABLES   /////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// SetVariable sets a User variable. The client API of the User will also recieve these changes.
-func (u *User) SetVariable(key string, value interface{}) {
+// SetVariable sets a User variable. The client API of the User will also receive these changes. If you are using MultiConnect in ServerSettings, the connID
+// parameter is the connection ID associated with one of the connections attached to the inviting User. This must
+// be provided when setting a User's variables with MultiConnect enabled. Otherwise, an empty string can be used.
+func (u *User) SetVariable(key string, value interface{}, connID string) {
 	//REJECT INCORRECT INPUT
 	if len(key) == 0 {
 		return
+	} else if multiConnect && len(connID) == 0 {
+		return
+	} else if !multiConnect {
+		connID = "1"
 	}
-	u.mux.Lock()
-	u.vars[key] = value
-	u.mux.Unlock()
-
 	//MAKE CLIENT MESSAGE
 	resp := make(map[string]interface{})
 	resp["k"] = key
 	resp["v"] = value
 
+	u.mux.Lock()
+	if _, ok := u.conns[connID]; !ok {
+		u.mux.Unlock()
+		return
+	}
+	(*u.conns[connID]).vars[key] = value
 	//SEND RESPONSE TO CLIENT
 	clientResp := helpers.MakeClientResponse(helpers.ClientActionSetVariable, resp, nil)
-	u.socket.WriteJSON(clientResp)
+	(*u.conns[connID]).socket.WriteJSON(clientResp)
+	u.mux.Unlock()
 }
 
-// SetVariables sets all the specified User variables at once. The client API of the User will also recieve these changes.
-func (u *User) SetVariables(values map[string]interface{}) {
+// SetVariables sets all the specified User variables at once. The client API of the User will also receive these changes. If you are using MultiConnect in ServerSettings, the connID
+// parameter is the connection ID associated with one of the connections attached to the inviting User. This must
+// be provided when setting a User's variables with MultiConnect enabled. Otherwise, an empty string can be used.
+func (u *User) SetVariables(values map[string]interface{}, connID string) {
 	//REJECT INCORRECT INPUT
 	if values == nil || len(values) == 0 {
 		return
+	} else if multiConnect && len(connID) == 0 {
+		return
+	} else if !multiConnect {
+		connID = "1"
 	}
 	u.mux.Lock()
-	for key, val := range values{
-		u.vars[key] = val
+	if _, ok := u.conns[connID]; !ok {
+		u.mux.Unlock()
+		return
 	}
-	u.mux.Unlock()
-
+	for key, val := range values {
+		(*u.conns[connID]).vars[key] = val
+	}
 	//SEND RESPONSE TO CLIENT
 	clientResp := helpers.MakeClientResponse(helpers.ClientActionSetVariables, values, nil)
-	u.socket.WriteJSON(clientResp)
+	(*u.conns[connID]).socket.WriteJSON(clientResp)
+	u.mux.Unlock()
 }
 
-// GetVariable gets one of the User's variables by it's key.
-func (u *User) GetVariable(key string) interface{} {
+// GetVariable gets one of the User's variables by it's key. If you are using MultiConnect in ServerSettings, the connID
+// parameter is the connection ID associated with one of the connections attached to the inviting User. This must
+// be provided when getting a User's variables with MultiConnect enabled. Otherwise, an empty string can be used.
+func (u *User) GetVariable(key string, connID string) interface{} {
 	//REJECT INCORRECT INPUT
 	if len(key) == 0 {
 		return nil
 	}
 	u.mux.Lock()
-	val := u.vars[key]
+	val := (*u.conns[connID]).vars[key]
 	u.mux.Unlock()
 
 	//
 	return val
 }
 
-// GetVariables gets the specified (or all if nil) User variables as a map[string]interface{}.
-func (u *User) GetVariables(keys []string) map[string]interface{} {
+// GetVariables gets the specified (or all if nil) User variables as a map[string]interface{}.  If you are using MultiConnect in ServerSettings, the connID
+// parameter is the connection ID associated with one of the connections attached to the inviting User. This must
+// be provided when getting a User's variables with MultiConnect enabled. Otherwise, an empty string can be used.
+func (u *User) GetVariables(keys []string, connID string) map[string]interface{} {
 	var value map[string]interface{} = make(map[string]interface{})
-	if(keys == nil || len(keys) == 0) {
+	if keys == nil || len(keys) == 0 {
 		u.mux.Lock()
-		value = u.vars
+		value = (*u.conns[connID]).vars
 		u.mux.Unlock()
-	}else{
+	} else {
 		u.mux.Lock()
 		for i := 0; i < len(keys); i++ {
-			value[keys[i]] = u.vars[keys[i]]
+			value[keys[i]] = (*u.conns[connID]).vars[keys[i]]
 		}
 		u.mux.Unlock()
 	}

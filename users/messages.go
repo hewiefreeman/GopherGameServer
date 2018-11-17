@@ -22,8 +22,17 @@ func (u *User) PrivateMessage(userName string, message interface{}) {
 	theMessage[helpers.ServerActionPrivateMessage].(map[string]interface{})["t"] = user.name // to
 	theMessage[helpers.ServerActionPrivateMessage].(map[string]interface{})["m"] = message // message
 
-	user.socket.WriteJSON(theMessage)
-	u.socket.WriteJSON(theMessage)
+	//SEND MESSAGES
+	user.mux.Lock()
+	for _, conn := range user.conns {
+		(*conn).socket.WriteJSON(theMessage)
+	}
+	user.mux.Unlock()
+	u.mux.Lock()
+	for _, conn := range u.conns {
+		(*conn).socket.WriteJSON(theMessage)
+	}
+	u.mux.Unlock()
 
 	return
 }
@@ -38,6 +47,10 @@ func (u *User) DataMessage(data interface{}) {
 	message := make(map[string]interface{})
 	message[helpers.ServerActionDataMessage] = data
 
-	//SEND MESSAGE TO USERS
-	u.socket.WriteJSON(message)
+	//SEND MESSAGE TO USER
+	u.mux.Lock()
+	for _, conn := range u.conns {
+		(*conn).socket.WriteJSON(message)
+	}
+	u.mux.Unlock()
 }

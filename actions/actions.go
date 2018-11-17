@@ -22,10 +22,12 @@ type CustomClientAction struct {
 // Client objects are created and sent along with your CustomClientAction callback function when a
 // client sends an action.
 type Client struct {
-	user   *users.User
 	action string
 
-	socket    *websocket.Conn
+	user   *users.User
+	connID string
+	socket *websocket.Conn
+
 	responded bool
 }
 
@@ -89,8 +91,8 @@ func New(actionType string, dataType int, callback func(interface{}, Client)) er
 //
 // WARNING: This is only meant for internal Gopher Game Server mechanics. Your CustomClientAction callbacks are called
 // from this function. This could spawn errors and/or memory leaks.
-func HandleCustomClientAction(action string, data interface{}, user *users.User, conn *websocket.Conn) {
-	client := Client{user: user, action: action, socket: conn, responded: false}
+func HandleCustomClientAction(action string, data interface{}, user *users.User, conn *websocket.Conn, connID string) {
+	client := Client{user: user, action: action, socket: conn, connID: connID, responded: false}
 	// CHECK IF ACTION EXISTS
 	if customAction, ok := customClientActions[action]; ok {
 		// CHECK IF THE TYPE OF data MATCHES THE TYPE action SPECIFIES
@@ -200,6 +202,13 @@ func (c *Client) Respond(response interface{}, err error) {
 // User gets the *User of the Client.
 func (c *Client) User() *users.User {
 	return c.user
+}
+
+// ConnectionID gets the connection ID of the Client. This is only used if you have MultiConnect enabled in ServerSettings and
+// you need to, for instance, call *User functions with the Client's *User obtained with the client.User() function. If
+// you do, use client.ConnectionID() when calling any *User functions from a Client.
+func (c *Client) ConnectionID() string {
+	return c.connID
 }
 
 // Action gets the type of action the Client sent.

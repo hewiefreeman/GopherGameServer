@@ -68,12 +68,20 @@ func (r *Room) DataMessage(message interface{}, recipients []string) error {
 	//SEND MESSAGE TO USERS
 	if recipients == nil || len(recipients) == 0 {
 		for _, u := range userMap {
-			u.socket.WriteJSON(theMessage)
+			u.mux.Lock()
+			for _, conn := range u.conns {
+				(*conn).socket.WriteJSON(theMessage)
+			}
+			u.mux.Unlock()
 		}
 	} else {
 		for i := 0; i < len(recipients); i++ {
 			if u, ok := userMap[recipients[i]]; ok {
-				u.socket.WriteJSON(theMessage)
+				u.mux.Lock()
+				for _, conn := range u.conns {
+					(*conn).socket.WriteJSON(theMessage)
+				}
+				u.mux.Unlock()
 			}
 		}
 	}
@@ -107,12 +115,20 @@ func (r *Room) sendMessage(mt int, st int, rec []string, a string, m interface{}
 	//SEND MESSAGE TO USERS
 	if rec == nil || len(rec) == 0 {
 		for _, u := range userMap {
-			u.socket.WriteJSON(message)
+			u.mux.Lock()
+			for _, conn := range u.conns {
+				(*conn).socket.WriteJSON(message)
+			}
+			u.mux.Unlock()
 		}
 	} else {
 		for i := 0; i < len(rec); i++ {
 			if u, ok := userMap[rec[i]]; ok {
-				u.socket.WriteJSON(message)
+				u.mux.Lock()
+				for _, conn := range u.conns {
+					(*conn).socket.WriteJSON(message)
+				}
+				u.mux.Unlock()
 			}
 		}
 	}

@@ -61,8 +61,9 @@ func clientActionListener(conn *websocket.Conn, ua *user_agent.UserAgent) {
 	// CLIENT ACTION INPUT
 	var action clientAction
 
-	// THE CLIENT'S User OBJECT
-	var user *users.User = &users.User{}
+	var clientMux sync.Mutex // LOCKS user AND connID
+	var user *users.User = nil // THE CLIENT'S User OBJECT
+	var connID string // CLIENT SESSION ID
 
 	// THE CLIENT'S AUTOLOG INFO
 	var deviceTag string
@@ -197,8 +198,8 @@ func clientActionListener(conn *websocket.Conn, ua *user_agent.UserAgent) {
 					return
 				}
 				//AUTO-LOG THE CLIENT
-				clientUser, autoLogErr := users.AutoLogIn(deviceTag, oldPass, devicePass, deviceUserID, conn)
-				if autoLogErr != nil {
+				connID, err = users.AutoLogIn(deviceTag, oldPass, devicePass, deviceUserID, conn, &user, &clientMux)
+				if err != nil {
 					//ERROR AUTO-LOGGING - RUN AUTOLOGCOMPLETE AND DELETE KEYS FOR CLIENT, AND SILENTLY CHANGE DEVICE KEY
 					newTag, newTagErr := helpers.GenerateSecureString(32)
 					if newTagErr != nil {
@@ -209,7 +210,7 @@ func clientActionListener(conn *websocket.Conn, ua *user_agent.UserAgent) {
 					autologMessage := make(map[string]interface{})
 					autologMessage[helpers.ServerActionAutoLoginFailed] = make(map[string]interface{})
 					autologMessage[helpers.ServerActionAutoLoginFailed].(map[string]interface{})["dt"] = newTag
-					autologMessage[helpers.ServerActionAutoLoginFailed].(map[string]interface{})["e"] = autoLogErr.Error()
+					autologMessage[helpers.ServerActionAutoLoginFailed].(map[string]interface{})["e"] = err.Error()
 					writeErr := conn.WriteJSON(autologMessage)
 					if writeErr != nil {
 						conn.WriteControl(websocket.CloseMessage, []byte{}, time.Now().Add(time.Second*1))
@@ -220,7 +221,6 @@ func clientActionListener(conn *websocket.Conn, ua *user_agent.UserAgent) {
 					//
 					break
 				}
-				user = clientUser
 				//
 				break
 			}
@@ -233,20 +233,20 @@ func clientActionListener(conn *websocket.Conn, ua *user_agent.UserAgent) {
 		readErr := conn.ReadJSON(&action)
 		if readErr != nil || action.A == "" {
 			//DISCONNECT USER
-			sockedDropped(user)
+			sockedDropped(user, connID)
 			conn.WriteControl(websocket.CloseMessage, []byte{}, time.Now().Add(time.Second*1))
 			conn.Close()
 			return
 		}
 
 		//TAKE ACTION
-		responseVal, respond, actionErr := clientActionHandler(action, &user, conn, ua, &deviceTag, &devicePass, &deviceUserID)
+		responseVal, respond, actionErr := clientActionHandler(action, &user, conn, ua, &deviceTag, &devicePass, &deviceUserID, &connID, &clientMux)
 
 		if respond {
 			//SEND RESPONSE
 			if writeErr := conn.WriteJSON(helpers.MakeClientResponse(action.A, responseVal, actionErr)); writeErr != nil {
 				//DISCONNECT USER
-				sockedDropped(user)
+				sockedDropped(user, connID)
 				conn.WriteControl(websocket.CloseMessage, []byte{}, time.Now().Add(time.Second*1))
 				conn.Close()
 				return
@@ -258,10 +258,10 @@ func clientActionListener(conn *websocket.Conn, ua *user_agent.UserAgent) {
 	}
 }
 
-func sockedDropped(user *users.User) {
-	if user.IsOnline() {
+func sockedDropped(user *users.User, connID string) {
+	if user != nil {
 		//CLIENT WAS LOGGED IN. LOG THEM OUT
-		user.Logout()
+		user.Logout(connID)
 	}
 	conns.subtract()
 }

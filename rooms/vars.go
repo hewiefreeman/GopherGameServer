@@ -87,55 +87,92 @@ func (r *Room) GetVariables(keys []string) (map[string]interface{}, error) {
 //   USER VARIABLES   /////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// SetVariable sets a RoomUser's variable.
-func (r *RoomUser) SetVariable(key string, value interface{}) {
+// SetVariable sets a RoomUser's variable. If you are using MultiConnect in ServerSettings, the connID
+// parameter is the connection ID associated with one of the connections attached to that User. This must
+// be provided when manipulating a RoomUser's variables with MultiConnect enabled. Otherwise, an empty string can be used.
+func (r *RoomUser) SetVariable(key string, value interface{}, connID string) {
 	//REJECT INCORRECT INPUT
 	if len(key) == 0 {
 		return
+	} else if multiConnect && len(connID) == 0 {
+		return
+	} else if !multiConnect {
+		connID = "1"
 	}
 	(*r.mux).Lock()
-	(*r.vars)[key] = value
-	(*r.mux).Unlock()
-}
-
-// SetVariables sets all the specified RoomUser's variables at once.
-func (r *RoomUser) SetVariables(values map[string]interface{}) {
-	(*r.mux).Lock()
-	for key, val := range values {
-		(*r.vars)[key] = val
+	if conn, ok := r.conns[connID]; ok {
+		(*(*conn).vars)[key] = value
 	}
 	(*r.mux).Unlock()
 }
 
-// GetVariable gets a RoomUser's variable.
-func (r *RoomUser) GetVariable(key string) interface{} {
+// SetVariables sets all the specified RoomUser's variables at once. If you are using MultiConnect in ServerSettings, the connID
+// parameter is the connection ID associated with one of the connections attached to that User. This must
+// be provided when manipulating a RoomUser's variables with MultiConnect enabled. Otherwise, an empty string can be used.
+func (r *RoomUser) SetVariables(values map[string]interface{}, connID string) {
+	if multiConnect && len(connID) == 0 {
+		return
+	} else if !multiConnect {
+		connID = "1"
+	}
+	(*r.mux).Lock()
+	if conn, ok := r.conns[connID]; ok {
+		for key, val := range values {
+			(*(*conn).vars)[key] = val
+		}
+	}
+	(*r.mux).Unlock()
+}
+
+// GetVariable gets a RoomUser's variable. If you are using MultiConnect in ServerSettings, the connID
+// parameter is the connection ID associated with one of the connections attached to that User. This must
+// be provided when manipulating a RoomUser's variables with MultiConnect enabled. Otherwise, an empty string can be used.
+func (r *RoomUser) GetVariable(key string, connID string) interface{} {
 	//REJECT INCORRECT INPUT
 	if len(key) == 0 {
-		return errors.New("*Room.GetUserVariable() requires a variable name")
+		return nil
+	} else if multiConnect && len(connID) == 0 {
+		return nil
+	} else if !multiConnect {
+		connID = "1"
 	}
 
 	var value interface{}
 
 	(*r.mux).Lock()
-	value = (*r.vars)[key]
+	if conn, ok := r.conns[connID]; ok {
+		value = (*(*conn).vars)[key]
+	}
 	(*r.mux).Unlock()
 
 	//
 	return value
 }
 
-// GetVariables gets all the specified (or all if not) RoomUser's variables as a map[string]interface{}.
-func (r *RoomUser) GetVariables(keys []string) map[string]interface{} {
+// GetVariables gets all the specified (or all if not) RoomUser's variables as a map[string]interface{}. If you are using MultiConnect in ServerSettings, the connID
+// parameter is the connection ID associated with one of the connections attached to that User. This must
+// be provided when manipulating a RoomUser's variables with MultiConnect enabled. Otherwise, an empty string can be used.
+func (r *RoomUser) GetVariables(keys []string, connID string) map[string]interface{} {
+	if multiConnect && len(connID) == 0 {
+		return nil
+	} else if !multiConnect {
+		connID = "1"
+	}
+
 	var value map[string]interface{} = make(map[string]interface{})
 
 	if keys == nil || len(keys) == 0 {
 		(*r.mux).Lock()
-		value = *r.vars
+		value = *((*r.conns[connID]).vars)
 		(*r.mux).Unlock()
 	}else{
 		(*r.mux).Lock()
 		for i := 0; i < len(keys); i++ {
-			value[keys[i]] = (*r.vars)[keys[i]]
+			if conn, ok := r.conns[connID]; ok {
+				value[keys[i]] = (*(*conn).vars)[keys[i]]
+			}else{
+				value[keys[i]] = nil
+			}
 		}
 		(*r.mux).Unlock()
 	}

@@ -2,6 +2,7 @@ package gopher
 
 import (
 	"errors"
+	"sync"
 	"github.com/gorilla/websocket"
 	"github.com/hewiefreeman/GopherGameServer/actions"
 	"github.com/hewiefreeman/GopherGameServer/database"
@@ -9,6 +10,7 @@ import (
 	"github.com/hewiefreeman/GopherGameServer/rooms"
 	"github.com/hewiefreeman/GopherGameServer/users"
 	"github.com/mssola/user_agent"
+	"fmt"
 )
 
 const (
@@ -28,29 +30,29 @@ const (
 )
 
 func clientActionHandler(action clientAction, user **users.User, conn *websocket.Conn, ua *user_agent.UserAgent,
-	deviceTag *string, devicePass *string, deviceUserID *int) (interface{}, bool, error) {
+	deviceTag *string, devicePass *string, deviceUserID *int, connID *string, clientMux *sync.Mutex) (interface{}, bool, error) {
 	switch _action := action.A; _action {
 
 		// HIGH LOOK-UP PRIORITY ITEMS
 
 		case helpers.ClientActionCustomAction:
-			return clientCustomAction(action.P, user, conn)
+			return clientCustomAction(action.P, user, conn, *connID)
 		case helpers.ClientActionVoiceStream:
-			return clientActionVoiceStream(action.P, user, conn)
+			return clientActionVoiceStream(action.P, user, conn, *connID)
 
 		// USER VARIABLES
 
 		case helpers.ClientActionSetVariable:
-			return clientActionSetVariable(action.P, user);
+			return clientActionSetVariable(action.P, user, *connID);
 		case helpers.ClientActionSetVariables:
-			return clientActionSetVariables(action.P, user);
+			return clientActionSetVariables(action.P, user, *connID);
 
 		// CHAT
 
 		case helpers.ClientActionChatMessage:
-			return clientActionChatMessage(action.P, user)
+			return clientActionChatMessage(action.P, user, *connID)
 		case helpers.ClientActionPrivateMessage:
-			return clientActionPrivateMessage(action.P, user)
+			return clientActionPrivateMessage(action.P, user, *connID)
 
 		// CHANGE STATUS
 
@@ -60,24 +62,24 @@ func clientActionHandler(action clientAction, user **users.User, conn *websocket
 		// LOGIN/LOGOUT
 
 		case helpers.ClientActionLogin:
-			return clientActionLogin(action.P, user, deviceTag, devicePass, deviceUserID, conn)
+			return clientActionLogin(action.P, user, deviceTag, devicePass, deviceUserID, conn, connID, clientMux)
 		case helpers.ClientActionLogout:
-			return clientActionLogout(user, deviceTag, devicePass, deviceUserID)
+			return clientActionLogout(user, deviceTag, devicePass, deviceUserID, connID)
 
 		// ROOM ACTIONS
 
 		case helpers.ClientActionJoinRoom:
-			return clientActionJoinRoom(action.P, user)
+			return clientActionJoinRoom(action.P, user, *connID)
 		case helpers.ClientActionLeaveRoom:
-			return clientActionLeaveRoom(user)
+			return clientActionLeaveRoom(user, *connID)
 		case helpers.ClientActionCreateRoom:
-			return clientActionCreateRoom(action.P, user)
+			return clientActionCreateRoom(action.P, user, *connID)
 		case helpers.ClientActionDeleteRoom:
 			return clientActionDeleteRoom(action.P, user)
 		case helpers.ClientActionRoomInvite:
-			return clientActionRoomInvite(action.P, user)
+			return clientActionRoomInvite(action.P, user, *connID)
 		case helpers.ClientActionRevokeInvite:
-			return clientActionRevokeInvite(action.P, user)
+			return clientActionRevokeInvite(action.P, user, *connID)
 
 		// FRIENDING
 
@@ -112,7 +114,7 @@ func clientActionHandler(action clientAction, user **users.User, conn *websocket
 //   CUSTOM CLIENT ACTIONS   /////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
-func clientCustomAction(params interface{}, user **users.User, conn *websocket.Conn) (interface{}, bool, error) {
+func clientCustomAction(params interface{}, user **users.User, conn *websocket.Conn, connID string) (interface{}, bool, error) {
 	var ok bool
 	var pMap map[string]interface{}
 	var action string
@@ -122,11 +124,7 @@ func clientCustomAction(params interface{}, user **users.User, conn *websocket.C
 	if action, ok = pMap["a"].(string); !ok {
 		return nil, true, errors.New(errorIncorrectFormatAction)
 	}
-	if (*user).IsOnline() {
-		actions.HandleCustomClientAction(action, pMap["d"], *user, conn)
-	} else {
-		actions.HandleCustomClientAction(action, pMap["d"], &users.User{}, conn)
-	}
+	actions.HandleCustomClientAction(action, pMap["d"], *user, conn, connID)
 	return nil, false, nil
 }
 
@@ -135,7 +133,7 @@ func clientCustomAction(params interface{}, user **users.User, conn *websocket.C
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
 func clientActionChangeStatus(params interface{}, user **users.User) (interface{}, bool, error) {
-	if !(*user).IsOnline() {
+	if *user == nil {
 		return nil, true, errors.New("You must be logged in to change your status")
 	}
 	//GET PARAMS
@@ -159,7 +157,7 @@ func clientActionChangeStatus(params interface{}, user **users.User) (interface{
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
 func clientActionSignup(params interface{}, user **users.User) (interface{}, bool, error) {
-	if (*user).IsOnline() {
+	if *user == nil {
 		return nil, true, errors.New("You must be logged out to sign up")
 	} else if !(*settings).EnableSqlFeatures {
 		return nil, true, errors.New("Required server features are not enabled")
@@ -195,7 +193,7 @@ func clientActionSignup(params interface{}, user **users.User) (interface{}, boo
 }
 
 func clientActionDeleteAccount(params interface{}, user **users.User) (interface{}, bool, error) {
-	if (*user).IsOnline() {
+	if *user != nil {
 		return nil, true, errors.New("You must be logged out to delete your account")
 	} else if !(*settings).EnableSqlFeatures {
 		return nil, true, errors.New("Required server features are not enabled")
@@ -237,7 +235,7 @@ func clientActionDeleteAccount(params interface{}, user **users.User) (interface
 }
 
 func clientActionChangePassword(params interface{}, user **users.User) (interface{}, bool, error) {
-	if !(*user).IsOnline() {
+	if *user == nil {
 		return nil, true, errors.New("You must be logged in to change your password")
 	} else if !(*settings).EnableSqlFeatures {
 		return nil, true, errors.New("Required server features are not enabled")
@@ -273,7 +271,7 @@ func clientActionChangePassword(params interface{}, user **users.User) (interfac
 }
 
 func clientActionChangeAccountInfo(params interface{}, user **users.User) (interface{}, bool, error) {
-	if !(*user).IsOnline() {
+	if *user == nil {
 		return nil, true, errors.New("You must be logged in to change your account info")
 	} else if !(*settings).EnableSqlFeatures {
 		return nil, true, errors.New("Required server features are not enabled")
@@ -308,10 +306,14 @@ func clientActionChangeAccountInfo(params interface{}, user **users.User) (inter
 //   LOGIN+LOGOUT ACTIONS   //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
-func clientActionLogin(params interface{}, user **users.User, deviceTag *string, devicePass *string, deviceUserID *int, conn *websocket.Conn) (interface{}, bool, error) {
-	if (*user).IsOnline() {
+func clientActionLogin(params interface{}, user **users.User, deviceTag *string, devicePass *string, deviceUserID *int, conn *websocket.Conn,
+					connID *string, clientMux *sync.Mutex) (interface{}, bool, error) {
+	(*clientMux).Lock()
+	if *user != nil {
+		fmt.Println("already logged in...")
 		return nil, true, errors.New("Already logged in as '" + (*user).Name() + "'")
 	}
+	(*clientMux).Unlock()
 	//MAKE A MAP FROM PARAMS
 	var ok bool
 	var pMap map[string]interface{}
@@ -346,47 +348,51 @@ func clientActionLogin(params interface{}, user **users.User, deviceTag *string,
 			return nil, true, errors.New(errorIncorrectFormatCols)
 		}
 	}
+	fmt.Println("logging in...")
 	//LOG IN
 	var dbIndex int
-	var userRef *users.User
 	var uName string
 	var dPass string
+	var cID string
 	var err error
 	if (*settings).EnableSqlFeatures {
 		uName, dbIndex, dPass, err = database.LoginClient(name, pass, *deviceTag, remMe, customCols)
 		if err != nil {
 			return nil, true, err
 		}
-		userRef, err = users.Login(uName, dbIndex, dPass, guest, remMe, conn)
+		fmt.Println("logged with database...")
+		cID, err = users.Login(uName, dbIndex, dPass, guest, remMe, conn, user, clientMux)
 	} else {
-		userRef, err = users.Login(name, -1, "", guest, false, conn)
+		cID, err = users.Login(name, -1, "", guest, false, conn, user, clientMux)
 	}
 	if err != nil {
+		fmt.Println("error with users...", err)
 		return nil, true, err
 	}
+	fmt.Println("logged with users...")
 	//CHANGE SOCKET'S userName
-	*user = userRef
 	*devicePass = dPass
 	*deviceUserID = dbIndex
+	*connID = cID
 
 	//
 	return nil, false, nil
 }
 
-func clientActionLogout(user **users.User, deviceTag *string, devicePass *string, deviceUserID *int) (interface{}, bool, error) {
-	if !(*user).IsOnline() {
+func clientActionLogout(user **users.User, deviceTag *string, devicePass *string, deviceUserID *int, connID *string) (interface{}, bool, error) {
+	if *user == nil {
 		return nil, true, errors.New("Already logged out")
 	}
 	//LOG User OUT AND RESET SOCKET'S userName
-	(*user).Logout()
+	(*user).Logout(*connID)
 	//REMOVE AUTO-LOG IF ANY
 	if (*settings).EnableSqlFeatures && (*settings).RememberMe {
 		database.RemoveAutoLog(*deviceUserID, *deviceTag)
 	}
 	//
-	*user = &users.User{}
 	*devicePass = ""
 	*deviceUserID = 0
+	*connID = ""
 
 	//
 	return nil, false, nil
@@ -396,8 +402,8 @@ func clientActionLogout(user **users.User, deviceTag *string, devicePass *string
 //   ROOM ACTIONS   //////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
-func clientActionJoinRoom(params interface{}, user **users.User) (interface{}, bool, error) {
-	if !(*user).IsOnline() {
+func clientActionJoinRoom(params interface{}, user **users.User, connID string) (interface{}, bool, error) {
+	if *user == nil {
 		return nil, true, errors.New("You must be logged in to join a room")
 	}
 	//GET ROOM NAME FROM PARAMS
@@ -412,7 +418,7 @@ func clientActionJoinRoom(params interface{}, user **users.User) (interface{}, b
 		return nil, true, roomErr
 	}
 	//MAKE User JOIN THE Room
-	joinErr := (*user).Join(room)
+	joinErr := (*user).Join(room, connID)
 	if joinErr != nil {
 		return nil, true, joinErr
 	}
@@ -421,12 +427,12 @@ func clientActionJoinRoom(params interface{}, user **users.User) (interface{}, b
 	return nil, false, nil
 }
 
-func clientActionLeaveRoom(user **users.User) (interface{}, bool, error) {
-	if !(*user).IsOnline() {
+func clientActionLeaveRoom(user **users.User, connID string) (interface{}, bool, error) {
+	if *user == nil {
 		return nil, true, errors.New("You must be logged in to leave a room")
 	}
 	//MAKE USER LEAVE ROOM
-	leaveErr := (*user).Leave()
+	leaveErr := (*user).Leave(connID)
 	if leaveErr != nil {
 		return nil, true, leaveErr
 	}
@@ -435,8 +441,8 @@ func clientActionLeaveRoom(user **users.User) (interface{}, bool, error) {
 	return nil, false, nil
 }
 
-func clientActionCreateRoom(params interface{}, user **users.User) (interface{}, bool, error) {
-	if !(*user).IsOnline() {
+func clientActionCreateRoom(params interface{}, user **users.User, connID string) (interface{}, bool, error) {
+	if *user == nil {
 		return nil, true, errors.New("You must be logged in to create a room")
 	} else if !(*settings).UserRoomControl {
 		return nil, true, errors.New("Clients do not have room control")
@@ -481,7 +487,7 @@ func clientActionCreateRoom(params interface{}, user **users.User) (interface{},
 		return nil, true, roomErr
 	}
 	//ADD THE User TO THE ROOM
-	joinErr := (*user).Join(room)
+	joinErr := (*user).Join(room, connID)
 	if joinErr != nil {
 		return nil, true, joinErr
 	}
@@ -491,7 +497,7 @@ func clientActionCreateRoom(params interface{}, user **users.User) (interface{},
 }
 
 func clientActionDeleteRoom(params interface{}, user **users.User) (interface{}, bool, error) {
-	if !(*user).IsOnline() {
+	if *user == nil {
 		return nil, true, errors.New("You must be logged in to delete a room")
 	} else if !(*settings).UserRoomControl {
 		return nil, true, errors.New("Clients do not have room control")
@@ -523,23 +529,11 @@ func clientActionDeleteRoom(params interface{}, user **users.User) (interface{},
 	return nil, true, nil
 }
 
-func clientActionRoomInvite(params interface{}, user **users.User) (interface{}, bool, error) {
-	if !(*user).IsOnline() {
+func clientActionRoomInvite(params interface{}, user **users.User, connID string) (interface{}, bool, error) {
+	if *user == nil {
 		return nil, true, errors.New("You must be logged in to invite to a room")
 	} else if !(*settings).UserRoomControl {
 		return nil, true, errors.New("Clients do not have room control")
-	}
-	//CHECK IF USER IS IN A ROOM
-	currRoom := (*user).RoomIn()
-	if currRoom == nil || currRoom.Name() == "" {
-		return nil, true, errors.New("You must be in a room to invite others")
-	} else if currRoom.Owner() != (*user).Name() {
-		return nil, true, errors.New("Only the owner of the room can invite")
-	}
-	//
-	rType := rooms.GetRoomTypes()[currRoom.Type()]
-	if rType.ServerOnly() {
-		return nil, true, errors.New("Only the server can manipulate that type of room")
 	}
 	//GET PARAMS
 	var ok bool
@@ -553,7 +547,7 @@ func clientActionRoomInvite(params interface{}, user **users.User) (interface{},
 		return nil, true, invUserErr
 	}
 	//INVITE
-	invUserErr = (*user).Invite(invUser, currRoom)
+	invUserErr = (*user).Invite(invUser, connID)
 	if invUserErr != nil {
 		return nil, true, invUserErr
 	}
@@ -561,23 +555,11 @@ func clientActionRoomInvite(params interface{}, user **users.User) (interface{},
 	return nil, true, nil
 }
 
-func clientActionRevokeInvite(params interface{}, user **users.User) (interface{}, bool, error) {
-	if !(*user).IsOnline() {
+func clientActionRevokeInvite(params interface{}, user **users.User, connID string) (interface{}, bool, error) {
+	if *user == nil {
 		return nil, true, errors.New("You must be logged in to revoke an invite to a room")
 	} else if !(*settings).UserRoomControl {
 		return nil, true, errors.New("Clients do not have room control")
-	}
-	//GET CURRENT ROOM
-	currRoom := (*user).RoomIn()
-	if currRoom == nil || currRoom.Name() == "" {
-		return nil, true, errors.New("You must be in a room to revoke an invite to it")
-	} else if currRoom.Owner() != (*user).Name() {
-		return nil, true, errors.New("Only the owner of the room can revoke an invite to it")
-	}
-	//
-	rType := rooms.GetRoomTypes()[currRoom.Type()]
-	if rType.ServerOnly() {
-		return nil, true, errors.New("Only the server can manipulate that type of room")
 	}
 	//GET PARAMS
 	var ok bool
@@ -586,7 +568,7 @@ func clientActionRevokeInvite(params interface{}, user **users.User) (interface{
 		return nil, true, errors.New(errorIncorrectFormat)
 	}
 	//REVOKE INVITE
-	revokeErr := (*user).RevokeInvite(name, currRoom)
+	revokeErr := (*user).RevokeInvite(name, connID)
 	if revokeErr != nil {
 		return nil, true, revokeErr
 	}
@@ -598,12 +580,12 @@ func clientActionRevokeInvite(params interface{}, user **users.User) (interface{
 //   CHAT+VOICE ACTIONS   ////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
-func clientActionVoiceStream(params interface{}, user **users.User, conn *websocket.Conn) (interface{}, bool, error) {
-	if !(*user).IsOnline() {
+func clientActionVoiceStream(params interface{}, user **users.User, conn *websocket.Conn, connID string) (interface{}, bool, error) {
+	if *user == nil {
 		return nil, false, nil
 	}
 	//GET CURRENT ROOM
-	currRoom := (*user).RoomIn()
+	currRoom := (*user).RoomIn(connID)
 	if currRoom == nil || currRoom.Name() == "" {
 		return nil, false, nil
 	}
@@ -618,12 +600,12 @@ func clientActionVoiceStream(params interface{}, user **users.User, conn *websoc
 	return nil, false, nil
 }
 
-func clientActionChatMessage(params interface{}, user **users.User) (interface{}, bool, error) {
-	if !(*user).IsOnline() {
+func clientActionChatMessage(params interface{}, user **users.User, connID string) (interface{}, bool, error) {
+	if *user == nil {
 		return nil, false, nil
 	}
 	//GET CURRENT ROOM
-	currRoom := (*user).RoomIn()
+	currRoom := (*user).RoomIn(connID)
 	if currRoom == nil || currRoom.Name() == "" {
 		return nil, false, nil
 	}
@@ -633,8 +615,8 @@ func clientActionChatMessage(params interface{}, user **users.User) (interface{}
 	return nil, false, nil
 }
 
-func clientActionPrivateMessage(params interface{}, user **users.User) (interface{}, bool, error) {
-	if !(*user).IsOnline() {
+func clientActionPrivateMessage(params interface{}, user **users.User, connID string) (interface{}, bool, error) {
+	if *user == nil {
 		return nil, false, nil
 	}
 	//GET PARAMS
@@ -644,7 +626,7 @@ func clientActionPrivateMessage(params interface{}, user **users.User) (interfac
 	if pMap, ok = params.(map[string]interface{}); !ok { return nil, false, nil }
 	if userName, ok = pMap["u"].(string); !ok { return nil, false, nil }
 	//GET CURRENT ROOM
-	currRoom := (*user).RoomIn()
+	currRoom := (*user).RoomIn(connID)
 	if currRoom == nil || currRoom.Name() == "" {
 		return nil, false, nil
 	}
@@ -658,8 +640,8 @@ func clientActionPrivateMessage(params interface{}, user **users.User) (interfac
 //   USER VARIABLES   ////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
-func clientActionSetVariable(params interface{}, user **users.User) (interface{}, bool, error) {
-	if !(*user).IsOnline() {
+func clientActionSetVariable(params interface{}, user **users.User, connID string) (interface{}, bool, error) {
+	if *user == nil {
 		return nil, false, nil
 	}
 	//GET PARAMS
@@ -671,13 +653,13 @@ func clientActionSetVariable(params interface{}, user **users.User) (interface{}
 	if varKey, ok = pMap["k"].(string); !ok { return nil, false, nil }
 	varVal =  pMap["v"]
 	//SET THE VARIABLE
-	(*user).SetVariable(varKey, varVal)
+	(*user).SetVariable(varKey, varVal, connID)
 	//
 	return nil, false, nil
 }
 
-func clientActionSetVariables(params interface{}, user **users.User) (interface{}, bool, error) {
-	if !(*user).IsOnline() {
+func clientActionSetVariables(params interface{}, user **users.User, connID string) (interface{}, bool, error) {
+	if *user == nil {
 		return nil, false, nil
 	}
 	//GET PARAMS
@@ -685,7 +667,7 @@ func clientActionSetVariables(params interface{}, user **users.User) (interface{
 	var pMap map[string]interface{}
 	if pMap, ok = params.(map[string]interface{}); !ok { return nil, false, nil }
 	//SET THE VARIABLES
-	(*user).SetVariables(pMap)
+	(*user).SetVariables(pMap, connID)
 	//
 	return nil, false, nil
 }
@@ -695,7 +677,7 @@ func clientActionSetVariables(params interface{}, user **users.User) (interface{
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
 func clientActionFriendRequest(params interface{}, user **users.User) (interface{}, bool, error) {
-	if !(*user).IsOnline() {
+	if *user == nil {
 		return nil, true, errors.New("You must be logged in to request a friend")
 	} else if !(*settings).EnableSqlFeatures {
 		return nil, true, errors.New("Required server features are not enabled")
@@ -714,11 +696,11 @@ func clientActionFriendRequest(params interface{}, user **users.User) (interface
 	}
 
 	//
-	return friendName, true, nil
+	return nil, false, nil
 }
 
 func clientActionAcceptFriend(params interface{}, user **users.User) (interface{}, bool, error) {
-	if !(*user).IsOnline() {
+	if *user == nil {
 		return nil, true, errors.New("You must be logged in to accept a friend request")
 	} else if !(*settings).EnableSqlFeatures {
 		return nil, true, errors.New("Required server features are not enabled")
@@ -736,26 +718,12 @@ func clientActionAcceptFriend(params interface{}, user **users.User) (interface{
 		return nil, true, acceptErr
 	}
 
-	//GET FRIEND'S status
-	var status int
-	friend, friendErr := users.Get(friendName)
-	if friendErr != nil {
-		status = users.StatusOffline
-	} else {
-		status = friend.Status()
-	}
-
-	//MAKE RESPONSE
-	responseMap := make(map[string]interface{})
-	responseMap["n"] = friendName
-	responseMap["s"] = status
-
 	//
-	return responseMap, true, nil
+	return nil, false, nil
 }
 
 func clientActionDeclineFriend(params interface{}, user **users.User) (interface{}, bool, error) {
-	if !(*user).IsOnline() {
+	if *user == nil {
 		return nil, true, errors.New("You must be logged in to decline a friend request")
 	} else if !(*settings).EnableSqlFeatures {
 		return nil, true, errors.New("Required server features are not enabled")
@@ -774,11 +742,11 @@ func clientActionDeclineFriend(params interface{}, user **users.User) (interface
 	}
 
 	//
-	return friendName, true, nil
+	return nil, false, nil
 }
 
 func clientActionRemoveFriend(params interface{}, user **users.User) (interface{}, bool, error) {
-	if !(*user).IsOnline() {
+	if *user == nil {
 		return nil, true, errors.New("You must be logged in to remove a friend")
 	} else if !(*settings).EnableSqlFeatures {
 		return nil, true, errors.New("Required server features are not enabled")
@@ -797,5 +765,5 @@ func clientActionRemoveFriend(params interface{}, user **users.User) (interface{
 	}
 
 	//
-	return friendName, true, nil
+	return nil, false, nil
 }

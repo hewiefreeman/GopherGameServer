@@ -17,7 +17,7 @@ import (
 )
 
 /////////// TO DOs:
-///////////    - Multi-connect
+///////////    - Multi-connect (DONE)
 ///////////          - Test
 ///////////	- ServerCallbacks
 ///////////          - Test
@@ -187,7 +187,8 @@ func Start(s *ServerSettings, callback func()) error {
 	}
 
 	//UPDATE SETTINGS IN users PACKAGE, THEN users WILL UPDATE SETTINGS FOR rooms PACKAGE
-	users.SettingsSet((*settings).KickDupOnLogin, (*settings).ServerName, (*settings).RoomDeleteOnLeave, (*settings).EnableSqlFeatures, (*settings).RememberMe)
+	users.SettingsSet((*settings).KickDupOnLogin, (*settings).ServerName, (*settings).RoomDeleteOnLeave, (*settings).EnableSqlFeatures,
+					(*settings).RememberMe, (*settings).MultiConnect)
 
 	//NOTIFY PACKAGES OF SERVER START
 	users.SetServerStarted(true)
