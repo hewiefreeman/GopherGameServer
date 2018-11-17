@@ -18,7 +18,7 @@ Moreover, Gopher has a built-in, fully customizable MySQL client authentication 
  - Chat, private messaging, and voice chat
  - Customizable client authentication (**\***)
  - Built-in Friending (**\***)
- - Supports multiple connections using the same login
+ - Supports multiple connections on the same User
  - Server saves state on shut-down and restores on reboot
  - Tools provided for administrating server while running
 
