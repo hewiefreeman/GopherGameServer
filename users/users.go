@@ -11,7 +11,6 @@ import (
 	"github.com/hewiefreeman/GopherGameServer/helpers"
 	"github.com/hewiefreeman/GopherGameServer/rooms"
 	"sync"
-	"fmt"
 )
 
 // User represents a client who has logged into the service. A User can
@@ -99,14 +98,11 @@ func Login(userName string, dbID int, autologPass string, isGuest bool, remMe bo
 	usersMux.Lock()
 	//
 	if userOnline, ok := users[userName]; ok {
-		fmt.Println("user exists?")
 		userExists = true
 		if kickOnLogin {
 			//REMOVE USER FROM THEIR CURRENT ROOM IF ANY
-			fmt.Println("kicking user...")
 			userOnline.mux.Lock()
 			for connKey, conn := range userOnline.conns {
-				fmt.Println("kicking conn:", conn)
 				userRoom := (*conn).room
 				if userRoom != nil && userRoom.Name() != "" {
 					userOnline.mux.Unlock()
@@ -116,11 +112,9 @@ func Login(userName string, dbID int, autologPass string, isGuest bool, remMe bo
 				(*(*conn).clientMux).Lock()
 				*((*conn).user) = nil
 				(*(*conn).clientMux).Unlock()
-				fmt.Println("set user to nil")
 				//SEND LOGOUT MESSAGE TO CLIENT
 				clientResp := helpers.MakeClientResponse(helpers.ClientActionLogout, nil, nil)
 				(*conn).socket.WriteJSON(clientResp)
-				fmt.Println("sent logout message")
 			}
 			userOnline.mux.Unlock()
 
@@ -157,7 +151,6 @@ func Login(userName string, dbID int, autologPass string, isGuest bool, remMe bo
 			return "", errors.New("Unexpected login error")
 		}
 	} else {
-		fmt.Println("user doesnt exist")
 		//MAKE connID
 		connID = "1"
 	}
@@ -188,7 +181,6 @@ func Login(userName string, dbID int, autologPass string, isGuest bool, remMe bo
 			}
 			friends = append(friends, friendEntry)
 		}
-		fmt.Println("added to existing User")
 	} else {
 		//GET User's Friend LIST FROM DATABASE
 		if dbID != -1 && sqlFeatures {
@@ -221,7 +213,6 @@ func Login(userName string, dbID int, autologPass string, isGuest bool, remMe bo
 	(*conn.clientMux).Lock()
 	*(conn.user) = users[userName]
 	(*conn.clientMux).Unlock()
-	fmt.Println("changed client's User pointer")
 	//
 	usersMux.Unlock()
 
@@ -243,8 +234,6 @@ func Login(userName string, dbID int, autologPass string, isGuest bool, remMe bo
 		}
 	}
 
-	fmt.Println("sent friend messages...")
-
 	//SUCCESS, SEND RESPONSE TO CLIENT
 	responseVal := make(map[string]interface{})
 	responseVal["n"] = userName
@@ -255,8 +244,6 @@ func Login(userName string, dbID int, autologPass string, isGuest bool, remMe bo
 	}
 	clientResp := helpers.MakeClientResponse(helpers.ClientActionLogin, responseVal, nil)
 	socket.WriteJSON(clientResp)
-
-	fmt.Println("sent message to client...")
 
 	//
 	return connID, nil
@@ -346,10 +333,8 @@ func (u *User) Logout(connID string) {
 		usersMux.Lock()
 		delete(users, u.name)
 		usersMux.Unlock()
-		fmt.Println("deleted User")
 	} else {
 		u.mux.Unlock()
-		fmt.Println("more Users online...")
 	}
 
 	//SEND RESPONSE TO CLIENT

@@ -233,7 +233,8 @@ func clientActionListener(conn *websocket.Conn, ua *user_agent.UserAgent) {
 		readErr := conn.ReadJSON(&action)
 		if readErr != nil || action.A == "" {
 			//DISCONNECT USER
-			sockedDropped(user, connID)
+			clientMux.Lock()
+			sockedDropped(user, connID, &clientMux)
 			conn.WriteControl(websocket.CloseMessage, []byte{}, time.Now().Add(time.Second*1))
 			conn.Close()
 			return
@@ -246,7 +247,8 @@ func clientActionListener(conn *websocket.Conn, ua *user_agent.UserAgent) {
 			//SEND RESPONSE
 			if writeErr := conn.WriteJSON(helpers.MakeClientResponse(action.A, responseVal, actionErr)); writeErr != nil {
 				//DISCONNECT USER
-				sockedDropped(user, connID)
+				clientMux.Lock()
+				sockedDropped(user, connID, &clientMux)
 				conn.WriteControl(websocket.CloseMessage, []byte{}, time.Now().Add(time.Second*1))
 				conn.Close()
 				return
@@ -258,33 +260,38 @@ func clientActionListener(conn *websocket.Conn, ua *user_agent.UserAgent) {
 	}
 }
 
-func sockedDropped(user *users.User, connID string) {
+func sockedDropped(user *users.User, connID string, clientMux *sync.Mutex) {
 	if user != nil {
 		//CLIENT WAS LOGGED IN. LOG THEM OUT
+		(*clientMux).Unlock()
 		user.Logout(connID)
 	}
 	conns.subtract()
+
 }
 
 /////////////////////// HELPERS FOR connections
 
 func (c *connections) add() bool {
-	(*c).connsMux.Lock()
-	defer (*c).connsMux.Unlock()
+	c.connsMux.Lock()
+	defer c.connsMux.Unlock()
 	//
-	if (*settings).MaxConnections != 0 && (*c).conns == (*settings).MaxConnections {
+	if (*settings).MaxConnections != 0 && c.conns == (*settings).MaxConnections {
 		return false
-	} else if (*settings).MaxConnections != 0 {
-		(*c).conns++
 	}
+	c.conns++
 	//
 	return true
 }
 
 func (c *connections) subtract() {
-	(*c).connsMux.Lock()
-	if (*settings).MaxConnections != 0 {
-		(*c).conns--
-	}
-	(*c).connsMux.Unlock()
+	c.connsMux.Lock()
+	c.conns--
+	c.connsMux.Unlock()
+}
+
+func ClientsConnected() int {
+	c.connsMux.Lock()
+	defer c.connsMux.Unlock()
+	return c.conns
 }
