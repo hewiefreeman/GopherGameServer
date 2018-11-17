@@ -40,11 +40,11 @@ type User struct {
 type userConn struct {
 	//MUST LOCK clientMux WHEN GETTING/SETTING *user
 	clientMux *sync.Mutex
-	user    **User
+	user      **User
 
-	socket  *websocket.Conn
-	room    *rooms.Room
-	vars    map[string]interface{}
+	socket *websocket.Conn
+	room   *rooms.Room
+	vars   map[string]interface{}
 }
 
 var (
@@ -72,7 +72,7 @@ const (
 
 // Login logs a User in to the service.
 func Login(userName string, dbID int, autologPass string, isGuest bool, remMe bool, socket *websocket.Conn,
-			connUser **User, clientMux *sync.Mutex) (string, error) {
+	connUser **User, clientMux *sync.Mutex) (string, error) {
 	//REJECT INCORRECT INPUT
 	if len(userName) == 0 {
 		return "", errors.New("users.Login() requires a user name")
@@ -175,7 +175,7 @@ func Login(userName string, dbID int, autologPass string, isGuest bool, remMe bo
 				//GET THE User STATUS
 				if friend, ok := users[val.Name()]; ok {
 					friendEntry["s"] = friend.Status()
-				}else{
+				} else {
 					friendEntry["s"] = StatusOffline
 				}
 			}
@@ -196,7 +196,7 @@ func Login(userName string, dbID int, autologPass string, isGuest bool, remMe bo
 						//GET THE User STATUS
 						if friend, ok := users[val.Name()]; ok {
 							friendEntry["s"] = friend.Status()
-						}else{
+						} else {
 							friendEntry["s"] = StatusOffline
 						}
 					}
@@ -207,7 +207,7 @@ func Login(userName string, dbID int, autologPass string, isGuest bool, remMe bo
 		conns := make(map[string]*userConn)
 		conns[connID] = &conn
 		newUser := User{name: userName, databaseID: databaseID, isGuest: isGuest, status: 0,
-					friends: friendsMap, conns: conns}
+			friends: friendsMap, conns: conns}
 		users[userName] = &newUser
 	}
 	(*conn.clientMux).Lock()
@@ -300,7 +300,7 @@ func (u *User) Logout(connID string) {
 		u.mux.Lock()
 	}
 
-	if len(u.conns) == 1{
+	if len(u.conns) == 1 {
 		//SEND STATUS CHANGE TO FRIENDS
 		statusMessage := make(map[string]interface{})
 		statusMessage[helpers.ServerActionFriendStatusChange] = make(map[string]interface{})
@@ -321,7 +321,7 @@ func (u *User) Logout(connID string) {
 	}
 	//LOG USER OUT
 	(*u.conns[connID]).clientMux.Lock()
-	if(*((*u.conns[connID]).user) != nil){
+	if *((*u.conns[connID]).user) != nil {
 		*((*u.conns[connID]).user) = nil
 	}
 	(*u.conns[connID]).clientMux.Unlock()
@@ -526,7 +526,6 @@ func (u *User) Invite(invUser *User, connID string) error {
 		(*conn).socket.WriteJSON(invMessage)
 	}
 	invUser.mux.Unlock()
-
 
 	//
 	return nil

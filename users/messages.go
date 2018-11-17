@@ -18,9 +18,9 @@ func (u *User) PrivateMessage(userName string, message interface{}) {
 	//CONSTRUCT MESSAGE
 	theMessage := make(map[string]interface{})
 	theMessage[helpers.ServerActionPrivateMessage] = make(map[string]interface{})
-	theMessage[helpers.ServerActionPrivateMessage].(map[string]interface{})["f"] = u.name // from
+	theMessage[helpers.ServerActionPrivateMessage].(map[string]interface{})["f"] = u.name    // from
 	theMessage[helpers.ServerActionPrivateMessage].(map[string]interface{})["t"] = user.name // to
-	theMessage[helpers.ServerActionPrivateMessage].(map[string]interface{})["m"] = message // message
+	theMessage[helpers.ServerActionPrivateMessage].(map[string]interface{})["m"] = message   // message
 
 	//SEND MESSAGES
 	user.mux.Lock()

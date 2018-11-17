@@ -2,7 +2,6 @@ package gopher
 
 import (
 	"errors"
-	"sync"
 	"github.com/gorilla/websocket"
 	"github.com/hewiefreeman/GopherGameServer/actions"
 	"github.com/hewiefreeman/GopherGameServer/database"
@@ -10,6 +9,7 @@ import (
 	"github.com/hewiefreeman/GopherGameServer/rooms"
 	"github.com/hewiefreeman/GopherGameServer/users"
 	"github.com/mssola/user_agent"
+	"sync"
 )
 
 const (
@@ -32,80 +32,80 @@ func clientActionHandler(action clientAction, user **users.User, conn *websocket
 	deviceTag *string, devicePass *string, deviceUserID *int, connID *string, clientMux *sync.Mutex) (interface{}, bool, error) {
 	switch _action := action.A; _action {
 
-		// HIGH LOOK-UP PRIORITY ITEMS
+	// HIGH LOOK-UP PRIORITY ITEMS
 
-		case helpers.ClientActionCustomAction:
-			return clientCustomAction(action.P, user, conn, *connID, clientMux)
-		case helpers.ClientActionVoiceStream:
-			return clientActionVoiceStream(action.P, user, conn, *connID, clientMux)
+	case helpers.ClientActionCustomAction:
+		return clientCustomAction(action.P, user, conn, *connID, clientMux)
+	case helpers.ClientActionVoiceStream:
+		return clientActionVoiceStream(action.P, user, conn, *connID, clientMux)
 
-		// USER VARIABLES
+	// USER VARIABLES
 
-		case helpers.ClientActionSetVariable:
-			return clientActionSetVariable(action.P, user, *connID, clientMux);
-		case helpers.ClientActionSetVariables:
-			return clientActionSetVariables(action.P, user, *connID, clientMux);
+	case helpers.ClientActionSetVariable:
+		return clientActionSetVariable(action.P, user, *connID, clientMux)
+	case helpers.ClientActionSetVariables:
+		return clientActionSetVariables(action.P, user, *connID, clientMux)
 
-		// CHAT
+	// CHAT
 
-		case helpers.ClientActionChatMessage:
-			return clientActionChatMessage(action.P, user, *connID, clientMux)
-		case helpers.ClientActionPrivateMessage:
-			return clientActionPrivateMessage(action.P, user, *connID, clientMux)
+	case helpers.ClientActionChatMessage:
+		return clientActionChatMessage(action.P, user, *connID, clientMux)
+	case helpers.ClientActionPrivateMessage:
+		return clientActionPrivateMessage(action.P, user, *connID, clientMux)
 
-		// CHANGE STATUS
+	// CHANGE STATUS
 
-		case helpers.ClientActionChangeStatus:
-			return clientActionChangeStatus(action.P, user, clientMux)
+	case helpers.ClientActionChangeStatus:
+		return clientActionChangeStatus(action.P, user, clientMux)
 
-		// LOGIN/LOGOUT
+	// LOGIN/LOGOUT
 
-		case helpers.ClientActionLogin:
-			return clientActionLogin(action.P, user, deviceTag, devicePass, deviceUserID, conn, connID, clientMux)
-		case helpers.ClientActionLogout:
-			return clientActionLogout(user, deviceTag, devicePass, deviceUserID, connID, clientMux)
+	case helpers.ClientActionLogin:
+		return clientActionLogin(action.P, user, deviceTag, devicePass, deviceUserID, conn, connID, clientMux)
+	case helpers.ClientActionLogout:
+		return clientActionLogout(user, deviceTag, devicePass, deviceUserID, connID, clientMux)
 
-		// ROOM ACTIONS
+	// ROOM ACTIONS
 
-		case helpers.ClientActionJoinRoom:
-			return clientActionJoinRoom(action.P, user, *connID, clientMux)
-		case helpers.ClientActionLeaveRoom:
-			return clientActionLeaveRoom(user, *connID, clientMux)
-		case helpers.ClientActionCreateRoom:
-			return clientActionCreateRoom(action.P, user, *connID, clientMux)
-		case helpers.ClientActionDeleteRoom:
-			return clientActionDeleteRoom(action.P, user, clientMux)
-		case helpers.ClientActionRoomInvite:
-			return clientActionRoomInvite(action.P, user, *connID, clientMux)
-		case helpers.ClientActionRevokeInvite:
-			return clientActionRevokeInvite(action.P, user, *connID, clientMux)
+	case helpers.ClientActionJoinRoom:
+		return clientActionJoinRoom(action.P, user, *connID, clientMux)
+	case helpers.ClientActionLeaveRoom:
+		return clientActionLeaveRoom(user, *connID, clientMux)
+	case helpers.ClientActionCreateRoom:
+		return clientActionCreateRoom(action.P, user, *connID, clientMux)
+	case helpers.ClientActionDeleteRoom:
+		return clientActionDeleteRoom(action.P, user, clientMux)
+	case helpers.ClientActionRoomInvite:
+		return clientActionRoomInvite(action.P, user, *connID, clientMux)
+	case helpers.ClientActionRevokeInvite:
+		return clientActionRevokeInvite(action.P, user, *connID, clientMux)
 
-		// FRIENDING
+	// FRIENDING
 
-		case helpers.ClientActionFriendRequest:
-			return clientActionFriendRequest(action.P, user, clientMux)
-		case helpers.ClientActionAcceptFriend:
-			return clientActionAcceptFriend(action.P, user, clientMux)
-		case helpers.ClientActionDeclineFriend:
-			return clientActionDeclineFriend(action.P, user, clientMux)
-		case helpers.ClientActionRemoveFriend:
-			return clientActionRemoveFriend(action.P, user, clientMux)
+	case helpers.ClientActionFriendRequest:
+		return clientActionFriendRequest(action.P, user, clientMux)
+	case helpers.ClientActionAcceptFriend:
+		return clientActionAcceptFriend(action.P, user, clientMux)
+	case helpers.ClientActionDeclineFriend:
+		return clientActionDeclineFriend(action.P, user, clientMux)
+	case helpers.ClientActionRemoveFriend:
+		return clientActionRemoveFriend(action.P, user, clientMux)
 
-		// DATABASE
+	// DATABASE
 
-		case helpers.ClientActionSignup:
-			return clientActionSignup(action.P, user, clientMux)
-		case helpers.ClientActionDeleteAccount:
-			return clientActionDeleteAccount(action.P, user, clientMux)
-		case helpers.ClientActionChangePassword:
-			return clientActionChangePassword(action.P, user, clientMux)
-		case helpers.ClientActionChangeAccountInfo:
-			return clientActionChangeAccountInfo(action.P, user, clientMux)
+	case helpers.ClientActionSignup:
+		return clientActionSignup(action.P, user, clientMux)
+	case helpers.ClientActionDeleteAccount:
+		return clientActionDeleteAccount(action.P, user, clientMux)
+	case helpers.ClientActionChangePassword:
+		return clientActionChangePassword(action.P, user, clientMux)
+	case helpers.ClientActionChangeAccountInfo:
+		return clientActionChangeAccountInfo(action.P, user, clientMux)
 
-		// INVALID CLIENT ACTION
+	// INVALID CLIENT ACTION
 
-		default:
-			return nil, true, errors.New("Unrecognized client action")
+	default:
+		return nil, true, errors.New("Unrecognized client action")
 	}
 }
 
@@ -331,7 +331,7 @@ func clientActionChangeAccountInfo(params interface{}, user **users.User, client
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
 func clientActionLogin(params interface{}, user **users.User, deviceTag *string, devicePass *string, deviceUserID *int, conn *websocket.Conn,
-					connID *string, clientMux *sync.Mutex) (interface{}, bool, error) {
+	connID *string, clientMux *sync.Mutex) (interface{}, bool, error) {
 	(*clientMux).Lock()
 	if *user != nil {
 		defer (*clientMux).Unlock()
@@ -687,8 +687,12 @@ func clientActionPrivateMessage(params interface{}, user **users.User, connID st
 	var ok bool
 	var pMap map[string]interface{}
 	var userName string
-	if pMap, ok = params.(map[string]interface{}); !ok { return nil, false, nil }
-	if userName, ok = pMap["u"].(string); !ok { return nil, false, nil }
+	if pMap, ok = params.(map[string]interface{}); !ok {
+		return nil, false, nil
+	}
+	if userName, ok = pMap["u"].(string); !ok {
+		return nil, false, nil
+	}
 	//GET CURRENT ROOM
 	currRoom := userRef.RoomIn(connID)
 	if currRoom == nil || currRoom.Name() == "" {
@@ -717,9 +721,13 @@ func clientActionSetVariable(params interface{}, user **users.User, connID strin
 	var pMap map[string]interface{}
 	var varKey string
 	var varVal interface{}
-	if pMap, ok = params.(map[string]interface{}); !ok { return nil, false, nil }
-	if varKey, ok = pMap["k"].(string); !ok { return nil, false, nil }
-	varVal =  pMap["v"]
+	if pMap, ok = params.(map[string]interface{}); !ok {
+		return nil, false, nil
+	}
+	if varKey, ok = pMap["k"].(string); !ok {
+		return nil, false, nil
+	}
+	varVal = pMap["v"]
 	//SET THE VARIABLE
 	userRef.SetVariable(varKey, varVal, connID)
 	//
@@ -737,7 +745,9 @@ func clientActionSetVariables(params interface{}, user **users.User, connID stri
 	//GET PARAMS
 	var ok bool
 	var pMap map[string]interface{}
-	if pMap, ok = params.(map[string]interface{}); !ok { return nil, false, nil }
+	if pMap, ok = params.(map[string]interface{}); !ok {
+		return nil, false, nil
+	}
 	//SET THE VARIABLES
 	userRef.SetVariables(pMap, connID)
 	//

@@ -165,12 +165,12 @@ func (r *RoomUser) GetVariables(keys []string, connID string) map[string]interfa
 		(*r.mux).Lock()
 		value = *((*r.conns[connID]).vars)
 		(*r.mux).Unlock()
-	}else{
+	} else {
 		(*r.mux).Lock()
 		for i := 0; i < len(keys); i++ {
 			if conn, ok := r.conns[connID]; ok {
 				value[keys[i]] = (*(*conn).vars)[keys[i]]
-			}else{
+			} else {
 				value[keys[i]] = nil
 			}
 		}

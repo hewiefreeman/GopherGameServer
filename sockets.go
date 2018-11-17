@@ -62,8 +62,8 @@ func clientActionListener(conn *websocket.Conn, ua *user_agent.UserAgent) {
 	var action clientAction
 
 	var clientMux sync.Mutex // LOCKS user AND connID
-	var user *users.User = nil // THE CLIENT'S User OBJECT
-	var connID string // CLIENT SESSION ID
+	var user *users.User     // THE CLIENT'S User OBJECT
+	var connID string        // CLIENT SESSION ID
 
 	// THE CLIENT'S AUTOLOG INFO
 	var deviceTag string
@@ -290,6 +290,8 @@ func (c *connections) subtract() {
 	c.connsMux.Unlock()
 }
 
+// ClientsConnected gets the number of clients connected to the server. Includes connections
+// not logged in as a User.
 func ClientsConnected() int {
 	c.connsMux.Lock()
 	defer c.connsMux.Unlock()

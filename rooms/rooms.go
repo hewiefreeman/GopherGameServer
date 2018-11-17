@@ -51,13 +51,13 @@ type RoomUser struct {
 	dbID    int
 
 	//mux LOCKS ALL FIELDS BELOW
-	mux    *sync.Mutex // Pointer to the User's mux
-	conns  map[string]*roomUserConn // User's conns info
+	mux   *sync.Mutex              // Pointer to the User's mux
+	conns map[string]*roomUserConn // User's conns info
 
 }
 
 type roomUserConn struct {
-	socket  *websocket.Conn
+	socket *websocket.Conn
 	roomIn **Room                  // Pointer to the User's Room pointer
 	vars   *map[string]interface{} // Pointer to the User's variables
 }
@@ -149,7 +149,7 @@ func (r *Room) Delete() error {
 	for _, v := range r.usersMap {
 		//CHANGE User's room POINTER TO nil & SEND MESSAGES
 		v.mux.Lock()
-		for key, _ := range v.conns {
+		for key := range v.conns {
 			(*v.conns[key]).socket.WriteJSON(leaveMessage)
 			*((*v.conns[key]).roomIn) = nil
 		}
@@ -256,15 +256,14 @@ func (r *Room) AddUser(userName string, dbID int, isGuest bool, socket *websocke
 		if !multiConnect {
 			r.mux.Unlock()
 			return errors.New("User '" + userName + "' is already in room '" + r.name + "'")
-		} else {
-			(*rUser.mux).Lock()
-			if _, ok := rUser.conns[connID]; ok {
-				r.mux.Unlock()
-				(*rUser.mux).Unlock()
-				return errors.New("User '" + userName + "' is already in room '" + r.name + "'")
-			}
-			(*rUser.mux).Unlock()
 		}
+		(*rUser.mux).Lock()
+		if _, ok := rUser.conns[connID]; ok {
+			r.mux.Unlock()
+			(*rUser.mux).Unlock()
+			return errors.New("User '" + userName + "' is already in room '" + r.name + "'")
+		}
+		(*rUser.mux).Unlock()
 	}
 	userList := r.usersMap
 	newConn := roomUserConn{socket: socket, roomIn: roomIn, vars: userVars}
