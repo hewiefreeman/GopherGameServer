@@ -17,8 +17,6 @@ import (
 )
 
 /////////// TO DOs:
-///////////    - Multi-connect (DONE)
-///////////          - Test
 ///////////	- ServerCallbacks
 ///////////          - Test
 ///////////    - SQLite Database:
