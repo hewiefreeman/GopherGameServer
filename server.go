@@ -6,7 +6,6 @@ package gopher
 
 import (
 	"fmt"
-	"github.com/gorilla/websocket"
 	"github.com/hewiefreeman/GopherGameServer/actions"
 	"github.com/hewiefreeman/GopherGameServer/database"
 	"github.com/hewiefreeman/GopherGameServer/rooms"

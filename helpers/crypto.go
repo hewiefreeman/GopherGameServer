@@ -34,6 +34,6 @@ func EncryptString(str string, cost int) (string, error) {
 // CompareEncryptedData uses the `golang.org/x/crypto/bcrypt` library to compare a `string` to an
 // encrypted `[]byte`. Returns true if the `string` matches the encrypted `[]byte`.
 func CompareEncryptedData(str string, hash []byte) bool {
-	err := bcrypt.CompareHashAndPassword(hash, []byte(password))
+	err := bcrypt.CompareHashAndPassword(hash, []byte(str))
 	return err == nil
 }

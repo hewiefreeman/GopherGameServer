@@ -3,6 +3,7 @@ package gopher
 import (
 	"errors"
 	"net/http"
+	"github.com/hewiefreeman/GopherGameServer/users"
 )
 
 const (

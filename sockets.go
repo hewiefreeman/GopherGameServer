@@ -43,11 +43,9 @@ func socketInitializer(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// CLIENT CONNECT CALLBACK
-	callbacks.ClientConnect != nil {
-		if !callbacks.ClientConnect(&w, r) {
-			http.Error(w, "Could not establish a connection.", http.StatusForbidden)
-			return
-		}
+	if callbacks.ClientConnect != nil && !callbacks.ClientConnect(&w, r) {
+		http.Error(w, "Could not establish a connection.", http.StatusForbidden)
+		return
 	}
 
 	//UPGRADE CONNECTION
@@ -300,7 +298,7 @@ func (c *connections) subtract() {
 // ClientsConnected gets the number of clients connected to the server. Includes connections
 // not logged in as a User.
 func ClientsConnected() int {
-	c.connsMux.Lock()
-	defer c.connsMux.Unlock()
-	return c.conns
+	conns.connsMux.Lock()
+	defer conns.connsMux.Unlock()
+	return conns.conns
 }
