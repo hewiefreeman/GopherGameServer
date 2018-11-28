@@ -146,7 +146,7 @@ func SignUpClient(userName string, password string, customCols map[string]interf
 	}
 
 	//ENCRYPT PASSWORD
-	passHash, hashErr := helpers.HashPassword(password, encryptionCost)
+	passHash, hashErr := helpers.EncryptString(password, encryptionCost)
 	if hashErr != nil {
 		return hashErr
 	}
@@ -164,7 +164,7 @@ func SignUpClient(userName string, password string, customCols map[string]interf
 		for key, val := range customCols {
 			queryPart1 = queryPart1 + key + ", "
 			//MAINTAIN THE ORDER IN WHICH THE COLUMNS WERE DECLARED VIA A SLICE
-			vals = append(vals, []interface{}{val, customAccountInfo[key].dataType})
+			vals = append(vals, []interface{}{val, customAccountInfo[key]})
 		}
 	} else if customLoginColumn != "" {
 		return errors.New("Insufficient data supplied")
@@ -175,11 +175,18 @@ func SignUpClient(userName string, password string, customCols map[string]interf
 	queryPart2 := "VALUES (\"" + userName + "\", \"" + passHash + "\", "
 	if customCols != nil {
 		for i := 0; i < len(vals); i++ {
-			dt := vals[i].([]interface{})[1].(int)
+			dt := vals[i].([]interface{})[1].(AccountInfoColumn)
 			//GET STRING VALUE & CHECK FOR INJECTIONS
-			value, valueErr := convertDataToString(dataTypes[dt], vals[i].([]interface{})[0])
+			value, valueErr := convertDataToString(dataTypes[dt.dataType], dt.dataType)
 			if valueErr != nil {
 				return valueErr
+			}
+			//CHECK FOR ENCRYPT
+			if dt.encrypt {
+				value, valueErr = helpers.EncryptString(value, encryptionCost)
+				if valueErr != nil {
+					return valueErr
+				}
 			}
 			//
 			queryPart2 = queryPart2 + value + ", "
@@ -256,7 +263,7 @@ func LoginClient(userName string, password string, deviceTag string, remMe bool,
 	uName := vals[2].(*string)
 
 	//COMPARE HASHED PASSWORDS
-	if !helpers.CheckPasswordHash(password, *dbPass) {
+	if !helpers.CompareEncryptedData(password, *dbPass) {
 		return "", 0, "", errors.New("Login or password is incorrect")
 	}
 
@@ -405,12 +412,12 @@ func ChangePassword(userName string, password string, newPassword string, custom
 	dbPass := *(vals[1]).(*[]byte)
 
 	//COMPARE HASHED PASSWORDS
-	if !helpers.CheckPasswordHash(password, dbPass) {
+	if !helpers.CompareEncryptedData(password, dbPass) {
 		return errors.New("Login or password is incorrect")
 	}
 
 	//ENCRYPT NEW PASSWORD
-	passHash, hashErr := helpers.HashPassword(newPassword, encryptionCost)
+	passHash, hashErr := helpers.EncryptString(newPassword, encryptionCost)
 	if hashErr != nil {
 		return hashErr
 	}
@@ -480,7 +487,7 @@ func ChangeAccountInfo(userName string, password string, customCols map[string]i
 	dbPass := *(vals[1]).(*[]byte)
 
 	//COMPARE HASHED PASSWORDS
-	if !helpers.CheckPasswordHash(password, dbPass) {
+	if !helpers.CompareEncryptedData(password, dbPass) {
 		return errors.New("Login or password is incorrect")
 	}
 
@@ -561,7 +568,7 @@ func DeleteAccount(userName string, password string, customCols map[string]inter
 	dbPass := *(vals[1]).(*[]byte)
 
 	//COMPARE HASHED PASSWORDS
-	if !helpers.CheckPasswordHash(password, dbPass) {
+	if !helpers.CompareEncryptedData(password, dbPass) {
 		return errors.New("Login or password is incorrect")
 	}
 

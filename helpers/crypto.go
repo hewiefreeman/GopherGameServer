@@ -6,7 +6,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-// GenerateRandomBytes uses the crypto/rand library to create a secure random []byte.
+// GenerateRandomBytes uses the `crypto/rand` library to create a secure random `[]byte` at a given size `n`.
 func GenerateRandomBytes(n int) ([]byte, error) {
 	b := make([]byte, n)
 	_, err := rand.Read(b)
@@ -18,22 +18,22 @@ func GenerateRandomBytes(n int) ([]byte, error) {
 	return b, nil
 }
 
-// GenerateSecureString uses the crypto/rand and encoding/base64 libraries to create a random string
-// of given length.
-func GenerateSecureString(s int) (string, error) {
-	b, err := GenerateRandomBytes(s)
+// GenerateSecureString uses the `crypto/rand` and `encoding/base64` libraries to create a random `string`
+// of given length `n`.
+func GenerateSecureString(n int) (string, error) {
+	b, err := GenerateRandomBytes(n)
 	return base64.URLEncoding.EncodeToString(b), err
 }
 
-// HashPassword hashes a password string with the golang.org/x/crypto/bcrypt library at a given cost.
-func HashPassword(password string, cost int) (string, error) {
-	bytes, err := bcrypt.GenerateFromPassword([]byte(password), cost)
+// EncryptString encrypts a `string` with the `golang.org/x/crypto/bcrypt` library at a given cost.
+func EncryptString(str string, cost int) (string, error) {
+	bytes, err := bcrypt.GenerateFromPassword([]byte(str), cost)
 	return string(bytes), err
 }
 
-// CheckPasswordHash uses the golang.org/x/crypto/bcrypt library to compare a password string and a
-// hashed password []byte.
-func CheckPasswordHash(password string, hash []byte) bool {
+// CompareEncryptedData uses the `golang.org/x/crypto/bcrypt` library to compare a `string` to an
+// encrypted `[]byte`. Returns true if the `string` matches the encrypted `[]byte`.
+func CompareEncryptedData(str string, hash []byte) bool {
 	err := bcrypt.CompareHashAndPassword(hash, []byte(password))
 	return err == nil
 }

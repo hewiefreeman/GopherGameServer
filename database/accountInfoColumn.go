@@ -21,6 +21,7 @@ type AccountInfoColumn struct {
 	precision int
 	notNull   bool
 	unique    bool
+	encrypt   bool
 }
 
 var (
@@ -139,7 +140,7 @@ var (
 )
 
 // NewAccountInfoColumn makes a new AccountInfoColumn. You can only make new AccountInfoColumns before starting the server.
-func NewAccountInfoColumn(name string, dataType int, maxSize int, precision int, notNull bool, unique bool) error {
+func NewAccountInfoColumn(name string, dataType int, maxSize int, precision int, notNull bool, unique bool, encrypt bool) error {
 	if serverStarted {
 		return errors.New("You can't make a new AccountInfoColumn after the server has started")
 	} else if len(name) == 0 {
@@ -156,7 +157,7 @@ func NewAccountInfoColumn(name string, dataType int, maxSize int, precision int,
 		return errors.New("The data type '" + dataTypesSize[dataType] + "' requires a max size and precision")
 	}
 
-	customAccountInfo[name] = AccountInfoColumn{dataType: dataType, maxSize: maxSize, precision: precision, notNull: notNull, unique: unique}
+	customAccountInfo[name] = AccountInfoColumn{dataType: dataType, maxSize: maxSize, precision: precision, notNull: notNull, unique: unique, encrypt: encrypt}
 
 	//
 	return nil

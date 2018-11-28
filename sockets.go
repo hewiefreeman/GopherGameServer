@@ -4,7 +4,6 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/hewiefreeman/GopherGameServer/helpers"
 	"github.com/hewiefreeman/GopherGameServer/users"
-	"github.com/mssola/user_agent"
 	"net/http"
 	"strconv"
 	"sync"
@@ -32,7 +31,7 @@ func socketInitializer(w http.ResponseWriter, r *http.Request) {
 		host := settings.HostName + ":" + strconv.Itoa(settings.Port)
 		hostAlias := settings.HostAlias + ":" + strconv.Itoa(settings.Port)
 		if origin != host && origin != hostAlias {
-			http.Error(w, "Origin not allowed.", 403)
+			http.Error(w, "Origin not allowed.", http.StatusForbidden)
 			return
 		}
 	}
@@ -43,6 +42,14 @@ func socketInitializer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// CLIENT CONNECT CALLBACK
+	callbacks.ClientConnect != nil {
+		if !callbacks.ClientConnect(&w, r) {
+			http.Error(w, "Could not establish a connection.", http.StatusForbidden)
+			return
+		}
+	}
+
 	//UPGRADE CONNECTION
 	conn, err := websocket.Upgrade(w, r, w.Header(), 1024, 1024)
 	if err != nil {
@@ -50,14 +57,11 @@ func socketInitializer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//GET USER AGENT
-	ua := user_agent.New(r.Header.Get("User-Agent"))
-
 	//
-	go clientActionListener(conn, ua)
+	go clientActionListener(conn)
 }
 
-func clientActionListener(conn *websocket.Conn, ua *user_agent.UserAgent) {
+func clientActionListener(conn *websocket.Conn) {
 	// CLIENT ACTION INPUT
 	var action clientAction
 
@@ -217,6 +221,9 @@ func clientActionListener(conn *websocket.Conn, ua *user_agent.UserAgent) {
 						conn.Close()
 						return
 					}
+					oldPass = ""
+					devicePass = ""
+					deviceUserID = 0
 					deviceTag = newTag
 					//
 					break
@@ -241,7 +248,7 @@ func clientActionListener(conn *websocket.Conn, ua *user_agent.UserAgent) {
 		}
 
 		//TAKE ACTION
-		responseVal, respond, actionErr := clientActionHandler(action, &user, conn, ua, &deviceTag, &devicePass, &deviceUserID, &connID, &clientMux)
+		responseVal, respond, actionErr := clientActionHandler(action, &user, conn, &deviceTag, &devicePass, &deviceUserID, &connID, &clientMux)
 
 		if respond {
 			//SEND RESPONSE

@@ -8,7 +8,6 @@ import (
 	"github.com/hewiefreeman/GopherGameServer/helpers"
 	"github.com/hewiefreeman/GopherGameServer/rooms"
 	"github.com/hewiefreeman/GopherGameServer/users"
-	"github.com/mssola/user_agent"
 	"sync"
 )
 
@@ -28,7 +27,7 @@ const (
 	errorIncorrectFormatVarKey       = "Incorrect data format for variable key"
 )
 
-func clientActionHandler(action clientAction, user **users.User, conn *websocket.Conn, ua *user_agent.UserAgent,
+func clientActionHandler(action clientAction, user **users.User, conn *websocket.Conn,
 	deviceTag *string, devicePass *string, deviceUserID *int, connID *string, clientMux *sync.Mutex) (interface{}, bool, error) {
 	switch _action := action.A; _action {
 

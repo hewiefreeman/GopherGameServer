@@ -11,7 +11,6 @@ import (
 	"github.com/hewiefreeman/GopherGameServer/database"
 	"github.com/hewiefreeman/GopherGameServer/rooms"
 	"github.com/hewiefreeman/GopherGameServer/users"
-	"github.com/mssola/user_agent"
 	"net/http"
 	"strconv"
 )
@@ -73,8 +72,9 @@ type ServerSettings struct {
 // ServerCallbacks provide you with a way of calling a function when a client does a basic action on the server.
 // Here hare some descriptions on the callbacks' parameters:
 //
-// 1) ClientConnect: You can get the websocket connection and user agent http information from a connecting client. It returns a
+// 1) ClientConnect: You can get the HTTP ResponseWriter and Request objects from a connecting client. It returns a
 // boolean, which will prevent the client from connecting if it returns false. This can be used to, for instance, make a white/black list.
+// When this returns true, it sends a 403 HTTP error to the client with the message, "Could not establish a connection."
 //
 // 2) Login: The `string` is the user name. The `int` is the database index of the user in the database, provided you're
 // using SQL features (otherwise it is -1). The first map[string]interface{} are your AccountInfoColumns retrieved from the server
@@ -113,7 +113,11 @@ type ServerSettings struct {
 // that made the first map retrieve items from the database. You can use these maps to compare the client's input against the result columns from
 // the database. Works exactly the same as the DeleteAccount callback, but updates only the password in a row (of course).
 type ServerCallbacks struct {
-	ClientConnect     func(*websocket.Conn, *user_agent.UserAgent) bool                           // Triggers when a client tries to connect to the server
+	Start             func()                                                                      // Triggers when the server starts (DONE)
+	Pause             func()                                                                      // Triggers when the server pauses
+	Stop              func()                                                                      // Triggers when the server resumes
+	Resume            func()                                                                      // Triggers when the server stops
+	ClientConnect     func(*http.ResponseWriter, *http.Request) bool                              // Triggers when a client tries to connect to the server (DONE)
 	Login             func(string, int, map[string]interface{}, map[string]interface{}) bool      // Triggers when a client tries to log in as a User
 	Logout            func(string, int)                                                           // Triggers when a client logs out
 	Signup            func(string, int, map[string]interface{}) bool                              // Triggers when a client tries to sign up using the built-in SQL features
@@ -124,17 +128,19 @@ type ServerCallbacks struct {
 
 var (
 	settings  *ServerSettings
-	callbacks *ServerCallbacks
+	callbacks ServerCallbacks = ServerCallbacks{}
+
+	serverStarted bool = false
 
 	//SERVER VERSION NUMBER
-	version string = "1.0 ALPHA"
+	version string = "1.0-ALPHA.2"
 )
 
 // Start will start the server. Call with a pointer to your ServerSettings (or nil for defaults) to start the server. The default
 // settings are for local testing ONLY. There are security-related options in ServerSettings
 // for SSL/TLS, connection origin testing, Admin Tools, and more. It's highly recommended to look into
 // all ServerSettings options to tune the server for your desired functionality and security needs.
-func Start(s *ServerSettings, callback func()) error {
+func Start(s *ServerSettings) error {
 	fmt.Println(" _____             _               _____\n|  __ \\           | |             /  ___|\n| |  \\/ ___  _ __ | |__   ___ _ __\\ `--.  ___ _ ____   _____ _ __\n| | __ / _ \\| '_ \\| '_ \\ / _ \\ '__|`--. \\/ _ \\ '__\\ \\ / / _ \\ '__|\n| |_\\ \\ (_) | |_) | | | |  __/ |  /\\__/ /  __/ |   \\ V /  __/ |\n \\____/\\___/| .__/|_| |_|\\___|_|  \\____/ \\___|_|    \\_/ \\___|_|\n            | |\n            |_|                                      v" + version + "\n\n")
 	fmt.Println("Starting...")
 	//SET SERVER SETTINGS
@@ -189,6 +195,7 @@ func Start(s *ServerSettings, callback func()) error {
 		(*settings).RememberMe, (*settings).MultiConnect)
 
 	//NOTIFY PACKAGES OF SERVER START
+	serverStarted = true;
 	users.SetServerStarted(true)
 	rooms.SetServerStarted(true)
 	actions.SetServerStarted(true)
@@ -208,8 +215,8 @@ func Start(s *ServerSettings, callback func()) error {
 	//START HTTP/SOCKET LISTENER
 	if settings.TLS {
 		http.HandleFunc("/wss", socketInitializer)
-		if callback != nil {
-			callback()
+		if callbacks.Start != nil {
+			callbacks.Start()
 		}
 		err := http.ListenAndServeTLS(settings.IP+":"+strconv.Itoa(settings.Port), settings.CertFile, settings.PrivKeyFile, nil)
 		if err != nil {
@@ -217,8 +224,8 @@ func Start(s *ServerSettings, callback func()) error {
 		}
 	} else {
 		http.HandleFunc("/ws", socketInitializer)
-		if callback != nil {
-			callback()
+		if callbacks.Start != nil {
+			callbacks.Start()
 		}
 		err := http.ListenAndServe(settings.IP+":"+strconv.Itoa(settings.Port), nil)
 		if err != nil {
