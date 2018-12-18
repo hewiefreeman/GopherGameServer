@@ -132,6 +132,12 @@ var (
 
 	serverStarted bool = false
 
+	startCallback func() = nil
+	pauseCallback func() = nil
+	stopCallback func() = nil
+	resumeCallback func() = nil
+	clientConnectCallback func(*http.ResponseWriter,*http.Request)bool = nil
+
 	//SERVER VERSION NUMBER
 	version string = "1.0-ALPHA.2"
 )
@@ -192,7 +198,7 @@ func Start(s *ServerSettings) error {
 
 	//UPDATE SETTINGS IN users PACKAGE, THEN users WILL UPDATE SETTINGS FOR rooms PACKAGE
 	users.SettingsSet((*settings).KickDupOnLogin, (*settings).ServerName, (*settings).RoomDeleteOnLeave, (*settings).EnableSqlFeatures,
-		(*settings).RememberMe, (*settings).MultiConnect, /*&callbacks*/)
+		(*settings).RememberMe, (*settings).MultiConnect)
 
 	//NOTIFY PACKAGES OF SERVER START
 	serverStarted = true;
@@ -205,7 +211,7 @@ func Start(s *ServerSettings) error {
 	if (*settings).EnableSqlFeatures {
 		dbErr := database.Init((*settings).SqlUser, (*settings).SqlPassword, (*settings).SqlDatabase,
 			(*settings).SqlProtocol, (*settings).SqlIP, (*settings).SqlPort, (*settings).EncryptionCost,
-			(*settings).RememberMe, (*settings).CustomLoginColumn, /*&callbacks*/)
+			(*settings).RememberMe, (*settings).CustomLoginColumn)
 		if dbErr != nil {
 			return dbErr
 		}
@@ -215,7 +221,7 @@ func Start(s *ServerSettings) error {
 	//START HTTP/SOCKET LISTENER
 	if settings.TLS {
 		http.HandleFunc("/wss", socketInitializer)
-		if callbacks.Start != nil {
+		if startCallback != nil {
 			callbacks.Start()
 		}
 		err := http.ListenAndServeTLS(settings.IP+":"+strconv.Itoa(settings.Port), settings.CertFile, settings.PrivKeyFile, nil)
@@ -224,7 +230,7 @@ func Start(s *ServerSettings) error {
 		}
 	} else {
 		http.HandleFunc("/ws", socketInitializer)
-		if callbacks.Start != nil {
+		if startCallback != nil {
 			callbacks.Start()
 		}
 		err := http.ListenAndServe(settings.IP+":"+strconv.Itoa(settings.Port), nil)

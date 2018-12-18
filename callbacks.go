@@ -15,7 +15,7 @@ func SetStartCallback(cb interface{}) error {
 	if(serverStarted){
 		return errors.New(ErrorServerRunning)
 	}else if callback, ok := cb.(func()); ok {
-		callbacks.Start = callback
+		startCallback = callback
 	}else{
 		return errors.New(ErrorIncorrectFunction)
 	}
@@ -26,7 +26,7 @@ func SetPauseCallback(cb interface{}) error {
 	if(serverStarted){
 		return errors.New(ErrorServerRunning)
 	}else if callback, ok := cb.(func()); ok {
-		callbacks.Pause = callback
+		pauseCallback = callback
 	}else{
 		return errors.New(ErrorIncorrectFunction)
 	}
@@ -37,7 +37,7 @@ func SetResumeCallback(cb interface{}) error {
 	if(serverStarted){
 		return errors.New(ErrorServerRunning)
 	}else if callback, ok := cb.(func()); ok {
-		callbacks.Resume = callback
+		resumeCallback = callback
 	}else{
 		return errors.New(ErrorIncorrectFunction)
 	}
@@ -48,7 +48,7 @@ func SetStopCallback(cb interface{}) error {
 	if(serverStarted){
 		return errors.New(ErrorServerRunning)
 	}else if callback, ok := cb.(func()); ok {
-		callbacks.Stop = callback
+		stopCallback = callback
 	}else{
 		return errors.New(ErrorIncorrectFunction)
 	}
@@ -59,7 +59,7 @@ func SetClientConnectCallback(cb interface{}) error {
 	if(serverStarted){
 		return errors.New(ErrorServerRunning)
 	}else if callback, ok := cb.(func(*http.ResponseWriter,*http.Request)bool); ok {
-		callbacks.ClientConnect = callback
+		clientConnectCallback = callback
 	}else{
 		return errors.New(ErrorIncorrectFunction)
 	}
