@@ -136,13 +136,13 @@ func checkCustomRequirements(customCols map[string]interface{}, requirements map
 // client up when using the SQL features.
 func SignUpClient(userName string, password string, customCols map[string]interface{}) error {
 	if len(userName) == 0 {
-		return errors.New("A user name is required to sign up")
+		return errors.New("User name is required")
 	} else if len(password) == 0 {
-		return errors.New("A password is required to sign up")
+		return errors.New("Password is required")
 	} else if checkStringSQLInjection(userName) {
 		return errors.New("Malicious characters detected")
 	} else if !checkCustomRequirements(customCols, customSignupRequirements) {
-		return errors.New("Incorrect data supplied")
+		return errors.New("Incorrect custom columns")
 	}
 
 	//ENCRYPT PASSWORD
@@ -158,7 +158,7 @@ func SignUpClient(userName string, password string, customCols map[string]interf
 	if customCols != nil {
 		if customLoginColumn != "" {
 			if _, ok := customCols[customLoginColumn]; !ok {
-				return errors.New("Insufficient data supplied")
+				return errors.New("Insufficient data")
 			}
 		}
 		for key, val := range customCols {
@@ -167,7 +167,7 @@ func SignUpClient(userName string, password string, customCols map[string]interf
 			vals = append(vals, []interface{}{val, customAccountInfo[key]})
 		}
 	} else if customLoginColumn != "" {
-		return errors.New("Insufficient data supplied")
+		return errors.New("Insufficient data")
 	}
 	queryPart1 = queryPart1[0:len(queryPart1)-2] + ") "
 
@@ -178,14 +178,14 @@ func SignUpClient(userName string, password string, customCols map[string]interf
 			dt := vals[i].([]interface{})[1].(AccountInfoColumn)
 			//GET STRING VALUE & CHECK FOR INJECTIONS
 			value, valueErr := convertDataToString(dataTypes[dt.dataType], dt.dataType)
-			if valueErr != nil {
-				return valueErr
+			if valueErr != 0 {
+				return errors.New("Insufficient data")
 			}
 			//CHECK FOR ENCRYPT
 			if dt.encrypt {
 				value, valueErr = helpers.EncryptString(value, encryptionCost)
 				if valueErr != nil {
-					return valueErr
+					return errors.New("Ecryption error occured")
 				}
 			}
 			//

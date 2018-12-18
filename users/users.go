@@ -113,7 +113,7 @@ func Login(userName string, dbID int, autologPass string, isGuest bool, remMe bo
 				*((*conn).user) = nil
 				(*(*conn).clientMux).Unlock()
 				//SEND LOGOUT MESSAGE TO CLIENT
-				clientResp := helpers.MakeClientResponse(helpers.ClientActionLogout, nil, nil)
+				clientResp := helpers.MakeClientResponse(helpers.ClientActionLogout, nil, helpers.NewError("", 0))
 				(*conn).socket.WriteJSON(clientResp)
 			}
 			userOnline.mux.Unlock()
@@ -242,7 +242,7 @@ func Login(userName string, dbID int, autologPass string, isGuest bool, remMe bo
 		responseVal["ai"] = dbID
 		responseVal["ap"] = autologPass
 	}
-	clientResp := helpers.MakeClientResponse(helpers.ClientActionLogin, responseVal, nil)
+	clientResp := helpers.MakeClientResponse(helpers.ClientActionLogin, responseVal, helpers.NewError("", 0))
 	socket.WriteJSON(clientResp)
 
 	//
@@ -338,7 +338,7 @@ func (u *User) Logout(connID string) {
 	}
 
 	//SEND RESPONSE TO CLIENT
-	clientResp := helpers.MakeClientResponse(helpers.ClientActionLogout, nil, nil)
+	clientResp := helpers.MakeClientResponse(helpers.ClientActionLogout, nil, helpers.NewError("", 0))
 	socket.WriteJSON(clientResp)
 }
 
@@ -446,7 +446,7 @@ func (u *User) Leave(connID string) error {
 
 // SetStatus sets the status of a User. Also sends a notification to all the User's Friends (with the request
 // status "accepted") that they changed their status.
-func (u *User) SetStatus(status int) error {
+func (u *User) SetStatus(status int) {
 
 	u.mux.Lock()
 	friends := u.friends
@@ -470,9 +470,6 @@ func (u *User) SetStatus(status int) error {
 			}
 		}
 	}
-
-	//
-	return nil
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -657,7 +654,7 @@ func SetServerStarted(val bool) {
 }
 
 // SettingsSet is for Gopher Game Server internal mechanics only.
-func SettingsSet(kickDups bool, name string, deleteOnLeave bool, sqlFeat bool, remMe bool, multiConn bool) {
+func SettingsSet(kickDups bool, name string, deleteOnLeave bool, sqlFeat bool, remMe bool, multiConn bool, cbs *) {
 	if !serverStarted {
 		kickOnLogin = kickDups
 		serverName = name

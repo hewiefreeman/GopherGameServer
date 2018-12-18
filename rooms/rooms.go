@@ -143,7 +143,7 @@ func (r *Room) Delete() error {
 	}
 
 	// MAKE LEAVE MESSAGE
-	leaveMessage := helpers.MakeClientResponse(helpers.ClientActionLeaveRoom, nil, nil)
+	leaveMessage := helpers.MakeClientResponse(helpers.ClientActionLeaveRoom, nil, helpers.NewError("", 0))
 
 	// GO THROUGH ALL Users IN ROOM
 	for _, v := range r.usersMap {
@@ -306,7 +306,7 @@ func (r *Room) AddUser(userName string, dbID int, isGuest bool, socket *websocke
 	}
 
 	// SEND RESPONSE TO CLIENT
-	clientResp := helpers.MakeClientResponse(helpers.ClientActionJoinRoom, r.Name(), nil)
+	clientResp := helpers.MakeClientResponse(helpers.ClientActionJoinRoom, r.Name(), helpers.NewError("", 0))
 	socket.WriteJSON(clientResp)
 
 	//
@@ -387,7 +387,7 @@ func (r *Room) RemoveUser(userName string, connID string) error {
 	}
 
 	//SEND RESPONSE TO CLIENT
-	clientResp := helpers.MakeClientResponse(helpers.ClientActionLeaveRoom, nil, nil)
+	clientResp := helpers.MakeClientResponse(helpers.ClientActionLeaveRoom, nil, helpers.NewError("", 0))
 	uConn.socket.WriteJSON(clientResp)
 
 	//

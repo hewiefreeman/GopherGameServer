@@ -58,7 +58,7 @@ func SetStopCallback(cb interface{}) error {
 func SetClientConnectCallback(cb interface{}) error {
 	if(serverStarted){
 		return errors.New(ErrorServerRunning)
-	}else if callback, ok := cb.(func(*http.ResponseWriter, *http.Request)bool); ok {
+	}else if callback, ok := cb.(func(*http.ResponseWriter,*http.Request)bool); ok {
 		callbacks.ClientConnect = callback
 	}else{
 		return errors.New(ErrorIncorrectFunction)
@@ -102,7 +102,7 @@ func SetSignupCallback(cb interface{}) error {
 func SetDeleteAccountCallback(cb interface{}) error {
 	if(serverStarted){
 		return errors.New(ErrorServerRunning)
-	}else if callback, ok := cb.(func(string,int,map[string]interface{},map[string]interface{}) bool); ok {
+	}else if callback, ok := cb.(func(string,int,map[string]interface{},map[string]interface{})bool); ok {
 		callbacks.DeleteAccount = callback
 	}else{
 		return errors.New(ErrorIncorrectFunction)

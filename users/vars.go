@@ -32,7 +32,7 @@ func (u *User) SetVariable(key string, value interface{}, connID string) {
 	}
 	(*u.conns[connID]).vars[key] = value
 	//SEND RESPONSE TO CLIENT
-	clientResp := helpers.MakeClientResponse(helpers.ClientActionSetVariable, resp, nil)
+	clientResp := helpers.MakeClientResponse(helpers.ClientActionSetVariable, resp, helpers.NewError("", 0))
 	(*u.conns[connID]).socket.WriteJSON(clientResp)
 	u.mux.Unlock()
 }
@@ -58,7 +58,7 @@ func (u *User) SetVariables(values map[string]interface{}, connID string) {
 		(*u.conns[connID]).vars[key] = val
 	}
 	//SEND RESPONSE TO CLIENT
-	clientResp := helpers.MakeClientResponse(helpers.ClientActionSetVariables, values, nil)
+	clientResp := helpers.MakeClientResponse(helpers.ClientActionSetVariables, values, helpers.NewError("", 0))
 	(*u.conns[connID]).socket.WriteJSON(clientResp)
 	u.mux.Unlock()
 }
