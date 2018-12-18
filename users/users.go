@@ -654,7 +654,7 @@ func SetServerStarted(val bool) {
 }
 
 // SettingsSet is for Gopher Game Server internal mechanics only.
-func SettingsSet(kickDups bool, name string, deleteOnLeave bool, sqlFeat bool, remMe bool, multiConn bool, cbs *) {
+func SettingsSet(kickDups bool, name string, deleteOnLeave bool, sqlFeat bool, remMe bool, multiConn bool) {
 	if !serverStarted {
 		kickOnLogin = kickDups
 		serverName = name

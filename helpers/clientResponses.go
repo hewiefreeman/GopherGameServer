@@ -1,7 +1,7 @@
 package helpers
 
 import (
-	"structs"
+
 )
 
 //BUILT-IN CLIENT ACTION/RESPONSE MESSAGE TYPES
@@ -56,14 +56,14 @@ const (
 
 // MakeClientResponse is used for Gopher Game Server inner mechanics only.
 func MakeClientResponse(action string, responseVal interface{}, err GopherError) map[string]interface{} {
-	var response map[string]interface{}
-	if err != nil {
-		response = make(map[string]interface{})
+	var response map[string]interface{} = make(map[string]interface{})
+	if err.ID != 0 {
 		response[ServerActionClientActionResponse] = make(map[string]interface{})
 		response[ServerActionClientActionResponse].(map[string]interface{})["a"] = action
-		response[ServerActionClientActionResponse].(map[string]interface{})["e"] = structs.Map(&err)
+		response[ServerActionClientActionResponse].(map[string]interface{})["e"] = make(map[string]interface{})
+		response[ServerActionClientActionResponse].(map[string]interface{})["e"].(map[string]interface{})["m"] = err.Message
+		response[ServerActionClientActionResponse].(map[string]interface{})["e"].(map[string]interface{})["id"] = err.ID
 	} else {
-		response = make(map[string]interface{})
 		response[ServerActionClientActionResponse] = make(map[string]interface{})
 		response[ServerActionClientActionResponse].(map[string]interface{})["a"] = action
 		response[ServerActionClientActionResponse].(map[string]interface{})["r"] = responseVal

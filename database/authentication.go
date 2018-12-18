@@ -178,7 +178,7 @@ func SignUpClient(userName string, password string, customCols map[string]interf
 			dt := vals[i].([]interface{})[1].(AccountInfoColumn)
 			//GET STRING VALUE & CHECK FOR INJECTIONS
 			value, valueErr := convertDataToString(dataTypes[dt.dataType], dt.dataType)
-			if valueErr != 0 {
+			if valueErr != nil {
 				return errors.New("Insufficient data")
 			}
 			//CHECK FOR ENCRYPT

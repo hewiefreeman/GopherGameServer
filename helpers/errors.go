@@ -19,7 +19,6 @@ const (
 	Error_Gopher_Logged_In
 	Error_Gopher_Status_Change
 	Error_Gopher_Feature_Disabled
-	Error_Gopher_Room_Control
 	Error_Gopher_Columns_Format
 	Error_Gopher_Name_Format
 	Error_Gopher_Password_Format
@@ -31,6 +30,7 @@ const (
 	Error_Gopher_Private_Format
 	Error_Gopher_Max_Room_Format
 	Error_Gopher_Room_Control
+	Error_Gopher_Server_Room
 	Error_Gopher_Not_Owner
 	Error_Gopher_Login
 	Error_Gopher_Sign_Up

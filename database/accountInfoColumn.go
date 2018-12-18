@@ -184,38 +184,38 @@ func isPrecisionDataType(dataType int) bool {
 }
 
 //CONVERTS DATA TYPES TO STRING FOR SQL QUERIES
-func convertDataToString(dataType string, data interface{}) (string, int) {
+func convertDataToString(dataType string, data interface{}) (string, error) {
 	switch data.(type) {
 	case int:
 		if dataType != "INTEGER" && dataType != "TINYINT" && dataType != "MEDIUMINT" && dataType != "BIGINT" && dataType != "SMALLINT" {
-			return "", helpers.Error_Database_Mismatched_Data_Type
+			return "", errors.New("Mismatched data types")
 		}
-		return strconv.Itoa(data.(int)), 0
+		return strconv.Itoa(data.(int)), nil
 
 	case float32:
 		if dataType != "REAL" && dataType != "FLOAT" && dataType != "DOUBLE" && dataType != "DECIMAL" {
-			return "", helpers.Error_Database_Mismatched_Data_Type
+			return "", errors.New("Mismatched data types")
 		}
-		return fmt.Sprintf("%f", data.(float32)), 0
+		return fmt.Sprintf("%f", data.(float32)), nil
 
 	case float64:
 		if dataType != "REAL" && dataType != "FLOAT" && dataType != "DOUBLE" && dataType != "DECIMAL" {
-			return "", helpers.Error_Database_Mismatched_Data_Type
+			return "", errors.New("Mismatched data types")
 		}
-		return strconv.FormatFloat(data.(float64), 'f', -1, 64), 0
+		return strconv.FormatFloat(data.(float64), 'f', -1, 64), nil
 
 	case string:
 		if dataType != "CHAR" && dataType != "VARCHAR" && dataType != "NVARCHAR" && dataType != "JSON" && dataType != "TEXT" &&
 			dataType != "TINYTEXT" && dataType != "MEDIUMTEXT" && dataType != "LONGTEXT" && dataType != "DATE" &&
 			dataType != "DATETIME" && dataType != "TIME" && dataType != "TIMESTAMP" && dataType != "YEAR" {
-			return "", helpers.Error_Database_Mismatched_Data_Type
+			return "", errors.New("Mismatched data types")
 		} else if checkStringSQLInjection(data.(string)) {
-			return "", helpers.Error_Database_Malicious_Characters
+			return "", errors.New("Malicious characters detected")
 		}
-		return "\"" + data.(string) + "\"", 0
+		return "\"" + data.(string) + "\"", nil
 
 	default:
-		return "", helpers.Error_Database_Data_Type_Not_Supported
+		return "", errors.New("Data type is not supported. You can open an issue on GitHub to request support for an unsupported SQL data type.")
 	}
 }
 

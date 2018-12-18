@@ -192,7 +192,7 @@ func Start(s *ServerSettings) error {
 
 	//UPDATE SETTINGS IN users PACKAGE, THEN users WILL UPDATE SETTINGS FOR rooms PACKAGE
 	users.SettingsSet((*settings).KickDupOnLogin, (*settings).ServerName, (*settings).RoomDeleteOnLeave, (*settings).EnableSqlFeatures,
-		(*settings).RememberMe, (*settings).MultiConnect, &callbacks)
+		(*settings).RememberMe, (*settings).MultiConnect, /*&callbacks*/)
 
 	//NOTIFY PACKAGES OF SERVER START
 	serverStarted = true;
@@ -205,7 +205,7 @@ func Start(s *ServerSettings) error {
 	if (*settings).EnableSqlFeatures {
 		dbErr := database.Init((*settings).SqlUser, (*settings).SqlPassword, (*settings).SqlDatabase,
 			(*settings).SqlProtocol, (*settings).SqlIP, (*settings).SqlPort, (*settings).EncryptionCost,
-			(*settings).RememberMe, (*settings).CustomLoginColumn, &callbacks)
+			(*settings).RememberMe, (*settings).CustomLoginColumn, /*&callbacks*/)
 		if dbErr != nil {
 			return dbErr
 		}

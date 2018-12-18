@@ -1,7 +1,6 @@
 package gopher
 
 import (
-	"errors"
 	"github.com/gorilla/websocket"
 	"github.com/hewiefreeman/GopherGameServer/actions"
 	"github.com/hewiefreeman/GopherGameServer/database"
@@ -19,6 +18,7 @@ const (
 	errorRoomControl                 = "Clients cannot control rooms"
 	errorServerRoom                  = "Clients cannot control that room type"
 	errorNotOwner                    = "You are not the owner of the room"
+	errorRoomType                    = "Invalid room type"
 	errorIncorrectFormat             = "Incorrect data format"
 	errorIncorrectFormatName         = "Incorrect data format for user name"
 	errorIncorrectFormatPass         = "Incorrect data format for password"
@@ -197,7 +197,7 @@ func clientActionSignup(params interface{}, user **users.User, clientMux *sync.M
 	}
 	//SIGN CLIENT UP
 	signupErr := database.SignUpClient(userName, pass, customCols)
-	if signupErr != 0 {
+	if signupErr != nil {
 		return nil, true, helpers.NewError(signupErr.Error(), helpers.Error_Gopher_Sign_Up)
 	}
 
@@ -239,7 +239,7 @@ func clientActionDeleteAccount(params interface{}, user **users.User, clientMux 
 	//CHECK IF USER IS ONLINE
 	_, err := users.Get(userName)
 	if err == nil {
-		return nil, true, helpers.NewError(errorLoggedIn.Error(), helpers.Error_Gopher_Logged_In)
+		return nil, true, helpers.NewError(err.Error(), helpers.Error_Gopher_Logged_In)
 	}
 
 	//DELETE ACCOUNT
@@ -625,7 +625,7 @@ func clientActionRevokeInvite(params interface{}, user **users.User, connID stri
 	//REVOKE INVITE
 	revokeErr := userRef.RevokeInvite(name, connID)
 	if revokeErr != nil {
-		return nil, true, helpers.NewError(revokeErr.Error, helpers.Error_Gopher_Revoke_Invite)
+		return nil, true, helpers.NewError(revokeErr.Error(), helpers.Error_Gopher_Revoke_Invite)
 	}
 	//
 	return nil, true, helpers.NewError("", 0)
