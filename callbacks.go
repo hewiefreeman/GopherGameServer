@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 	"github.com/hewiefreeman/GopherGameServer/users"
+	"github.com/hewiefreeman/GopherGameServer/database"
 )
 
 const (

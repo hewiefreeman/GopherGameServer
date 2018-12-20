@@ -64,6 +64,7 @@ const (
 	Error_Auth_Encryption
 	Error_Auth_Query
 	Error_Auth_Incorrect_Login
+	Error_Database_Invalid_Autolog
 	Error_Auth_Conversion
 
 	// Misc errors

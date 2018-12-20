@@ -159,7 +159,7 @@ func SignUpClient(userName string, password string, customCols map[string]interf
 	} else if checkStringSQLInjection(userName) {
 		return helpers.NewError(errorMaliciousChars, helpers.Error_Auth_Malicious_Chars)
 	} else if !checkCustomRequirements(customCols, customSignupRequirements) {
-		return helpers.NewError(errorIncorrectCols, helpers.Error_Auth_Incorrect_Cols)Error_Auth_Insufficient_Cols
+		return helpers.NewError(errorIncorrectCols, helpers.Error_Auth_Incorrect_Cols)
 	}
 
 	//RUN CALLBACK
@@ -290,13 +290,13 @@ func LoginClient(userName string, password string, deviceTag string, remMe bool,
 		if customCols != nil {
 			i := 3;
 			for key := range customCols {
-				recievedVals[key] == *(vals[i].(*interface{}))
+				recievedVals[key] = *(vals[i].(*interface{}))
 				//
 				i++
 			}
 		}
 
-		if !LoginCallback(*uName, *dbID, recievedVals, customCols) {
+		if !LoginCallback(*uName, *dbIndex, recievedVals, customCols) {
 			return "", 0, "", helpers.NewError(errorDenied, helpers.Error_Action_Denied)
 		}
 	}

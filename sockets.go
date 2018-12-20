@@ -77,6 +77,7 @@ func clientActionListener(conn *websocket.Conn) {
 		//PARAMS
 		var ok bool
 		var err error
+		var gErr helpers.GopherError
 		var pMap map[string]interface{}
 		var oldPass string
 		//PING-PONG FOR TAGGING DEVICE - BREAKS WHEN THE DEVICE HAS BEEN PROPERLY TAGGED OR AUTHENTICATED.
@@ -200,8 +201,8 @@ func clientActionListener(conn *websocket.Conn) {
 					return
 				}
 				//AUTO-LOG THE CLIENT
-				connID, err = users.AutoLogIn(deviceTag, oldPass, devicePass, deviceUserID, conn, &user, &clientMux)
-				if err != nil {
+				connID, gErr = users.AutoLogIn(deviceTag, oldPass, devicePass, deviceUserID, conn, &user, &clientMux)
+				if gErr.ID != 0 {
 					//ERROR AUTO-LOGGING - RUN AUTOLOGCOMPLETE AND DELETE KEYS FOR CLIENT, AND SILENTLY CHANGE DEVICE KEY
 					newTag, newTagErr := helpers.GenerateSecureString(32)
 					if newTagErr != nil {
@@ -212,7 +213,9 @@ func clientActionListener(conn *websocket.Conn) {
 					autologMessage := make(map[string]interface{})
 					autologMessage[helpers.ServerActionAutoLoginFailed] = make(map[string]interface{})
 					autologMessage[helpers.ServerActionAutoLoginFailed].(map[string]interface{})["dt"] = newTag
-					autologMessage[helpers.ServerActionAutoLoginFailed].(map[string]interface{})["e"] = err.Error()
+					autologMessage[helpers.ServerActionAutoLoginFailed].(map[string]interface{})["e"] = make(map[string]interface{})
+					autologMessage[helpers.ServerActionAutoLoginFailed].(map[string]interface{})["e"].(map[string]interface{})["m"] = gErr.Message
+					autologMessage[helpers.ServerActionAutoLoginFailed].(map[string]interface{})["e"].(map[string]interface{})["id"] = gErr.ID
 					writeErr := conn.WriteJSON(autologMessage)
 					if writeErr != nil {
 						conn.WriteControl(websocket.CloseMessage, []byte{}, time.Now().Add(time.Second*1))
