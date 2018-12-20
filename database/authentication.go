@@ -7,13 +7,30 @@ import (
 )
 
 var (
-	encryptionCost                      int = 4
-	customLoginColumn                   string
+	encryptionCost    int = 4
+	customLoginColumn string
+
 	customLoginRequirements             map[string]struct{} = make(map[string]struct{})
 	customSignupRequirements            map[string]struct{} = make(map[string]struct{})
 	customPasswordChangeRequirements    map[string]struct{} = make(map[string]struct{})
 	customAccountInfoChangeRequirements map[string]struct{} = make(map[string]struct{})
 	customDeleteAccountRequirements     map[string]struct{} = make(map[string]struct{})
+
+	SignUpCallback func(string,map[string]interface{})bool                            = nil
+	LoginCallback  func(string,int,map[string]interface{},map[string]interface{})bool = nil
+)
+
+// Authentication error messages
+const (
+	errorDenied           = "Action was denied"
+	errorRequiredName     = "A user name is required"
+	errorRequiredPass     = "A password is required"
+	errorRequiredNewPass  = "A new password is required"
+	errorMaliciousChars   = "Malicious characters detected"
+	errorIncorrectCols    = "Incorrect custom column data"
+	errorInsufficientCols = "Insufficient custom column data"
+	errorIncorrectLogin   = "Incorrect login or password"
+	errorInvalidAutoLog   = "Invalid auto-login data"
 )
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -134,21 +151,26 @@ func checkCustomRequirements(customCols map[string]interface{}, requirements map
 //
 // WARNING: This is only meant for internal Gopher Game Server mechanics. Use the client APIs to sign a
 // client up when using the SQL features.
-func SignUpClient(userName string, password string, customCols map[string]interface{}) error {
+func SignUpClient(userName string, password string, customCols map[string]interface{}) helpers.GopherError {
 	if len(userName) == 0 {
-		return errors.New("User name is required")
+		return helpers.NewError(errorRequiredName, helpers.Error_Auth_Required_Name)
 	} else if len(password) == 0 {
-		return errors.New("Password is required")
+		return helpers.NewError(errorRequiredPass, helpers.Error_Auth_Required_Pass)
 	} else if checkStringSQLInjection(userName) {
-		return errors.New("Malicious characters detected")
+		return helpers.NewError(errorMaliciousChars, helpers.Error_Auth_Malicious_Chars)
 	} else if !checkCustomRequirements(customCols, customSignupRequirements) {
-		return errors.New("Incorrect custom columns")
+		return helpers.NewError(errorIncorrectCols, helpers.Error_Auth_Incorrect_Cols)Error_Auth_Insufficient_Cols
+	}
+
+	//RUN CALLBACK
+	if SignUpCallback != nil && !SignUpCallback(userName, customCols) {
+		return helpers.NewError(errorDenied, helpers.Error_Action_Denied)
 	}
 
 	//ENCRYPT PASSWORD
 	passHash, hashErr := helpers.EncryptString(password, encryptionCost)
 	if hashErr != nil {
-		return hashErr
+		return helpers.NewError(hashErr.Error(), helpers.Error_Auth_Encryption)
 	}
 
 	var vals []interface{} = []interface{}{}
@@ -158,7 +180,7 @@ func SignUpClient(userName string, password string, customCols map[string]interf
 	if customCols != nil {
 		if customLoginColumn != "" {
 			if _, ok := customCols[customLoginColumn]; !ok {
-				return errors.New("Insufficient data")
+				return helpers.NewError(errorInsufficientCols, helpers.Error_Auth_Insufficient_Cols)
 			}
 		}
 		for key, val := range customCols {
@@ -167,7 +189,7 @@ func SignUpClient(userName string, password string, customCols map[string]interf
 			vals = append(vals, []interface{}{val, customAccountInfo[key]})
 		}
 	} else if customLoginColumn != "" {
-		return errors.New("Insufficient data")
+		return helpers.NewError(errorInsufficientCols, helpers.Error_Auth_Insufficient_Cols)
 	}
 	queryPart1 = queryPart1[0:len(queryPart1)-2] + ") "
 
@@ -179,13 +201,13 @@ func SignUpClient(userName string, password string, customCols map[string]interf
 			//GET STRING VALUE & CHECK FOR INJECTIONS
 			value, valueErr := convertDataToString(dataTypes[dt.dataType], dt.dataType)
 			if valueErr != nil {
-				return errors.New("Insufficient data")
+				return helpers.NewError(errorInsufficientCols, helpers.Error_Auth_Insufficient_Cols)
 			}
 			//CHECK FOR ENCRYPT
 			if dt.encrypt {
 				value, valueErr = helpers.EncryptString(value, encryptionCost)
 				if valueErr != nil {
-					return errors.New("Ecryption error occured")
+					return helpers.NewError(valueErr.Error(), helpers.Error_Auth_Encryption)
 				}
 			}
 			//
@@ -198,11 +220,11 @@ func SignUpClient(userName string, password string, customCols map[string]interf
 	//EXECUTE QUERY
 	_, insertErr := database.Exec(queryPart1 + queryPart2)
 	if insertErr != nil {
-		return insertErr
+		return helpers.NewError(insertErr.Error(), helpers.Error_Auth_Query)
 	}
 
 	//
-	return nil
+	return helpers.NewError("", 0)
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -213,20 +235,20 @@ func SignUpClient(userName string, password string, customCols map[string]interf
 //
 // WARNING: This is only meant for internal Gopher Game Server mechanics. Use the client APIs to log in a
 // client when using the SQL features.
-func LoginClient(userName string, password string, deviceTag string, remMe bool, customCols map[string]interface{}) (string, int, string, error) {
+func LoginClient(userName string, password string, deviceTag string, remMe bool, customCols map[string]interface{}) (string, int, string, helpers.GopherError) {
 	if len(userName) == 0 {
-		return "", 0, "", errors.New("A user name is required to log in")
+		return "", 0, "", helpers.NewError(errorRequiredName, helpers.Error_Auth_Required_Name)
 	} else if len(password) == 0 {
-		return "", 0, "", errors.New("A password is required to log in")
+		return "", 0, "", helpers.NewError(errorRequiredPass, helpers.Error_Auth_Required_Pass)
 	} else if checkStringSQLInjection(userName) {
-		return "", 0, "", errors.New("Malicious characters detected")
+		return "", 0, "", helpers.NewError(errorMaliciousChars, helpers.Error_Auth_Malicious_Chars)
 	} else if checkStringSQLInjection(deviceTag) {
-		return "", 0, "", errors.New("Malicious characters detected")
+		return "", 0, "", helpers.NewError(errorMaliciousChars, helpers.Error_Auth_Malicious_Chars)
 	} else if !checkCustomRequirements(customCols, customLoginRequirements) {
-		return "", 0, "", errors.New("Incorrect data supplied")
+		return "", 0, "", helpers.NewError(errorIncorrectCols, helpers.Error_Auth_Incorrect_Cols)
 	}
 
-	//FIRST TWO ARE id, password IN THAT ORDER
+	//FIRST THREE ARE id, password, name IN THAT ORDER
 	var vals []interface{} = []interface{}{new(int), new([]byte), new(string)}
 
 	//CONSTRUCT SELECT QUERY
@@ -247,13 +269,13 @@ func LoginClient(userName string, password string, deviceTag string, remMe bool,
 	//EXECUTE SELECT QUERY
 	checkRows, err := database.Query(selectQuery)
 	if err != nil {
-		return "", 0, "", err
+		return "", 0, "", helpers.NewError(errorIncorrectLogin, helpers.Error_Auth_Incorrect_Login)
 	}
 	//
 	checkRows.Next()
 	if scanErr := checkRows.Scan(vals...); scanErr != nil {
 		checkRows.Close()
-		return "", 0, "", errors.New("Login or password is incorrect")
+		return "", 0, "", helpers.NewError(errorIncorrectLogin, helpers.Error_Auth_Incorrect_Login)
 	}
 	checkRows.Close()
 
@@ -262,9 +284,26 @@ func LoginClient(userName string, password string, deviceTag string, remMe bool,
 	dbPass := vals[1].(*[]byte)
 	uName := vals[2].(*string)
 
+	//RUN CALLBACK
+	if LoginCallback != nil {
+		var recievedVals map[string]interface{} = make(map[string]interface{})
+		if customCols != nil {
+			i := 3;
+			for key := range customCols {
+				recievedVals[key] == *(vals[i].(*interface{}))
+				//
+				i++
+			}
+		}
+
+		if !LoginCallback(*uName, *dbID, recievedVals, customCols) {
+			return "", 0, "", helpers.NewError(errorDenied, helpers.Error_Action_Denied)
+		}
+	}
+
 	//COMPARE HASHED PASSWORDS
 	if !helpers.CompareEncryptedData(password, *dbPass) {
-		return "", 0, "", errors.New("Login or password is incorrect")
+		return "", 0, "", helpers.NewError(errorIncorrectLogin, helpers.Error_Auth_Incorrect_Login)
 	}
 
 	//AUTO-LOGGING
@@ -281,7 +320,7 @@ func LoginClient(userName string, password string, deviceTag string, remMe bool,
 	}
 
 	//
-	return *uName, *dbIndex, devicePass, nil
+	return *uName, *dbIndex, devicePass, helpers.NewError("", 0)
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -292,22 +331,22 @@ func LoginClient(userName string, password string, deviceTag string, remMe bool,
 //
 // WARNING: This is only meant for internal Gopher Game Server mechanics. Use the client APIs to automatically
 // log in a client when using the "Remember Me" SQL feature.
-func AutoLoginClient(tag string, pass string, newPass string, dbID int) (string, error) {
+func AutoLoginClient(tag string, pass string, newPass string, dbID int) (string, helpers.GopherError) {
 	if checkStringSQLInjection(tag) {
-		return "", errors.New("Malicious characters detected")
+		return "", helpers.NewError(errorMaliciousChars, helpers.Error_Auth_Malicious_Chars)
 	}
 	//EXECUTE SELECT QUERY
 	var dPass string
 	checkRows, err := database.Query("Select " + autologsColumnDevicePass + " FROM " + tableAutologs + " WHERE " + autologsColumnID + "=" + strconv.Itoa(dbID) + " AND " +
 		autologsColumnDeviceTag + "=\"" + tag + "\" LIMIT 1;")
 	if err != nil {
-		return "", errors.New("Incorrect autolog info")
+		return "", helpers.NewError(errorInvalidAutoLog, helpers.Error_Database_Invalid_Autolog)
 	}
 	//
 	checkRows.Next()
 	if scanErr := checkRows.Scan(&dPass); scanErr != nil {
 		checkRows.Close()
-		return "", errors.New("Incorrect autolog info")
+		return "", helpers.NewError(errorInvalidAutoLog, helpers.Error_Database_Invalid_Autolog)
 	}
 	checkRows.Close()
 
@@ -321,25 +360,25 @@ func AutoLoginClient(tag string, pass string, newPass string, dbID int) (string,
 	_, updateErr := database.Exec("UPDATE " + tableAutologs + " SET " + autologsColumnDevicePass + "=\"" + newPass + "\" WHERE " + autologsColumnID + "=" + strconv.Itoa(dbID) + " AND " +
 		autologsColumnDeviceTag + "=\"" + tag + "\" LIMIT 1;")
 	if updateErr != nil {
-		return "", errors.New("Incorrect autolog info")
+		return "", helpers.NewError(errorInvalidAutoLog, helpers.Error_Database_Invalid_Autolog)
 	}
 
 	//EVERYTHING WENT WELL, GET THE User's NAME
 	var userName string
 	userRows, err := database.Query("Select " + usersColumnName + " FROM " + tableUsers + " WHERE " + usersColumnID + "=" + strconv.Itoa(dbID) + " LIMIT 1;")
 	if err != nil {
-		return "", errors.New("Incorrect autolog info")
+		return "", helpers.NewError(errorInvalidAutoLog, helpers.Error_Database_Invalid_Autolog)
 	}
 	//
 	userRows.Next()
 	if scanErr := userRows.Scan(&userName); scanErr != nil {
 		userRows.Close()
-		return "", errors.New("Incorrect autolog info")
+		return "", helpers.NewError(errorInvalidAutoLog, helpers.Error_Database_Invalid_Autolog)
 	}
 	userRows.Close()
 
 	//
-	return userName, nil
+	return userName, helpers.NewError("", 0)
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -365,17 +404,17 @@ func RemoveAutoLog(userID int, deviceTag string) {
 //
 // WARNING: This is only meant for internal Gopher Game Server mechanics. Use the client APIs to change
 // a user's password when using the SQL features.
-func ChangePassword(userName string, password string, newPassword string, customCols map[string]interface{}) error {
+func ChangePassword(userName string, password string, newPassword string, customCols map[string]interface{}) helpers.GopherError {
 	if len(userName) == 0 {
-		return errors.New("A user name is required to change a password")
+		return helpers.NewError(errorRequiredName, helpers.Error_Auth_Required_Name)
 	} else if len(password) == 0 {
-		return errors.New("A password is required to change a password")
+		return helpers.NewError(errorRequiredPass, helpers.Error_Auth_Required_Pass)
 	} else if len(newPassword) == 0 {
-		return errors.New("A new password is required to change a password")
+		return helpers.NewError(errorRequiredNewPass, helpers.Error_Auth_Required_New_Pass)
 	} else if checkStringSQLInjection(userName) {
-		return errors.New("Malicious characters detected")
+		return helpers.NewError(errorMaliciousChars, helpers.Error_Auth_Malicious_Chars)
 	} else if !checkCustomRequirements(customCols, customPasswordChangeRequirements) {
-		return errors.New("Incorrect data supplied")
+		return helpers.NewError(errorIncorrectCols, helpers.Error_Auth_Incorrect_Cols)
 	}
 
 	//FIRST TWO ARE id, password IN THAT ORDER
@@ -397,13 +436,13 @@ func ChangePassword(userName string, password string, newPassword string, custom
 	//EXECUTE SELECT QUERY
 	checkRows, err := database.Query(selectQuery)
 	if err != nil {
-		return err
+		return helpers.NewError(errorIncorrectLogin, helpers.Error_Auth_Incorrect_Login)
 	}
 	//
 	checkRows.Next()
 	if scanErr := checkRows.Scan(vals...); scanErr != nil {
 		checkRows.Close()
-		return errors.New("Login or password is incorrect")
+		return helpers.NewError(errorIncorrectLogin, helpers.Error_Auth_Incorrect_Login)
 	}
 	checkRows.Close()
 
@@ -413,23 +452,23 @@ func ChangePassword(userName string, password string, newPassword string, custom
 
 	//COMPARE HASHED PASSWORDS
 	if !helpers.CompareEncryptedData(password, dbPass) {
-		return errors.New("Login or password is incorrect")
+		return helpers.NewError(errorIncorrectLogin, helpers.Error_Auth_Incorrect_Login)
 	}
 
 	//ENCRYPT NEW PASSWORD
 	passHash, hashErr := helpers.EncryptString(newPassword, encryptionCost)
 	if hashErr != nil {
-		return hashErr
+		return helpers.NewError(hashErr.Error(), helpers.Error_Auth_Encryption)
 	}
 
 	//UPDATE THE PASSWORD
 	_, updateErr := database.Exec("UPDATE " + tableUsers + " SET " + usersColumnPassword + "=\"" + passHash + "\" WHERE " + usersColumnID + "=" + strconv.Itoa(dbIndex) + " LIMIT 1;")
 	if updateErr != nil {
-		return updateErr
+		return helpers.NewError(updateErr.Error(), helpers.Error_Auth_Query)
 	}
 
 	//
-	return nil
+	return helpers.NewError("", 0)
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -440,17 +479,17 @@ func ChangePassword(userName string, password string, newPassword string, custom
 //
 // WARNING: This is only meant for internal Gopher Game Server mechanics. Use the client APIs to change
 // a user's AccountInfoColumn when using the SQL features.
-func ChangeAccountInfo(userName string, password string, customCols map[string]interface{}) error {
+func ChangeAccountInfo(userName string, password string, customCols map[string]interface{}) helpers.GopherError {
 	if len(userName) == 0 {
-		return errors.New("A user name is required to change custom account info")
+		return helpers.NewError(errorRequiredName, helpers.Error_Auth_Required_Name)
 	} else if len(password) == 0 {
-		return errors.New("A password is required to change custom account info")
+		return helpers.NewError(errorRequiredPass, helpers.Error_Auth_Required_Pass)
 	} else if len(customCols) == 0 {
-		return errors.New("Custom columns need to be provided to change their info")
+		return helpers.NewError(errorInsufficientCols, helpers.Error_Auth_Insufficient_Cols)
 	} else if checkStringSQLInjection(userName) {
-		return errors.New("Malicious characters detected")
+		return helpers.NewError(errorMaliciousChars, helpers.Error_Auth_Malicious_Chars)
 	} else if !checkCustomRequirements(customCols, customAccountInfoChangeRequirements) {
-		return errors.New("Incorrect data supplied")
+		return helpers.NewError(errorIncorrectCols, helpers.Error_Auth_Incorrect_Cols)
 	}
 
 	//FIRST TWO ARE id, password IN THAT ORDER
@@ -472,13 +511,13 @@ func ChangeAccountInfo(userName string, password string, customCols map[string]i
 	//EXECUTE SELECT QUERY
 	checkRows, err := database.Query(selectQuery)
 	if err != nil {
-		return err
+		return helpers.NewError(errorIncorrectLogin, helpers.Error_Auth_Incorrect_Login)
 	}
 	//
 	checkRows.Next()
 	if scanErr := checkRows.Scan(vals...); scanErr != nil {
 		checkRows.Close()
-		return errors.New("Login or password is incorrect")
+		return helpers.NewError(errorIncorrectLogin, helpers.Error_Auth_Incorrect_Login)
 	}
 	checkRows.Close()
 
@@ -488,7 +527,7 @@ func ChangeAccountInfo(userName string, password string, customCols map[string]i
 
 	//COMPARE HASHED PASSWORDS
 	if !helpers.CompareEncryptedData(password, dbPass) {
-		return errors.New("Login or password is incorrect")
+		return helpers.NewError(errorIncorrectLogin, helpers.Error_Auth_Incorrect_Login)
 	}
 
 	//UPDATE THE AccountInfoColumns
@@ -500,7 +539,7 @@ func ChangeAccountInfo(userName string, password string, customCols map[string]i
 		//GET STRING VALUE & CHECK FOR INJECTIONS
 		value, valueErr := convertDataToString(dataTypes[dt], valsList[i].([]interface{})[0])
 		if valueErr != nil {
-			return valueErr
+			return helpers.NewError(valueErr.Error(), helpers.Error_Auth_Conversion)
 		}
 		//
 		updateQuery = updateQuery + valsList[i].([]interface{})[2].(string) + "=" + value + ", "
@@ -510,11 +549,11 @@ func ChangeAccountInfo(userName string, password string, customCols map[string]i
 	//EXECUTE THE UPDATE QUERY
 	_, updateErr := database.Exec(updateQuery)
 	if updateErr != nil {
-		return updateErr
+		return helpers.NewError(updateErr.Error(), helpers.Error_Auth_Query)
 	}
 
 	//
-	return nil
+	return helpers.NewError("", 0)
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -525,15 +564,15 @@ func ChangeAccountInfo(userName string, password string, customCols map[string]i
 //
 // WARNING: This is only meant for internal Gopher Game Server mechanics. Use the client APIs to delete a
 // user's account when using the SQL features.
-func DeleteAccount(userName string, password string, customCols map[string]interface{}) error {
+func DeleteAccount(userName string, password string, customCols map[string]interface{}) helpers.GopherError {
 	if len(userName) == 0 {
-		return errors.New("A user name is required to delete an account")
+		return helpers.NewError(errorRequiredName, helpers.Error_Auth_Required_Name)
 	} else if len(password) == 0 {
-		return errors.New("A password is required to delete an account")
+		return helpers.NewError(errorRequiredPass, helpers.Error_Auth_Required_Pass)
 	} else if checkStringSQLInjection(userName) {
-		return errors.New("Malicious characters detected")
+		return helpers.NewError(errorMaliciousChars, helpers.Error_Auth_Malicious_Chars)
 	} else if !checkCustomRequirements(customCols, customDeleteAccountRequirements) {
-		return errors.New("Incorrect data supplied")
+		return helpers.NewError(errorIncorrectCols, helpers.Error_Auth_Incorrect_Cols)
 	}
 
 	//FIRST TWO ARE id, password IN THAT ORDER
@@ -553,13 +592,13 @@ func DeleteAccount(userName string, password string, customCols map[string]inter
 	//EXECUTE SELECT QUERY
 	checkRows, err := database.Query(selectQuery)
 	if err != nil {
-		return err
+		return helpers.NewError(errorIncorrectLogin, helpers.Error_Auth_Incorrect_Login)
 	}
 	//
 	checkRows.Next()
 	if scanErr := checkRows.Scan(vals...); scanErr != nil {
 		checkRows.Close()
-		return errors.New("Login or password is incorrect")
+		return helpers.NewError(errorIncorrectLogin, helpers.Error_Auth_Incorrect_Login)
 	}
 	checkRows.Close()
 
@@ -569,7 +608,7 @@ func DeleteAccount(userName string, password string, customCols map[string]inter
 
 	//COMPARE HASHED PASSWORDS
 	if !helpers.CompareEncryptedData(password, dbPass) {
-		return errors.New("Login or password is incorrect")
+		return helpers.NewError(errorIncorrectLogin, helpers.Error_Auth_Incorrect_Login)
 	}
 
 	//REMOVE INSTANCES FROM friends TABLE
@@ -578,9 +617,9 @@ func DeleteAccount(userName string, password string, customCols map[string]inter
 	//DELETE THE ACCOUNT
 	_, deleteErr := database.Exec("DELETE FROM " + tableUsers + " WHERE " + usersColumnID + "=" + strconv.Itoa(dbIndex) + " LIMIT 1;")
 	if deleteErr != nil {
-		return deleteErr
+		return helpers.NewError(deleteErr.Error(), helpers.Error_Auth_Query)
 	}
 
 	//
-	return nil
+	return helpers.NewError("", 0)
 }

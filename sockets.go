@@ -43,7 +43,7 @@ func socketInitializer(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// CLIENT CONNECT CALLBACK
-	if callbacks.ClientConnect != nil && !callbacks.ClientConnect(&w, r) {
+	if clientConnectCallback != nil && !clientConnectCallback(&w, r) {
 		http.Error(w, "Could not establish a connection.", http.StatusForbidden)
 		return
 	}

@@ -11,6 +11,7 @@ type GopherError struct {
 
 // Client response message error IDs
 const (
+
 	// Package gopher
 	Error_Gopher_Invalid_Action = iota + 1001
 	Error_Gopher_Incorrect_Format
@@ -47,6 +48,26 @@ const (
 	Error_Gopher_Friend_Accept
 	Error_Gopher_Friend_Decline
 	Error_Gopher_Friend_Remove
+
+	// Authentication
+	Error_Auth_Unexpected
+	Error_Auth_Already_Logged
+	Error_Auth_Required_Name
+	Error_Auth_Required_Pass
+	Error_Auth_Required_New_Pass
+	Error_Auth_Required_ID
+	Error_Auth_Required_Socket
+	Error_Auth_Name_Unavail
+	Error_Auth_Malicious_Chars
+	Error_Auth_Incorrect_Cols
+	Error_Auth_Insufficient_Cols
+	Error_Auth_Encryption
+	Error_Auth_Query
+	Error_Auth_Incorrect_Login
+	Error_Auth_Conversion
+
+	// Misc errors
+	Error_Action_Denied
 )
 
 func NewError(message string, id int) GopherError {

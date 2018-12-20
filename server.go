@@ -88,9 +88,8 @@ type ServerSettings struct {
 // - Logout: The `string` is the user name. The `int` is the database index of the user in the database, provided you're
 // using SQL features (otherwise it is -1).
 //
-// - Signup: The `string` is the user name. The `int` is the database index of the user in the database, provided you're
-// using SQL features (otherwise it is -1). The `map[string]interface{}` are your `AccountInfoColumn`s if you are using the database package (otherwise
-// it is nil). It returns a boolean, which will prevent the client from signing up if it returns false.
+// - Signup: The `string` is the user name. The `map[string]interface{}` are the client's input for the `AccountInfoColumn`s from the client API
+// if you are using the database package (otherwise it is nil). It returns a boolean, which will prevent the client from signing up if it returns false.
 //
 // - DeleteAccount: The `string` is the user name. The `int` is the database index of the user in the database, provided you're
 // using SQL features (otherwise it is -1). The `first map[string]interface{}` are your AccountInfoColumns retrieved from the server
@@ -120,7 +119,7 @@ type ServerCallbacks struct {
 	ClientConnect     func(*http.ResponseWriter, *http.Request) bool                              // Triggers when a client tries to connect to the server (DONE)
 	Login             func(string, int, map[string]interface{}, map[string]interface{}) bool      // Triggers when a client tries to log in as a User
 	Logout            func(string, int)                                                           // Triggers when a client logs out
-	Signup            func(string, int, map[string]interface{}) bool                              // Triggers when a client tries to sign up using the built-in SQL features
+	Signup            func(string, map[string]interface{}) bool                              // Triggers when a client tries to sign up using the built-in SQL features
 	DeleteAccount     func(string, int, map[string]interface{}, map[string]interface{}) bool      // Triggers when a client tries to delete an account using the built-in SQL features
 	AccountInfoChange func(*users.User, int, map[string]interface{}, map[string]interface{}) bool // Triggers when a client tries to change an AccountInfoColumn for an account
 	PasswordChange    func(*users.User, int, map[string]interface{}, map[string]interface{}) bool // Triggers when a client tries to change the password for an account

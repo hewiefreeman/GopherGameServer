@@ -48,14 +48,19 @@ type userConn struct {
 }
 
 var (
-	users         map[string]*User = make(map[string]*User)
-	usersMux      sync.Mutex
+	users    map[string]*User = make(map[string]*User)
+	usersMux sync.Mutex
+
 	serverStarted bool = false
-	serverName    string
-	kickOnLogin   bool = false
-	sqlFeatures   bool = false
-	rememberMe    bool = false
-	multiConnect  bool = false
+
+	serverName   string
+	kickOnLogin  bool = false
+	sqlFeatures  bool = false
+	rememberMe   bool = false
+	multiConnect bool = false
+
+	LoginCallback  func(string,int,map[string]interface{},map[string]interface{})bool = nil
+	LogoutCallback func(string,int)                                                   = nil
 )
 
 // These represent the four statuses a User could be.
@@ -66,28 +71,44 @@ const (
 	StatusOffline          // User is offline
 )
 
+// Error messages
+const (
+	errorDenied         = "Action was denied"
+	errorRequiredName   = "A user name is required"
+	errorRequiredID     = "An ID is required"
+	errorRequiredSocket = "A socket is required"
+	errorNameUnavail    = "Username is unavailable"
+	errorUnexpected     = "Unexpected error"
+	errorAlreadyLogged  = "User is already logged in"
+)
+
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 //   LOG A USER IN   /////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // Login logs a User in to the service.
 func Login(userName string, dbID int, autologPass string, isGuest bool, remMe bool, socket *websocket.Conn,
-	connUser **User, clientMux *sync.Mutex) (string, error) {
+	connUser **User, clientMux *sync.Mutex) (string, helpers.GopherError) {
 	//REJECT INCORRECT INPUT
 	if len(userName) == 0 {
-		return "", errors.New("users.Login() requires a user name")
+		return "", helpers.NewError(errorRequiredName, helpers.Error_Auth_Required_Name)
 	} else if userName == serverName {
-		return "", errors.New("The name '" + userName + "' is unavailable")
+		return "", helpers.NewError(errorNameUnavail, helpers.Error_Auth_Name_Unavail)
 	} else if dbID < -1 {
-		return "", errors.New("users.Login() requires a database ID (or -1 for no ID)")
+		return "", helpers.NewError(errorRequiredID, helpers.Error_Auth_Required_ID)
 	} else if socket == nil {
-		return "", errors.New("users.Login() requires a socket")
+		return "", helpers.NewError(errorRequiredSocket, helpers.Error_Auth_Required_Socket)
 	}
 
 	//ALWAYS SET A GUEST'S id TO -1
 	databaseID := dbID
 	if isGuest {
 		databaseID = -1
+	}
+
+	//RUN CALLBACK
+	if LoginCallback != nil && !LoginCallback(userName, dbID, nil, nil) {
+		return "", helpers.NewError(errorDenied, helpers.Error_Action_Denied)
 	}
 
 	//MAKE *User IN users MAP & MAKE connID
@@ -130,7 +151,7 @@ func Login(userName string, dbID int, autologPass string, isGuest bool, remMe bo
 				connID, connErr = helpers.GenerateSecureString(5)
 				if connErr != nil {
 					usersMux.Unlock()
-					return "", errors.New("Unexpected login error")
+					return "", helpers.NewError(errorUnexpected, helpers.Error_Auth_Unexpected)
 				}
 				userOnline.mux.Lock()
 				if _, found := (*userOnline).conns[connID]; !found {
@@ -141,14 +162,14 @@ func Login(userName string, dbID int, autologPass string, isGuest bool, remMe bo
 			}
 		} else {
 			usersMux.Unlock()
-			return "", errors.New("User '" + userName + "' is already logged in")
+			return "", helpers.NewError(errorAlreadyLogged, helpers.Error_Auth_Already_Logged)
 		}
 	} else if multiConnect {
 		//MAKE UNIQUE connID
 		connID, connErr = helpers.GenerateSecureString(5)
 		if connErr != nil {
 			usersMux.Unlock()
-			return "", errors.New("Unexpected login error")
+			return "", helpers.NewError(errorUnexpected, helpers.Error_Auth_Unexpected)
 		}
 	} else {
 		//MAKE connID
@@ -246,7 +267,7 @@ func Login(userName string, dbID int, autologPass string, isGuest bool, remMe bo
 	socket.WriteJSON(clientResp)
 
 	//
-	return connID, nil
+	return connID, helpers.NewError("", 0)
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -258,19 +279,19 @@ func Login(userName string, dbID int, autologPass string, isGuest bool, remMe bo
 // WARNING: This is only meant for internal Gopher Game Server mechanics. If you want the "Remember Me"
 // (AKA auto login) feature, enable it in ServerSettings along with the SqlFeatures and corresponding
 // options. You can read more about the "Remember Me" login in the project's usage section.
-func AutoLogIn(tag string, pass string, newPass string, dbID int, conn *websocket.Conn, connUser **User, clientMux *sync.Mutex) (string, error) {
+func AutoLogIn(tag string, pass string, newPass string, dbID int, conn *websocket.Conn, connUser **User, clientMux *sync.Mutex) (string, helpers.GopherError) {
 	//VERIFY AND GET USER NAME FROM DATABASE
 	userName, autoLogErr := database.AutoLoginClient(tag, pass, newPass, dbID)
-	if autoLogErr != nil {
+	if autoLogErr.ID != 0 {
 		return "", autoLogErr
 	}
 	//
 	connID, userErr := Login(userName, dbID, newPass, false, true, conn, connUser, clientMux)
-	if userErr != nil {
+	if userErr.ID != 0 {
 		return "", userErr
 	}
 	//
-	return connID, nil
+	return connID, helpers.NewError("", 0)
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////

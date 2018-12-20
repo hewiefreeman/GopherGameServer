@@ -70,7 +70,11 @@ func SetLoginCallback(cb interface{}) error {
 	if(serverStarted){
 		return errors.New(ErrorServerRunning)
 	}else if callback, ok := cb.(func(string,int,map[string]interface{},map[string]interface{})bool); ok {
-		callbacks.Login = callback
+		if (*settings).EnableSqlFeatures {
+			database.LoginCallback = callback
+		}else{
+			users.LoginCallback = callback
+		}
 	}else{
 		return errors.New(ErrorIncorrectFunction)
 	}
@@ -81,7 +85,7 @@ func SetLogoutCallback(cb interface{}) error {
 	if(serverStarted){
 		return errors.New(ErrorServerRunning)
 	}else if callback, ok := cb.(func(string,int)); ok {
-		callbacks.Logout = callback
+		users.LogoutCallback = callback
 	}else{
 		return errors.New(ErrorIncorrectFunction)
 	}
@@ -91,7 +95,7 @@ func SetLogoutCallback(cb interface{}) error {
 func SetSignupCallback(cb interface{}) error {
 	if(serverStarted){
 		return errors.New(ErrorServerRunning)
-	}else if callback, ok := cb.(func(string,int,map[string]interface{})bool); ok {
+	}else if callback, ok := cb.(func(string,map[string]interface{})bool); ok {
 		callbacks.Signup = callback
 	}else{
 		return errors.New(ErrorIncorrectFunction)

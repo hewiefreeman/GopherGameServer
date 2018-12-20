@@ -197,8 +197,8 @@ func clientActionSignup(params interface{}, user **users.User, clientMux *sync.M
 	}
 	//SIGN CLIENT UP
 	signupErr := database.SignUpClient(userName, pass, customCols)
-	if signupErr != nil {
-		return nil, true, helpers.NewError(signupErr.Error(), helpers.Error_Gopher_Sign_Up)
+	if signupErr.ID != 0 {
+		return nil, true, signupErr
 	}
 
 	//
@@ -244,8 +244,8 @@ func clientActionDeleteAccount(params interface{}, user **users.User, clientMux 
 
 	//DELETE ACCOUNT
 	deleteErr := database.DeleteAccount(userName, pass, customCols)
-	if deleteErr != nil {
-		return nil, true, helpers.NewError(deleteErr.Error(), helpers.Error_Gopher_Delete_Account_Error)
+	if deleteErr.ID != 0 {
+		return nil, true, deleteErr
 	}
 	//
 	return nil, true, helpers.NewError("", 0)
@@ -284,8 +284,8 @@ func clientActionChangePassword(params interface{}, user **users.User, clientMux
 	}
 	//CHANGE PASSWORD
 	changeErr := database.ChangePassword(userRef.Name(), pass, newPass, customCols)
-	if changeErr != nil {
-		return nil, true, helpers.NewError(changeErr.Error(), helpers.Error_Gopher_Password_Change)
+	if changeErr.ID != 0 {
+		return nil, true, changeErr
 	}
 
 	//
@@ -321,8 +321,8 @@ func clientActionChangeAccountInfo(params interface{}, user **users.User, client
 	}
 	//CHANGE ACCOUNT INFO
 	changeErr := database.ChangeAccountInfo(userRef.Name(), pass, customCols)
-	if changeErr != nil {
-		return nil, true, helpers.NewError(changeErr.Error(), helpers.Error_Gopher_Info_Change)
+	if changeErr.ID != 0 {
+		return nil, true, changeErr
 	}
 
 	//
@@ -380,18 +380,18 @@ func clientActionLogin(params interface{}, user **users.User, deviceTag *string,
 	var uName string
 	var dPass string
 	var cID string
-	var err error
+	var err helpers.GopherError
 	if (*settings).EnableSqlFeatures {
 		uName, dbIndex, dPass, err = database.LoginClient(name, pass, *deviceTag, remMe, customCols)
-		if err != nil {
-			return nil, true, helpers.NewError(err.Error(), helpers.Error_Gopher_Login)
+		if err.ID != 0 {
+			return nil, true, err
 		}
 		cID, err = users.Login(uName, dbIndex, dPass, guest, remMe, conn, user, clientMux)
 	} else {
 		cID, err = users.Login(name, -1, "", guest, false, conn, user, clientMux)
 	}
-	if err != nil {
-		return nil, true, helpers.NewError(err.Error(), helpers.Error_Gopher_Login)
+	if err.ID != 0 {
+		return nil, true, err
 	}
 	//CHANGE SOCKET'S userName
 	*devicePass = dPass
