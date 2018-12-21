@@ -16,8 +16,11 @@ var (
 	customAccountInfoChangeRequirements map[string]struct{} = make(map[string]struct{})
 	customDeleteAccountRequirements     map[string]struct{} = make(map[string]struct{})
 
-	SignUpCallback func(string,map[string]interface{})bool                            = nil
-	LoginCallback  func(string,int,map[string]interface{},map[string]interface{})bool = nil
+	SignUpCallback func(string,map[string]interface{})bool                                       = nil
+	LoginCallback  func(string,int,map[string]interface{},map[string]interface{})bool            = nil
+	DeleteAccountCallback func(string,int,map[string]interface{},map[string]interface{})bool     = nil
+	AccountInfoChangeCallback func(string,int,map[string]interface{},map[string]interface{})bool = nil
+	PasswordChangeCallback func(string,int,map[string]interface{},map[string]interface{})bool    = nil
 )
 
 // Authentication error messages
@@ -286,6 +289,7 @@ func LoginClient(userName string, password string, deviceTag string, remMe bool,
 
 	//RUN CALLBACK
 	if LoginCallback != nil {
+		// GET THE RECIEVED COLUMN VALUES AS MAP
 		var recievedVals map[string]interface{} = make(map[string]interface{})
 		if customCols != nil {
 			i := 3;
@@ -377,6 +381,11 @@ func AutoLoginClient(tag string, pass string, newPass string, dbID int) (string,
 	}
 	userRows.Close()
 
+	//RUN CALLBACK
+	if LoginCallback != nil && !LoginCallback(userName, *dbID, nil, nil) {
+		return "", helpers.NewError(errorDenied, helpers.Error_Action_Denied)
+	}
+
 	//
 	return userName, helpers.NewError("", 0)
 }
@@ -455,6 +464,24 @@ func ChangePassword(userName string, password string, newPassword string, custom
 		return helpers.NewError(errorIncorrectLogin, helpers.Error_Auth_Incorrect_Login)
 	}
 
+	//RUN CALLBACK
+	if PasswordChangeCallback != nil {
+		// GET THE RECIEVED COLUMN VALUES AS MAP
+		var recievedVals map[string]interface{} = make(map[string]interface{})
+		if customCols != nil {
+			i := 2;
+			for key := range customCols {
+				recievedVals[key] = *(vals[i].(*interface{}))
+				//
+				i++
+			}
+		}
+
+		if !PasswordChangeCallback(userName, *dbIndex, recievedVals, customCols) {
+			return "", 0, "", helpers.NewError(errorDenied, helpers.Error_Action_Denied)
+		}
+	}
+
 	//ENCRYPT NEW PASSWORD
 	passHash, hashErr := helpers.EncryptString(newPassword, encryptionCost)
 	if hashErr != nil {
@@ -530,7 +557,23 @@ func ChangeAccountInfo(userName string, password string, customCols map[string]i
 		return helpers.NewError(errorIncorrectLogin, helpers.Error_Auth_Incorrect_Login)
 	}
 
-	//UPDATE THE AccountInfoColumns
+	//RUN CALLBACK
+	if AccountInfoChangeCallback != nil {
+		// GET THE RECIEVED COLUMN VALUES AS MAP
+		var recievedVals map[string]interface{} = make(map[string]interface{})
+		if customCols != nil {
+			i := 2;
+			for key := range customCols {
+				recievedVals[key] = *(vals[i].(*interface{}))
+				//
+				i++
+			}
+		}
+
+		if !AccountInfoChangeCallback(userName, *dbIndex, recievedVals, customCols) {
+			return "", 0, "", helpers.NewError(errorDenied, helpers.Error_Action_Denied)
+		}
+	}
 
 	//MAKE UPDATE QUERY
 	updateQuery := "UPDATE " + tableUsers + " SET "
@@ -609,6 +652,24 @@ func DeleteAccount(userName string, password string, customCols map[string]inter
 	//COMPARE HASHED PASSWORDS
 	if !helpers.CompareEncryptedData(password, dbPass) {
 		return helpers.NewError(errorIncorrectLogin, helpers.Error_Auth_Incorrect_Login)
+	}
+
+	//RUN CALLBACK
+	if DeleteAccountCallback != nil {
+		// GET THE RECIEVED COLUMN VALUES AS MAP
+		var recievedVals map[string]interface{} = make(map[string]interface{})
+		if customCols != nil {
+			i := 2;
+			for key := range customCols {
+				recievedVals[key] = *(vals[i].(*interface{}))
+				//
+				i++
+			}
+		}
+
+		if !DeleteAccountCallback(userName, *dbIndex, recievedVals, customCols) {
+			return "", 0, "", helpers.NewError(errorDenied, helpers.Error_Action_Denied)
+		}
 	}
 
 	//REMOVE INSTANCES FROM friends TABLE

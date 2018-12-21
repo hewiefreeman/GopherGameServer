@@ -31,6 +31,13 @@ type Client struct {
 	responded bool
 }
 
+// ClientError is used when an error is thrown in your CustomClientAction. Use `actions.NewError()` to make a
+// ClientError object. When no error needs to be thrown, use `actions.NoError()` instead.
+type ClientError struct {
+	message string
+	id      int
+}
+
 var (
 	customClientActions map[string]CustomClientAction = make(map[string]CustomClientAction)
 	serverStarted                                     = false
@@ -50,13 +57,13 @@ const (
 	DataTypeNil           // nil data type
 )
 
-// New creates a new CustomClientAction with the corresponding parameters:
+// New creates a new `CustomClientAction` with the corresponding parameters:
 //
 // - actionType (string): The type of action
 //
-// - (*)callback (func(interface{},Client)): The function that will be executed concurrently when a client calls this actionType
+// - (*)callback (func(interface{},Client)): The function that will be executed when a client calls this `actionType`
 //
-// - dataType (int): The type of data this action accepts. Options are DataTypeBool, DataTypeInt, DataTypeFloat, DataTypeString, DataTypeArray, DataTypeMap, and DataTypeNil
+// - dataType (int): The type of data this action accepts. Options are `DataTypeBool`, `DataTypeInt`, `DataTypeFloat`, `DataTypeString`, `DataTypeArray`, `DataTypeMap`, and `DataTypeNil`
 //
 // (*)Callback function format:
 //
@@ -69,7 +76,7 @@ const (
 //
 // - actionData: The data the client sent along with the action
 //
-// - client: A Client object representing the client that sent the action
+// - client: A `Client` object representing the client that sent the action
 //
 //
 // Note: This function can only be called BEFORE starting the server.
@@ -81,6 +88,16 @@ func New(actionType string, dataType int, callback func(interface{}, Client)) er
 		dataType: dataType,
 		callback: callback}
 	return nil
+}
+
+// NewError creates a new error with a provided message and ID.
+func NewError(message string, id int) ClientError {
+	return ClientError{message: message, id: id}
+}
+
+// NoError is used when no error needs to be thrown in your `CustomClientAction`.
+func NoError() ClientError {
+	return ClientError{id: -1}
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -175,7 +192,7 @@ func typesMatch(data interface{}, theType int) bool {
 // NOTE: A response can only be sent once to a Client. Any more calls to Respond() on the same Client will not send a response,
 // nor do anything at all. If you want to send a stream of messages to the Client, first get their User object with users.Get() using
 // the Client's Name(). Then you can send Data messages directly to the User with the *User.DataMessage() function.
-func (c *Client) Respond(response interface{}, err error) {
+func (c *Client) Respond(response interface{}, err ClientError) {
 	//YOU CAN ONLY RESPOND ONCE
 	if (*c).responded {
 		return
@@ -184,10 +201,12 @@ func (c *Client) Respond(response interface{}, err error) {
 	//CONSTRUCT MESSAGE
 	r := make(map[string]interface{})
 	r[helpers.ServerActionCustomClientActionResponse] = make(map[string]interface{})
-	if err != nil {
-		r[helpers.ServerActionCustomClientActionResponse].(map[string]interface{})["e"] = err.Error()
+	r[helpers.ServerActionCustomClientActionResponse].(map[string]interface{})["a"] = (*c).action
+	if err.id != -1 {
+		r[helpers.ServerActionCustomClientActionResponse].(map[string]interface{})["e"] = make(map[string]interface{})
+		r[helpers.ServerActionCustomClientActionResponse].(map[string]interface{})["e"].(map[string]interface{})["m"] = err.message
+		r[helpers.ServerActionCustomClientActionResponse].(map[string]interface{})["e"].(map[string]interface{})["id"] = err.id
 	} else {
-		r[helpers.ServerActionCustomClientActionResponse].(map[string]interface{})["a"] = (*c).action
 		r[helpers.ServerActionCustomClientActionResponse].(map[string]interface{})["r"] = response
 	}
 

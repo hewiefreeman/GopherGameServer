@@ -15,7 +15,7 @@ import (
 )
 
 /////////// TO DOs:
-///////////	- ServerCallbacks
+///////////	- ServerCallbacks (DONE)
 ///////////		- Test
 ///////////	- SQLite Database:
 ///////////		- Save state on shut-down
@@ -66,63 +66,6 @@ type ServerSettings struct {
 	EnableRemoteAdmin  bool   // Enabled administration (only) from outside the origin server. When enabled, will override OriginOnly's functionality, but only for administrator connections.
 	AdminToolsLogin    string // The login name for the Admin Tools
 	AdminToolsPassword string // The password for the Admin Tools
-}
-
-// ServerCallbacks provide you with a way of calling a function when a client does a basic action on the server. You can
-// define your server's callbacks with the 'Set' functions for a cooresponding callback (for instance, SetStartCallback or
-// SetClientConnectCallback). Here are some descriptions and parameter explanations on all the server callbacks:
-//
-// - ClientConnect: You can get the `http.ResponseWriter` and `http.Request` objects from a connecting client. It returns a
-// boolean, which will prevent the client from connecting if it returns false. This can be used to, for instance, make a white/black list.
-// When this returns true, it sends a 403 HTTP error to the client with the message, "Could not establish a connection."
-//
-// - Login: The `string` is the user name. The `int` is the database index of the user in the database, provided you're
-// using SQL features (otherwise it is -1). The first `map[string]interface{}` are your `AccountInfoColumn`s retrieved from the server
-// if you are using the SQL features (otherwise it is nil). The second `map[string]interface{}` are the client's input from the client API
-// that made the first `map` retrieve items from the database. You can use these maps to compare the client's input against the result columns from
-// the database. Ex: the client API sends a map that has the key 'email' with the email address attached as the value. The database
-// will retrieve the column 'email' from the users table, and put the result into the first map. Then you could for instance check if
-// the emails match. The Login callback returns a boolean, which will prevent the client from logging in if it returns false, so you could
-// use this with the email example to prevent a user from logging in without a correct email attached to that user's account.
-//
-// - Logout: The `string` is the user name. The `int` is the database index of the user in the database, provided you're
-// using SQL features (otherwise it is -1).
-//
-// - Signup: The `string` is the user name. The `map[string]interface{}` are the client's input for the `AccountInfoColumn`s from the client API
-// if you are using the database package (otherwise it is nil). It returns a boolean, which will prevent the client from signing up if it returns false.
-//
-// - DeleteAccount: The `string` is the user name. The `int` is the database index of the user in the database, provided you're
-// using SQL features (otherwise it is -1). The `first map[string]interface{}` are your AccountInfoColumns retrieved from the server
-// if you are using the SQL features (otherwise it is nil). The second `map[string]interface{}` are the client's input from the client API
-// that made the first map retrieve items from the database. You can use these maps to compare the client's input against the result columns from
-// the database. Ex: the client API sends a map that has the key 'email' with the email address attached as the value. The database
-// will retrieve the column 'email' from the users table, and put the result into the first map. Then you could for instance check if
-// the emails match. The DeleteAccount callback returns a boolean, which will prevent the client from deleting the account if it returns false, so you could
-// use this with the email example to prevent a user from deleting an account without a correct email attached to that user's account.
-//
-// - AccountInfoChange: The `*users.User` is the user that took action. The `int` is the database index of the user in the database, provided you're
-// using SQL features (otherwise it is -1). The first `map[string]interface{}` are your AccountInfoColumns retrieved from the server
-// if you are using the SQL features (otherwise it is nil). The second `map[string]interface{}` are the client's input from the client API
-// that made the first map retrieve items from the database. You can use these maps to compare the client's input against the result columns from
-// the database. Works exactly the same as the `DeleteAccount` callback, but updates a row instead (of course).
-//
-// - PasswordChange: The `*users.User` is the user that took action. The `int` is the database index of the user in the database, provided you're
-// using SQL features (otherwise it is -1). The first `map[string]interface{}` are your `database.AccountInfoColumn`s retrieved from the server
-// if you are using the SQL features (otherwise it is nil). The second `map[string]interface{}` are the client's input from the client API
-// that made the first map retrieve items from the database. You can use these maps to compare the client's input against the result columns from
-// the database. Works exactly the same as the `DeleteAccount` callback, but updates only the password in a row (of course).
-type ServerCallbacks struct {
-	Start             func()                                                                      // Triggers when the server starts (DONE)
-	Pause             func()                                                                      // Triggers when the server pauses
-	Stop              func()                                                                      // Triggers when the server resumes
-	Resume            func()                                                                      // Triggers when the server stops
-	ClientConnect     func(*http.ResponseWriter, *http.Request) bool                              // Triggers when a client tries to connect to the server (DONE)
-	Login             func(string, int, map[string]interface{}, map[string]interface{}) bool      // Triggers when a client tries to log in as a User
-	Logout            func(string, int)                                                           // Triggers when a client logs out
-	Signup            func(string, map[string]interface{}) bool                              // Triggers when a client tries to sign up using the built-in SQL features
-	DeleteAccount     func(string, int, map[string]interface{}, map[string]interface{}) bool      // Triggers when a client tries to delete an account using the built-in SQL features
-	AccountInfoChange func(*users.User, int, map[string]interface{}, map[string]interface{}) bool // Triggers when a client tries to change an AccountInfoColumn for an account
-	PasswordChange    func(*users.User, int, map[string]interface{}, map[string]interface{}) bool // Triggers when a client tries to change the password for an account
 }
 
 var (

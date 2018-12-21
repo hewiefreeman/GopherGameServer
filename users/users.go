@@ -361,6 +361,11 @@ func (u *User) Logout(connID string) {
 	//SEND RESPONSE TO CLIENT
 	clientResp := helpers.MakeClientResponse(helpers.ClientActionLogout, nil, helpers.NewError("", 0))
 	socket.WriteJSON(clientResp)
+
+	//RUN CALLBACK
+	if LogoutCallback != nil {
+		LogoutCallback(u.Name(), u.DatabaseID())
+	}
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////
