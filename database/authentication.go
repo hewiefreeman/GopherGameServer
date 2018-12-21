@@ -382,7 +382,7 @@ func AutoLoginClient(tag string, pass string, newPass string, dbID int) (string,
 	userRows.Close()
 
 	//RUN CALLBACK
-	if LoginCallback != nil && !LoginCallback(userName, *dbID, nil, nil) {
+	if LoginCallback != nil && !LoginCallback(userName, dbID, nil, nil) {
 		return "", helpers.NewError(errorDenied, helpers.Error_Action_Denied)
 	}
 
@@ -477,8 +477,8 @@ func ChangePassword(userName string, password string, newPassword string, custom
 			}
 		}
 
-		if !PasswordChangeCallback(userName, *dbIndex, recievedVals, customCols) {
-			return "", 0, "", helpers.NewError(errorDenied, helpers.Error_Action_Denied)
+		if !PasswordChangeCallback(userName, dbIndex, recievedVals, customCols) {
+			return helpers.NewError(errorDenied, helpers.Error_Action_Denied)
 		}
 	}
 
@@ -570,8 +570,8 @@ func ChangeAccountInfo(userName string, password string, customCols map[string]i
 			}
 		}
 
-		if !AccountInfoChangeCallback(userName, *dbIndex, recievedVals, customCols) {
-			return "", 0, "", helpers.NewError(errorDenied, helpers.Error_Action_Denied)
+		if !AccountInfoChangeCallback(userName, dbIndex, recievedVals, customCols) {
+			return helpers.NewError(errorDenied, helpers.Error_Action_Denied)
 		}
 	}
 
@@ -667,8 +667,8 @@ func DeleteAccount(userName string, password string, customCols map[string]inter
 			}
 		}
 
-		if !DeleteAccountCallback(userName, *dbIndex, recievedVals, customCols) {
-			return "", 0, "", helpers.NewError(errorDenied, helpers.Error_Action_Denied)
+		if !DeleteAccountCallback(userName, dbIndex, recievedVals, customCols) {
+			return helpers.NewError(errorDenied, helpers.Error_Action_Denied)
 		}
 	}
 

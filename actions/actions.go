@@ -43,6 +43,12 @@ var (
 	serverStarted                                     = false
 )
 
+// Default `ClientError`s
+const (
+	Error_Mismatched_Types = iota + 1001
+	Error_Unrecognized_Action
+)
+
 // These are the accepted data types that a client can send with a CustomClientMessage. You must use one
 // of these when making a new CustomClientAction, or it will not work. If a client tries to send a type of data that doesnt
 // match the type specified for that action, the CustomClientAction will send an error back to the client and skip
@@ -114,13 +120,13 @@ func HandleCustomClientAction(action string, data interface{}, user *users.User,
 	if customAction, ok := customClientActions[action]; ok {
 		// CHECK IF THE TYPE OF data MATCHES THE TYPE action SPECIFIES
 		if !typesMatch(data, customAction.dataType) {
-			client.Respond(nil, errors.New("Mismatched data type"))
+			client.Respond(nil, NewError("Mismatched data type", Error_Mismatched_Types))
 			return
 		}
 		//EXECUTE CALLBACK
 		customAction.callback(data, client)
 	} else {
-		client.Respond(nil, errors.New("Unrecognized action"))
+		client.Respond(nil, NewError("Unrecognized action", Error_Unrecognized_Action))
 	}
 }
 

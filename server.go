@@ -70,7 +70,6 @@ type ServerSettings struct {
 
 var (
 	settings  *ServerSettings
-	callbacks ServerCallbacks = ServerCallbacks{}
 
 	serverStarted bool = false
 
@@ -164,7 +163,7 @@ func Start(s *ServerSettings) error {
 	if settings.TLS {
 		http.HandleFunc("/wss", socketInitializer)
 		if startCallback != nil {
-			callbacks.Start()
+			startCallback()
 		}
 		err := http.ListenAndServeTLS(settings.IP+":"+strconv.Itoa(settings.Port), settings.CertFile, settings.PrivKeyFile, nil)
 		if err != nil {
@@ -173,7 +172,7 @@ func Start(s *ServerSettings) error {
 	} else {
 		http.HandleFunc("/ws", socketInitializer)
 		if startCallback != nil {
-			callbacks.Start()
+			startCallback()
 		}
 		err := http.ListenAndServe(settings.IP+":"+strconv.Itoa(settings.Port), nil)
 		if err != nil {

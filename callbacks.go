@@ -18,7 +18,6 @@ const (
 //    func serverStarted(){
 //	     //code...
 //	 }
-}
 func SetStartCallback(cb interface{}) error {
 	if(serverStarted){
 		return errors.New(ErrorServerRunning)
