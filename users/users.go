@@ -52,6 +52,7 @@ var (
 	usersMux sync.Mutex
 
 	serverStarted bool = false
+	serverPaused  bool = false
 
 	serverName   string
 	kickOnLogin  bool = false
@@ -80,6 +81,7 @@ const (
 	errorNameUnavail    = "Username is unavailable"
 	errorUnexpected     = "Unexpected error"
 	errorAlreadyLogged  = "User is already logged in"
+	errorServerPaused   = "Server is paused"
 )
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -90,7 +92,9 @@ const (
 func Login(userName string, dbID int, autologPass string, isGuest bool, remMe bool, socket *websocket.Conn,
 	connUser **User, clientMux *sync.Mutex) (string, helpers.GopherError) {
 	//REJECT INCORRECT INPUT
-	if len(userName) == 0 {
+	if serverPaused {
+		return "", helpers.NewError(errorServerPaused, helpers.Error_Server_Paused)
+	} else if len(userName) == 0 {
 		return "", helpers.NewError(errorRequiredName, helpers.Error_Auth_Required_Name)
 	} else if userName == serverName {
 		return "", helpers.NewError(errorNameUnavail, helpers.Error_Auth_Name_Unavail)
@@ -280,6 +284,10 @@ func Login(userName string, dbID int, autologPass string, isGuest bool, remMe bo
 // (AKA auto login) feature, enable it in ServerSettings along with the SqlFeatures and corresponding
 // options. You can read more about the "Remember Me" login in the project's usage section.
 func AutoLogIn(tag string, pass string, newPass string, dbID int, conn *websocket.Conn, connUser **User, clientMux *sync.Mutex) (string, helpers.GopherError) {
+	if serverPaused {
+		return "", helpers.NewError(errorServerPaused, helpers.Error_Server_Paused)
+	}
+
 	//VERIFY AND GET USER NAME FROM DATABASE
 	userName, autoLogErr := database.AutoLoginClient(tag, pass, newPass, dbID)
 	if autoLogErr.ID != 0 {
@@ -377,6 +385,8 @@ func Get(userName string) (*User, error) {
 	//REJECT INCORRECT INPUT
 	if len(userName) == 0 {
 		return &User{}, errors.New("users.Get() requires a user name")
+	} else if serverPaused {
+		return &User{}, errors.New(errorServerPaused)
 	}
 
 	var user *User
@@ -690,3 +700,7 @@ func SettingsSet(kickDups bool, name string, deleteOnLeave bool, sqlFeat bool, r
 		rooms.SettingsSet(name, deleteOnLeave, multiConn)
 	}
 }
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+//   SERVER PAUSE AND RESUME   ///////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////

@@ -69,6 +69,7 @@ const (
 
 	// Misc errors
 	Error_Action_Denied
+	Error_Server_Paused
 )
 
 func NewError(message string, id int) GopherError {

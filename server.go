@@ -6,39 +6,39 @@ package gopher
 
 import (
 	"fmt"
+	"errors"
 	"github.com/hewiefreeman/GopherGameServer/actions"
 	"github.com/hewiefreeman/GopherGameServer/database"
 	"github.com/hewiefreeman/GopherGameServer/rooms"
 	"github.com/hewiefreeman/GopherGameServer/users"
 	"net/http"
 	"strconv"
+	"context"
 )
 
 /////////// TO DOs:
 ///////////	- ServerCallbacks (DONE)
 ///////////		- Test
-///////////	- SQLite Database:
-///////////		- Save state on shut-down
+///////////	- Save state on shut-down
 ///////////		- Error handle server start-up and callback on successful launch
 ///////////		- Above will be used to determine whether to save the state or not. If the server didn't start correctly, the sate should not be saved.
 ///////////		- Test
-///////////	- Add checks for required ServerSettings
 ///////////	- Admin tools
 
 // ServerSettings are the core settings for the Gopher Game Server. You must fill one of these out to customize
 // the server's functionality to your liking.
 type ServerSettings struct {
-	ServerName     string // The server's name. Used for the server's ownership of private Rooms.
+	ServerName     string // The server's name. Used for the server's ownership of private Rooms. (Required)
 	MaxConnections int    // The maximum amount of concurrent connections the server will accept. Setting this to 0 means infinite.
 
-	HostName  string // Server's host name. Use 'https://' for TLS connections. (ex: 'https://example.com')
+	HostName  string // Server's host name. Use 'https://' for TLS connections. (ex: 'https://example.com') (Required)
 	HostAlias string // Server's host alias name. Use 'https://' for TLS connections. (ex: 'https://www.example.com')
-	IP        string // Server's IP address.
-	Port      int    // Server's port.
+	IP        string // Server's IP address. (Required)
+	Port      int    // Server's port. (Required)
 
 	TLS         bool   // Enables TLS/SSL connections.
-	CertFile    string // SSL/TLS certificate file location (starting from system's root folder).
-	PrivKeyFile string // SSL/TLS private key file location (starting from system's root folder).
+	CertFile    string // SSL/TLS certificate file location (starting from system's root folder). (Required for TLS)
+	PrivKeyFile string // SSL/TLS private key file location (starting from system's root folder). (Required for TLS)
 
 	OriginOnly bool // When enabled, the server declines connections made from outside the origin server (Admin logins always check origin). IMPORTANT: Enable this for web apps and LAN servers.
 
@@ -49,29 +49,34 @@ type ServerSettings struct {
 	RoomDeleteOnLeave bool // When enabled, Rooms created by a User will be deleted when the owner leaves. WARNING: If disabled, you must remember to at some point delete the rooms created by Users, or they will pile up endlessly!
 
 	EnableSqlFeatures bool   // Enables the built-in SQL User authentication and friending. NOTE: It is HIGHLY recommended to use TLS over an SSL/HTTPS connection when using the SQL features. Otherwise, sensitive User information can be compromised with network "snooping" (AKA "sniffing").
-	SqlIP             string // SQL Database IP address.
-	SqlPort           int    // SQL Database port.
-	SqlProtocol       string // The protocol to use while comminicating with the MySQL database. Most use either 'udp' or 'tcp'.
-	SqlUser           string // SQL user name
-	SqlPassword       string // SQL user password
-	SqlDatabase       string // SQL database name
+	SqlIP             string // SQL Database IP address. (Required for SQL features)
+	SqlPort           int    // SQL Database port. (Required for SQL features)
+	SqlProtocol       string // The protocol to use while comminicating with the MySQL database. Most use either 'udp' or 'tcp'. (Required for SQL features)
+	SqlUser           string // SQL user name (Required for SQL features)
+	SqlPassword       string // SQL user password (Required for SQL features)
+	SqlDatabase       string // SQL database name (Required for SQL features)
 	EncryptionCost    int    // The amount of encryption iterations the server will run when storing and checking passwords. The higher the number, the longer encryptions take, but are more secure. Default is 4, range is 4-31.
 	CustomLoginColumn string // The custom AccountInfoColumn you wish to use for logging in instead of the default name column.
 	RememberMe        bool   // Enables the "Remember Me" login feature. You can read more about this in project's "Usage" section.
 
 	EnableRecovery   bool   // Enables the recovery of all Rooms, their settings, and their variables on start-up after terminating the server.
-	RecoveryLocation string // The folder location (starting from system's root folder) where you would like to store the recovery data.
+	RecoveryLocation string // The folder location (starting from system's root folder) where you would like to store the recovery data. (Required for recovery)
 
 	EnableAdminTools   bool   // Enables the use of the Admin Tools
 	EnableRemoteAdmin  bool   // Enabled administration (only) from outside the origin server. When enabled, will override OriginOnly's functionality, but only for administrator connections.
-	AdminToolsLogin    string // The login name for the Admin Tools
-	AdminToolsPassword string // The password for the Admin Tools
+	AdminToolsLogin    string // The login name for the Admin Tools (Required for Admin Tools)
+	AdminToolsPassword string // The password for the Admin Tools (Required for Admin Tools)
 }
 
 var (
+	httpServer *http.Server
+
 	settings  *ServerSettings
 
 	serverStarted bool = false
+	serverPaused  bool = false
+	serverStopping bool = false
+	serverEndChan chan error = make(chan error)
 
 	startCallback func() = nil
 	pauseCallback func() = nil
@@ -93,6 +98,26 @@ func Start(s *ServerSettings) error {
 	//SET SERVER SETTINGS
 	if s != nil {
 		settings = s
+		if settings.ServerName == "" {
+			return errors.New("ServerName in ServerSettings is required")
+
+		} else if settings.HostName == "" || settings.IP == "" || settings.Port > 1 {
+			return errors.New("HostName, IP, and Port in ServerSettings are required")
+
+		} else if settings.TLS == true && ( settings.CertFile == "" || settings.PrivKeyFile == "" ) {
+			return errors.New("CertFile and PrivKeyFile in ServerSettings are required for a TLS connection")
+
+		} else if settings.EnableSqlFeatures == true && ( settings.SqlIP == "" || settings.SqlPort < 1 || settings.SqlProtocol == "" ||
+				settings.SqlUser == "" || settings.SqlPassword == "" || settings.SqlDatabase == "" ) {
+			return errors.New("SqlIP, SqlPort, SqlProtocol, SqlUser, SqlPassword, and SqlDatabase in ServerSettings are required for the SQL features")
+
+		} else if settings.EnableRecovery == true && settings.RecoveryLocation == "" {
+			return errors.New("RecoveryLocation in ServerSettings is required for server recovery")
+
+		} else if settings.EnableAdminTools == true && ( settings.AdminToolsLogin == "" || settings.AdminToolsPassword == "" ) {
+			return errors.New("AdminToolsLogin and AdminToolsPassword in ServerSettings are required for Administrator Tools")
+
+		}
 	} else {
 		//DEFAULT localhost SETTINGS
 		fmt.Println("Using default settings...")
@@ -159,26 +184,84 @@ func Start(s *ServerSettings) error {
 		fmt.Println("Initialized Database...")
 	}
 
+	//RECOVER PREVIOUS SERVER STATE
+
 	//START HTTP/SOCKET LISTENER
 	if settings.TLS {
-		http.HandleFunc("/wss", socketInitializer)
-		if startCallback != nil {
-			startCallback()
-		}
-		err := http.ListenAndServeTLS(settings.IP+":"+strconv.Itoa(settings.Port), settings.CertFile, settings.PrivKeyFile, nil)
-		if err != nil {
-			return err
-		}
+		httpServer = makeServer("/wss", settings.TLS);
 	} else {
-		http.HandleFunc("/ws", socketInitializer)
-		if startCallback != nil {
-			startCallback()
-		}
-		err := http.ListenAndServe(settings.IP+":"+strconv.Itoa(settings.Port), nil)
-		if err != nil {
-			return err
-		}
+		httpServer = makeServer("/ws", settings.TLS);
 	}
 
+	//RUN START CALLBACK
+	if startCallback != nil {
+		startCallback()
+	}
+
+	fmt.Println("Startup successful")
+
+	doneErr := <-serverEndChan
+
+	if doneErr != http.ErrServerClosed {
+		if !serverStopping {
+			//PAUSE SERVER
+			Pause()
+
+			//SAVE STATE
+		}
+
+		return doneErr
+	}
+
+	return nil
+}
+
+func makeServer(handleDir string, tls bool) (*http.Server) {
+	server := &http.Server{Addr: settings.IP+":"+strconv.Itoa(settings.Port)}
+	http.HandleFunc(handleDir, socketInitializer)
+	if tls {
+		go func() {
+			err := server.ListenAndServeTLS(settings.CertFile, settings.PrivKeyFile)
+			serverEndChan <- err
+		}()
+	}else{
+		go func() {
+			err := server.ListenAndServe()
+			serverEndChan <- err
+		}()
+	}
+
+	//
+	return server
+}
+
+// Pause will log all Users off and prevent anyone from logging in. All rooms and their variables created by the server will remain in memory.
+// Same goes for rooms created by Users unless `RoomDeleteOnLeave` in `ServerSettings` is set to true.
+func Pause() {
+	users.Pause()
+}
+
+// Resume will allow Users to login again after pausing the server.
+func Resume() {
+	users.Resume()
+}
+
+// Stop will log all Users off, save the state of the server if EnableRecovery in ServerSettings is set to true, then shut the server down.
+func Stop() error {
+	//PAUSE SERVER
+	Pause()
+
+	//
+	serverStopping = true
+
+	//SAVE STATE
+
+	//SHUT DOWN SERVER
+	shutdownErr := httpServer.Shutdown(context.Background())
+	if shutdownErr != nil {
+		return shutdownErr
+	}
+
+	//
 	return nil
 }
