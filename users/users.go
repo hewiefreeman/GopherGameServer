@@ -60,8 +60,8 @@ var (
 	rememberMe   bool = false
 	multiConnect bool = false
 
-	LoginCallback  func(string,int,map[string]interface{},map[string]interface{})bool = nil
-	LogoutCallback func(string,int)                                                   = nil
+	LoginCallback  func(string, int, map[string]interface{}, map[string]interface{}) bool = nil
+	LogoutCallback func(string, int)                                                      = nil
 )
 
 // These represent the four statuses a User could be.
@@ -704,3 +704,11 @@ func SettingsSet(kickDups bool, name string, deleteOnLeave bool, sqlFeat bool, r
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 //   SERVER PAUSE AND RESUME   ///////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////
+
+func Pause() {
+
+}
+
+func Resume() {
+
+}

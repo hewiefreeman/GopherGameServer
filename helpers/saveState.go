@@ -1,9 +1,17 @@
 package helpers
 
 import (
-	"io/ioutil"
 	"encoding/json"
+	"io/ioutil"
 )
+
+func getState() map[string]interface{} {
+	//GET THE SERVER'S STATE
+	state := make(map[string]interface{})
+
+	//
+	return state
+}
 
 func saveState(stateObj map[string]interface{}, saveFolder string) error {
 	//WRITE THE STATE

@@ -1,8 +1,6 @@
 package helpers
 
-import (
-
-)
+import ()
 
 type GopherError struct {
 	Message string

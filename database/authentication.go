@@ -16,11 +16,11 @@ var (
 	customAccountInfoChangeRequirements map[string]struct{} = make(map[string]struct{})
 	customDeleteAccountRequirements     map[string]struct{} = make(map[string]struct{})
 
-	SignUpCallback func(string,map[string]interface{})bool                                       = nil
-	LoginCallback  func(string,int,map[string]interface{},map[string]interface{})bool            = nil
-	DeleteAccountCallback func(string,int,map[string]interface{},map[string]interface{})bool     = nil
-	AccountInfoChangeCallback func(string,int,map[string]interface{},map[string]interface{})bool = nil
-	PasswordChangeCallback func(string,int,map[string]interface{},map[string]interface{})bool    = nil
+	SignUpCallback            func(string, map[string]interface{}) bool                              = nil
+	LoginCallback             func(string, int, map[string]interface{}, map[string]interface{}) bool = nil
+	DeleteAccountCallback     func(string, int, map[string]interface{}, map[string]interface{}) bool = nil
+	AccountInfoChangeCallback func(string, int, map[string]interface{}, map[string]interface{}) bool = nil
+	PasswordChangeCallback    func(string, int, map[string]interface{}, map[string]interface{}) bool = nil
 )
 
 // Authentication error messages
@@ -292,7 +292,7 @@ func LoginClient(userName string, password string, deviceTag string, remMe bool,
 		// GET THE RECIEVED COLUMN VALUES AS MAP
 		var recievedVals map[string]interface{} = make(map[string]interface{})
 		if customCols != nil {
-			i := 3;
+			i := 3
 			for key := range customCols {
 				recievedVals[key] = *(vals[i].(*interface{}))
 				//
@@ -469,7 +469,7 @@ func ChangePassword(userName string, password string, newPassword string, custom
 		// GET THE RECIEVED COLUMN VALUES AS MAP
 		var recievedVals map[string]interface{} = make(map[string]interface{})
 		if customCols != nil {
-			i := 2;
+			i := 2
 			for key := range customCols {
 				recievedVals[key] = *(vals[i].(*interface{}))
 				//
@@ -562,7 +562,7 @@ func ChangeAccountInfo(userName string, password string, customCols map[string]i
 		// GET THE RECIEVED COLUMN VALUES AS MAP
 		var recievedVals map[string]interface{} = make(map[string]interface{})
 		if customCols != nil {
-			i := 2;
+			i := 2
 			for key := range customCols {
 				recievedVals[key] = *(vals[i].(*interface{}))
 				//
@@ -659,7 +659,7 @@ func DeleteAccount(userName string, password string, customCols map[string]inter
 		// GET THE RECIEVED COLUMN VALUES AS MAP
 		var recievedVals map[string]interface{} = make(map[string]interface{})
 		if customCols != nil {
-			i := 2;
+			i := 2
 			for key := range customCols {
 				recievedVals[key] = *(vals[i].(*interface{}))
 				//

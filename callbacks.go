@@ -2,14 +2,14 @@ package gopher
 
 import (
 	"errors"
-	"net/http"
-	"github.com/hewiefreeman/GopherGameServer/users"
 	"github.com/hewiefreeman/GopherGameServer/database"
+	"github.com/hewiefreeman/GopherGameServer/users"
+	"net/http"
 )
 
 const (
 	ErrorIncorrectFunction = "Incorrect function parameters or return parameters"
-	ErrorServerRunning = "Cannot call when the server is running."
+	ErrorServerRunning     = "Cannot call when the server is running."
 )
 
 // SetStartCallback sets the callback that triggers when the server first starts up. The
@@ -19,11 +19,11 @@ const (
 //	     //code...
 //	 }
 func SetStartCallback(cb interface{}) error {
-	if(serverStarted){
+	if serverStarted {
 		return errors.New(ErrorServerRunning)
-	}else if callback, ok := cb.(func()); ok {
+	} else if callback, ok := cb.(func()); ok {
 		startCallback = callback
-	}else{
+	} else {
 		return errors.New(ErrorIncorrectFunction)
 	}
 	return nil
@@ -36,11 +36,11 @@ func SetStartCallback(cb interface{}) error {
 //	     //code...
 //	 }
 func SetPauseCallback(cb interface{}) error {
-	if(serverStarted){
+	if serverStarted {
 		return errors.New(ErrorServerRunning)
-	}else if callback, ok := cb.(func()); ok {
+	} else if callback, ok := cb.(func()); ok {
 		pauseCallback = callback
-	}else{
+	} else {
 		return errors.New(ErrorIncorrectFunction)
 	}
 	return nil
@@ -53,11 +53,11 @@ func SetPauseCallback(cb interface{}) error {
 //	     //code...
 //	 }
 func SetResumeCallback(cb interface{}) error {
-	if(serverStarted){
+	if serverStarted {
 		return errors.New(ErrorServerRunning)
-	}else if callback, ok := cb.(func()); ok {
+	} else if callback, ok := cb.(func()); ok {
 		resumeCallback = callback
-	}else{
+	} else {
 		return errors.New(ErrorIncorrectFunction)
 	}
 	return nil
@@ -70,11 +70,11 @@ func SetResumeCallback(cb interface{}) error {
 //	     //code...
 //	 }
 func SetStopCallback(cb interface{}) error {
-	if(serverStarted){
+	if serverStarted {
 		return errors.New(ErrorServerRunning)
-	}else if callback, ok := cb.(func()); ok {
+	} else if callback, ok := cb.(func()); ok {
 		stopCallback = callback
-	}else{
+	} else {
 		return errors.New(ErrorIncorrectFunction)
 	}
 	return nil
@@ -90,11 +90,11 @@ func SetStopCallback(cb interface{}) error {
 // The function returns a boolean. If false is returned, the client will recieve an HTTP error `http.StatusForbidden` and
 // will be rejected from the server. This can be used to, for instance, make a black/white list for your server.
 func SetClientConnectCallback(cb interface{}) error {
-	if(serverStarted){
+	if serverStarted {
 		return errors.New(ErrorServerRunning)
-	}else if callback, ok := cb.(func(*http.ResponseWriter,*http.Request)bool); ok {
+	} else if callback, ok := cb.(func(*http.ResponseWriter, *http.Request) bool); ok {
 		clientConnectCallback = callback
-	}else{
+	} else {
 		return errors.New(ErrorIncorrectFunction)
 	}
 	return nil
@@ -117,15 +117,15 @@ func SetClientConnectCallback(cb interface{}) error {
 // You can compare the `recievedColumns` and `clientColumns` to, for instance, compare the key 'email' to make sure the
 // client also provided the right email address for that account on the database.
 func SetLoginCallback(cb interface{}) error {
-	if(serverStarted){
+	if serverStarted {
 		return errors.New(ErrorServerRunning)
-	}else if callback, ok := cb.(func(string,int,map[string]interface{},map[string]interface{})bool); ok {
+	} else if callback, ok := cb.(func(string, int, map[string]interface{}, map[string]interface{}) bool); ok {
 		if (*settings).EnableSqlFeatures {
 			database.LoginCallback = callback
-		}else{
+		} else {
 			users.LoginCallback = callback
 		}
-	}else{
+	} else {
 		return errors.New(ErrorIncorrectFunction)
 	}
 	return nil
@@ -140,11 +140,11 @@ func SetLoginCallback(cb interface{}) error {
 //
 // `userName` is the name of the User logging in, `databaseID` is the index of the User on the database.
 func SetLogoutCallback(cb interface{}) error {
-	if(serverStarted){
+	if serverStarted {
 		return errors.New(ErrorServerRunning)
-	}else if callback, ok := cb.(func(string,int)); ok {
+	} else if callback, ok := cb.(func(string, int)); ok {
 		users.LogoutCallback = callback
-	}else{
+	} else {
 		return errors.New(ErrorIncorrectFunction)
 	}
 	return nil
@@ -163,11 +163,11 @@ func SetLogoutCallback(cb interface{}) error {
 // The function returns a boolean. If false is returned, the client will recieve a `helpers.Error_Action_Denied` (1052) error and will be
 // denied from signing up. This can be used to, for instance, deny user names or `AccountInfoColumn`s with profanity.
 func SetSignupCallback(cb interface{}) error {
-	if(serverStarted){
+	if serverStarted {
 		return errors.New(ErrorServerRunning)
-	}else if callback, ok := cb.(func(string,map[string]interface{})bool); ok {
+	} else if callback, ok := cb.(func(string, map[string]interface{}) bool); ok {
 		database.SignUpCallback = callback
-	}else{
+	} else {
 		return errors.New(ErrorIncorrectFunction)
 	}
 	return nil
@@ -190,11 +190,11 @@ func SetSignupCallback(cb interface{}) error {
 // You can compare the `recievedColumns` and `clientColumns` to, for instance, compare the keys named 'email' to make sure the
 // client also provided the right email address for that account on the database.
 func SetDeleteAccountCallback(cb interface{}) error {
-	if(serverStarted){
+	if serverStarted {
 		return errors.New(ErrorServerRunning)
-	}else if callback, ok := cb.(func(string,int,map[string]interface{},map[string]interface{})bool); ok {
+	} else if callback, ok := cb.(func(string, int, map[string]interface{}, map[string]interface{}) bool); ok {
 		database.DeleteAccountCallback = callback
-	}else{
+	} else {
 		return errors.New(ErrorIncorrectFunction)
 	}
 	return nil
@@ -217,11 +217,11 @@ func SetDeleteAccountCallback(cb interface{}) error {
 // You can compare the `recievedColumns` and `clientColumns` to, for instance, compare the keys named 'email' to make sure the
 // client also provided the right email address for that account on the database.
 func SetAccountInfoChangeCallback(cb interface{}) error {
-	if(serverStarted){
+	if serverStarted {
 		return errors.New(ErrorServerRunning)
-	}else if callback, ok := cb.(func(string,int,map[string]interface{},map[string]interface{})bool); ok {
+	} else if callback, ok := cb.(func(string, int, map[string]interface{}, map[string]interface{}) bool); ok {
 		database.AccountInfoChangeCallback = callback
-	}else{
+	} else {
 		return errors.New(ErrorIncorrectFunction)
 	}
 	return nil
@@ -244,11 +244,11 @@ func SetAccountInfoChangeCallback(cb interface{}) error {
 // You can compare the `recievedColumns` and `clientColumns` to, for instance, compare the keys named 'email' to make sure the
 // client also provided the right email address for that account on the database.
 func SetPasswordChangeCallback(cb interface{}) error {
-	if(serverStarted){
+	if serverStarted {
 		return errors.New(ErrorServerRunning)
-	}else if callback, ok := cb.(func(string,int,map[string]interface{},map[string]interface{})bool); ok {
+	} else if callback, ok := cb.(func(string, int, map[string]interface{}, map[string]interface{}) bool); ok {
 		database.PasswordChangeCallback = callback
-	}else{
+	} else {
 		return errors.New(ErrorIncorrectFunction)
 	}
 	return nil

@@ -5,15 +5,14 @@
 package gopher
 
 import (
+	"context"
 	"fmt"
-	"errors"
 	"github.com/hewiefreeman/GopherGameServer/actions"
 	"github.com/hewiefreeman/GopherGameServer/database"
 	"github.com/hewiefreeman/GopherGameServer/rooms"
 	"github.com/hewiefreeman/GopherGameServer/users"
 	"net/http"
 	"strconv"
-	"context"
 )
 
 /////////// TO DOs:
@@ -71,18 +70,18 @@ type ServerSettings struct {
 var (
 	httpServer *http.Server
 
-	settings  *ServerSettings
+	settings *ServerSettings
 
-	serverStarted bool = false
-	serverPaused  bool = false
-	serverStopping bool = false
-	serverEndChan chan error = make(chan error)
+	serverStarted  bool       = false
+	serverPaused   bool       = false
+	serverStopping bool       = false
+	serverEndChan  chan error = make(chan error)
 
-	startCallback func() = nil
-	pauseCallback func() = nil
-	stopCallback func() = nil
-	resumeCallback func() = nil
-	clientConnectCallback func(*http.ResponseWriter,*http.Request)bool = nil
+	startCallback         func()                                         = nil
+	pauseCallback         func()                                         = nil
+	stopCallback          func()                                         = nil
+	resumeCallback        func()                                         = nil
+	clientConnectCallback func(*http.ResponseWriter, *http.Request) bool = nil
 
 	//SERVER VERSION NUMBER
 	version string = "1.0-ALPHA.2"
@@ -92,30 +91,30 @@ var (
 // settings are for local testing ONLY. There are security-related options in `ServerSettings`
 // for SSL/TLS, connection origin testing, administrator tools, and more. It's highly recommended to look into
 // all `ServerSettings` options to tune the server for your desired functionality and security needs.
-func Start(s *ServerSettings) error {
+func Start(s *ServerSettings) {
 	fmt.Println(" _____             _               _____\n|  __ \\           | |             /  ___|\n| |  \\/ ___  _ __ | |__   ___ _ __\\ `--.  ___ _ ____   _____ _ __\n| | __ / _ \\| '_ \\| '_ \\ / _ \\ '__|`--. \\/ _ \\ '__\\ \\ / / _ \\ '__|\n| |_\\ \\ (_) | |_) | | | |  __/ |  /\\__/ /  __/ |   \\ V /  __/ |\n \\____/\\___/| .__/|_| |_|\\___|_|  \\____/ \\___|_|    \\_/ \\___|_|\n            | |\n            |_|                                      v" + version + "\n\n")
-	fmt.Println("Starting...")
+	fmt.Println("Starting server...")
 	//SET SERVER SETTINGS
 	if s != nil {
 		settings = s
 		if settings.ServerName == "" {
-			return errors.New("ServerName in ServerSettings is required")
+			fmt.Println("ServerName in ServerSettings is required. Shutting down...")
 
 		} else if settings.HostName == "" || settings.IP == "" || settings.Port > 1 {
-			return errors.New("HostName, IP, and Port in ServerSettings are required")
+			fmt.Println("HostName, IP, and Port in ServerSettings are required. Shutting down...")
 
-		} else if settings.TLS == true && ( settings.CertFile == "" || settings.PrivKeyFile == "" ) {
-			return errors.New("CertFile and PrivKeyFile in ServerSettings are required for a TLS connection")
+		} else if settings.TLS == true && (settings.CertFile == "" || settings.PrivKeyFile == "") {
+			fmt.Println("CertFile and PrivKeyFile in ServerSettings are required for a TLS connection. Shutting down...")
 
-		} else if settings.EnableSqlFeatures == true && ( settings.SqlIP == "" || settings.SqlPort < 1 || settings.SqlProtocol == "" ||
-				settings.SqlUser == "" || settings.SqlPassword == "" || settings.SqlDatabase == "" ) {
-			return errors.New("SqlIP, SqlPort, SqlProtocol, SqlUser, SqlPassword, and SqlDatabase in ServerSettings are required for the SQL features")
+		} else if settings.EnableSqlFeatures == true && (settings.SqlIP == "" || settings.SqlPort < 1 || settings.SqlProtocol == "" ||
+			settings.SqlUser == "" || settings.SqlPassword == "" || settings.SqlDatabase == "") {
+			fmt.Println("SqlIP, SqlPort, SqlProtocol, SqlUser, SqlPassword, and SqlDatabase in ServerSettings are required for the SQL features. Shutting down...")
 
 		} else if settings.EnableRecovery == true && settings.RecoveryLocation == "" {
-			return errors.New("RecoveryLocation in ServerSettings is required for server recovery")
+			fmt.Println("RecoveryLocation in ServerSettings is required for server recovery. Shutting down...")
 
-		} else if settings.EnableAdminTools == true && ( settings.AdminToolsLogin == "" || settings.AdminToolsPassword == "" ) {
-			return errors.New("AdminToolsLogin and AdminToolsPassword in ServerSettings are required for Administrator Tools")
+		} else if settings.EnableAdminTools == true && (settings.AdminToolsLogin == "" || settings.AdminToolsPassword == "") {
+			fmt.Println("AdminToolsLogin and AdminToolsPassword in ServerSettings are required for Administrator Tools. Shutting down...")
 
 		}
 	} else {
@@ -167,7 +166,7 @@ func Start(s *ServerSettings) error {
 		(*settings).RememberMe, (*settings).MultiConnect)
 
 	//NOTIFY PACKAGES OF SERVER START
-	serverStarted = true;
+	serverStarted = true
 	users.SetServerStarted(true)
 	rooms.SetServerStarted(true)
 	actions.SetServerStarted(true)
@@ -175,22 +174,23 @@ func Start(s *ServerSettings) error {
 
 	//START UP DATABASE
 	if (*settings).EnableSqlFeatures {
+		fmt.Println("Initializing database...")
 		dbErr := database.Init((*settings).SqlUser, (*settings).SqlPassword, (*settings).SqlDatabase,
 			(*settings).SqlProtocol, (*settings).SqlIP, (*settings).SqlPort, (*settings).EncryptionCost,
 			(*settings).RememberMe, (*settings).CustomLoginColumn)
 		if dbErr != nil {
-			return dbErr
+			fmt.Println("Database error:", dbErr.Error())
 		}
-		fmt.Println("Initialized Database...")
+		fmt.Println("Database initialized")
 	}
 
 	//RECOVER PREVIOUS SERVER STATE
 
 	//START HTTP/SOCKET LISTENER
 	if settings.TLS {
-		httpServer = makeServer("/wss", settings.TLS);
+		httpServer = makeServer("/wss", settings.TLS)
 	} else {
-		httpServer = makeServer("/ws", settings.TLS);
+		httpServer = makeServer("/ws", settings.TLS)
 	}
 
 	//RUN START CALLBACK
@@ -198,33 +198,35 @@ func Start(s *ServerSettings) error {
 		startCallback()
 	}
 
-	fmt.Println("Startup successful")
+	fmt.Println("Startup complete")
 
 	doneErr := <-serverEndChan
 
 	if doneErr != http.ErrServerClosed {
+		fmt.Println("Fatal server error:", doneErr.Error())
+		fmt.Println("Shutting server down...")
+
 		if !serverStopping {
 			//PAUSE SERVER
 			Pause()
 
 			//SAVE STATE
+			fmt.Println("Saving server state...")
 		}
-
-		return doneErr
 	}
 
-	return nil
+	fmt.Println("Server shut-down completed")
 }
 
-func makeServer(handleDir string, tls bool) (*http.Server) {
-	server := &http.Server{Addr: settings.IP+":"+strconv.Itoa(settings.Port)}
+func makeServer(handleDir string, tls bool) *http.Server {
+	server := &http.Server{Addr: settings.IP + ":" + strconv.Itoa(settings.Port)}
 	http.HandleFunc(handleDir, socketInitializer)
 	if tls {
 		go func() {
 			err := server.ListenAndServeTLS(settings.CertFile, settings.PrivKeyFile)
 			serverEndChan <- err
 		}()
-	}else{
+	} else {
 		go func() {
 			err := server.ListenAndServe()
 			serverEndChan <- err
@@ -238,16 +240,35 @@ func makeServer(handleDir string, tls bool) (*http.Server) {
 // Pause will log all Users off and prevent anyone from logging in. All rooms and their variables created by the server will remain in memory.
 // Same goes for rooms created by Users unless `RoomDeleteOnLeave` in `ServerSettings` is set to true.
 func Pause() {
+	fmt.Println("Pausing server...")
+
 	users.Pause()
+
+	//RUN CALLBACK
+	if pauseCallback != nil {
+		pauseCallback()
+	}
+
+	fmt.Println("Server paused")
 }
 
 // Resume will allow Users to login again after pausing the server.
 func Resume() {
+	fmt.Println("Resuming server...")
 	users.Resume()
+
+	//RUN CALLBACK
+	if resumeCallback != nil {
+		resumeCallback()
+	}
+
+	fmt.Println("Server resumed")
 }
 
 // Stop will log all Users off, save the state of the server if EnableRecovery in ServerSettings is set to true, then shut the server down.
 func Stop() error {
+	fmt.Println("Stopping server...")
+
 	//PAUSE SERVER
 	Pause()
 
@@ -255,13 +276,17 @@ func Stop() error {
 	serverStopping = true
 
 	//SAVE STATE
+	fmt.Println("Saving server state...")
 
 	//SHUT DOWN SERVER
+	fmt.Println("Shutting server down...")
 	shutdownErr := httpServer.Shutdown(context.Background())
-	if shutdownErr != nil {
-		return shutdownErr
+
+	//RUN CALLBACK
+	if stopCallback != nil {
+		stopCallback()
 	}
 
 	//
-	return nil
+	return shutdownErr
 }
