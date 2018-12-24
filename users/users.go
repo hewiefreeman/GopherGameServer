@@ -60,8 +60,9 @@ var (
 	rememberMe   bool = false
 	multiConnect bool = false
 
-	LoginCallback  func(string, int, map[string]interface{}, map[string]interface{}) bool
-	LogoutCallback func(string, int)
+
+	LoginCallback  func(string, int, map[string]interface{}, map[string]interface{}) bool // LoginCallback is only for internal Gopher Game Server mechanics.
+	LogoutCallback func(string, int)                                                      // LogoutCallback is only for internal Gopher Game Server mechanics.
 )
 
 // These represent the four statuses a User could be.
@@ -705,10 +706,12 @@ func SettingsSet(kickDups bool, name string, deleteOnLeave bool, sqlFeat bool, r
 //   SERVER PAUSE AND RESUME   ///////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
+// Pause is only for internal Gopher Game Server mechanics.
 func Pause() {
 
 }
 
+// Resume is only for internal Gopher Game Server mechanics.
 func Resume() {
 
 }

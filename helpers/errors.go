@@ -2,6 +2,7 @@ package helpers
 
 import ()
 
+// GopherError is used when sending an error message to the client API.
 type GopherError struct {
 	Message string
 	ID      int
@@ -65,7 +66,7 @@ const (
 	ErrorServerPaused
 )
 
-// NewError creates a new GopherError
+// NewError creates a new GopherError.
 func NewError(message string, id int) GopherError {
 	return GopherError{Message: message, ID: id}
 }
