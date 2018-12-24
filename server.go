@@ -19,6 +19,7 @@ import (
 ///////////	- Save state on shut-down
 ///////////		- Test
 ///////////	- Admin tools
+///////////         - More useful command-line macros
 
 // ServerSettings are the core settings for the Gopher Game Server. You must fill one of these out to customize
 // the server's functionality to your liking.
@@ -98,22 +99,28 @@ func Start(s *ServerSettings) {
 		settings = s
 		if settings.ServerName == "" {
 			fmt.Println("ServerName in ServerSettings is required. Shutting down...")
+			return
 
 		} else if settings.HostName == "" || settings.IP == "" || settings.Port > 1 {
 			fmt.Println("HostName, IP, and Port in ServerSettings are required. Shutting down...")
+			return
 
 		} else if settings.TLS == true && (settings.CertFile == "" || settings.PrivKeyFile == "") {
 			fmt.Println("CertFile and PrivKeyFile in ServerSettings are required for a TLS connection. Shutting down...")
+			return
 
 		} else if settings.EnableSqlFeatures == true && (settings.SqlIP == "" || settings.SqlPort < 1 || settings.SqlProtocol == "" ||
 			settings.SqlUser == "" || settings.SqlPassword == "" || settings.SqlDatabase == "") {
 			fmt.Println("SqlIP, SqlPort, SqlProtocol, SqlUser, SqlPassword, and SqlDatabase in ServerSettings are required for the SQL features. Shutting down...")
+			return
 
 		} else if settings.EnableRecovery == true && settings.RecoveryLocation == "" {
 			fmt.Println("RecoveryLocation in ServerSettings is required for server recovery. Shutting down...")
+			return
 
 		} else if settings.EnableAdminTools == true && (settings.AdminToolsLogin == "" || settings.AdminToolsPassword == "") {
 			fmt.Println("AdminToolsLogin and AdminToolsPassword in ServerSettings are required for Administrator Tools. Shutting down...")
+			return
 
 		}
 	} else {
@@ -179,6 +186,7 @@ func Start(s *ServerSettings) {
 			(*settings).RememberMe, (*settings).CustomLoginColumn)
 		if dbErr != nil {
 			fmt.Println("Database error:", dbErr.Error())
+			return
 		}
 		fmt.Println("Database initialized")
 	}
@@ -219,6 +227,10 @@ func Start(s *ServerSettings) {
 	}
 
 	fmt.Println("Server shut-down completed")
+
+	if stopCallback != nil {
+		stopCallback()
+	}
 }
 
 func makeServer(handleDir string, tls bool) *http.Server {
@@ -289,31 +301,26 @@ func Resume() {
 
 // Stop will log all Users off, save the state of the server if EnableRecovery in ServerSettings is set to true, then shut the server down.
 func ShutDown() error {
-	fmt.Println("Stopping server...")
+	if !serverStopping {
+		serverStopping = true
+		fmt.Println("Kicking users...")
 
-	//PAUSE SERVER
-	Pause()
+		//PAUSE SERVER
+		users.Pause()
+		rooms.Pause()
+		actions.Pause()
+		database.Pause()
 
-	//
-	serverStopping = true
+		//SAVE STATE
+		fmt.Println("Saving server state...")
 
-	//SAVE STATE
-	fmt.Println("Saving server state...")
-
-	//SHUT DOWN SERVER
-	fmt.Println("Shutting server down...")
-	shutdownErr := httpServer.Shutdown(context.Background())
-
-	//RUN CALLBACK
-	if stopCallback != nil {
-		stopCallback()
+		//SHUT DOWN SERVER
+		fmt.Println("Shutting server down...")
+		shutdownErr := httpServer.Shutdown(context.Background())
+		if shutdownErr != http.ErrServerClosed {
+			return shutdownErr
+		}
 	}
-
-	//
-	if shutdownErr != http.ErrServerClosed {
-		return shutdownErr
-	}
-
 	//
 	return nil
 }

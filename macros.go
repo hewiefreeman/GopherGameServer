@@ -13,9 +13,8 @@ import (
 func macroListener(){
 	for {
 		reader := bufio.NewReader(os.Stdin)
-		fmt.Print("Server Command: ")
+		fmt.Print("[Gopher] Command: ")
 		text, _ := reader.ReadString('\n')
-
 		stop := handleMacro(text[0:len(text)-2])
 		if stop {
 			return
