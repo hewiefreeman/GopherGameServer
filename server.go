@@ -16,11 +16,7 @@ import (
 )
 
 /////////// TO DOs:
-///////////	- ServerCallbacks (DONE)
-///////////		- Test
 ///////////	- Save state on shut-down
-///////////		- Error handle server start-up and callback on successful launch
-///////////		- Above will be used to determine whether to save the state or not. If the server didn't start correctly, the sate should not be saved.
 ///////////		- Test
 ///////////	- Admin tools
 
@@ -91,6 +87,9 @@ var (
 // settings are for local testing ONLY. There are security-related options in `ServerSettings`
 // for SSL/TLS, connection origin testing, administrator tools, and more. It's highly recommended to look into
 // all `ServerSettings` options to tune the server for your desired functionality and security needs.
+//
+// This function will block the thread that it is ran on until the server either errors, or is manually shut-down. To run code after the
+// server starts/stops/pauses/etc, use the provided server callback setter functions.
 func Start(s *ServerSettings) {
 	fmt.Println(" _____             _               _____\n|  __ \\           | |             /  ___|\n| |  \\/ ___  _ __ | |__   ___ _ __\\ `--.  ___ _ ____   _____ _ __\n| | __ / _ \\| '_ \\| '_ \\ / _ \\ '__|`--. \\/ _ \\ '__\\ \\ / / _ \\ '__|\n| |_\\ \\ (_) | |_) | | | |  __/ |  /\\__/ /  __/ |   \\ V /  __/ |\n \\____/\\___/| .__/|_| |_|\\___|_|  \\____/ \\___|_|    \\_/ \\___|_|\n            | |\n            |_|                                      v" + version + "\n\n")
 	fmt.Println("Starting server...")
@@ -198,10 +197,12 @@ func Start(s *ServerSettings) {
 		startCallback()
 	}
 
+	//START MACRO COMMAND LISTENER
+	go macroListener()
+
 	fmt.Println("Startup complete")
 
-	//Start macro command listener
-
+	//BLOCK UNTIL SERVER SHUT-DOWN
 	doneErr := <-serverEndChan
 
 	if doneErr != http.ErrServerClosed {
@@ -242,29 +243,48 @@ func makeServer(handleDir string, tls bool) *http.Server {
 // Pause will log all Users off and prevent anyone from logging in. All rooms and their variables created by the server will remain in memory.
 // Same goes for rooms created by Users unless `RoomDeleteOnLeave` in `ServerSettings` is set to true.
 func Pause() {
-	fmt.Println("Pausing server...")
+	if !serverPaused {
+		serverPaused = true
 
-	users.Pause()
+		fmt.Println("Pausing server...")
 
-	//RUN CALLBACK
-	if pauseCallback != nil {
-		pauseCallback()
+		users.Pause()
+		rooms.Pause()
+		actions.Pause()
+		database.Pause()
+
+		//RUN CALLBACK
+		if pauseCallback != nil {
+			pauseCallback()
+		}
+
+		fmt.Println("Server paused")
+
+		serverStarted = false
 	}
 
-	fmt.Println("Server paused")
 }
 
 // Resume will allow Users to login again after pausing the server.
 func Resume() {
-	fmt.Println("Resuming server...")
-	users.Resume()
+	if serverPaused {
+		serverStarted = true
 
-	//RUN CALLBACK
-	if resumeCallback != nil {
-		resumeCallback()
+		fmt.Println("Resuming server...")
+		users.Resume()
+		rooms.Resume()
+		actions.Resume()
+		database.Resume()
+
+		//RUN CALLBACK
+		if resumeCallback != nil {
+			resumeCallback()
+		}
+
+		fmt.Println("Server resumed")
+
+		serverPaused = false
 	}
-
-	fmt.Println("Server resumed")
 }
 
 // Stop will log all Users off, save the state of the server if EnableRecovery in ServerSettings is set to true, then shut the server down.
@@ -290,5 +310,10 @@ func ShutDown() error {
 	}
 
 	//
-	return shutdownErr
+	if shutdownErr != http.ErrServerClosed {
+		return shutdownErr
+	}
+
+	//
+	return nil
 }

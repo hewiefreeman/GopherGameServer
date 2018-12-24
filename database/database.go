@@ -18,6 +18,7 @@ var (
 
 	//SERVER SETTINGS
 	serverStarted bool = false
+	serverPaused  bool = false
 	rememberMe    bool = false
 	databaseName  string
 	inited        bool = false
@@ -137,5 +138,25 @@ func GetUserDatabaseIndex(userName string) (int, error) {
 func SetServerStarted(val bool) {
 	if !serverStarted {
 		serverStarted = val
+	}
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+//   SERVER PAUSE AND RESUME   ///////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// Pause is only for internal Gopher Game Server mechanics.
+func Pause() {
+	if !serverPaused {
+		serverPaused = true
+		serverStarted = false
+	}
+}
+
+// Resume is only for internal Gopher Game Server mechanics.
+func Resume() {
+	if serverPaused {
+		serverStarted = true
+		serverPaused = false
 	}
 }

@@ -304,7 +304,7 @@ func AutoLogIn(tag string, pass string, newPass string, dbID int, conn *websocke
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////
-//   LOG A USER OUT   ////////////////////////////////////////////////////////////////////////////////
+//   LOG/KICK A USER OUT   ///////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // Logout logs a User out from the service. If you are using MultiConnect in ServerSettings, the connID
@@ -370,6 +370,65 @@ func (u *User) Logout(connID string) {
 	//SEND RESPONSE TO CLIENT
 	clientResp := helpers.MakeClientResponse(helpers.ClientActionLogout, nil, helpers.NewError("", 0))
 	socket.WriteJSON(clientResp)
+
+	//RUN CALLBACK
+	if LogoutCallback != nil {
+		LogoutCallback(u.Name(), u.DatabaseID())
+	}
+}
+
+// Kick will log off all connections on this User.
+func (u *User) Kick() {
+	u.mux.Lock()
+
+	//SEND STATUS CHANGE TO FRIENDS
+	statusMessage := make(map[string]interface{})
+	statusMessage[helpers.ServerActionFriendStatusChange] = make(map[string]interface{})
+	statusMessage[helpers.ServerActionFriendStatusChange].(map[string]interface{})["n"] = u.name
+	statusMessage[helpers.ServerActionFriendStatusChange].(map[string]interface{})["s"] = StatusOffline
+	for key, val := range u.friends {
+		if val.RequestStatus() == database.FriendStatusAccepted {
+			friend, friendErr := Get(key)
+			if friendErr == nil {
+				friend.mux.Lock()
+				for _, friendConn := range friend.conns {
+					(*friendConn).socket.WriteJSON(statusMessage)
+				}
+				friend.mux.Unlock()
+			}
+		}
+	}
+
+	//MAKE CLIENT RESPONSE
+	clientResp := helpers.MakeClientResponse(helpers.ClientActionLogout, nil, helpers.NewError("", 0))
+
+	//LOOP THROUGH CONNECTIONS
+	for connID, conn := range u.conns {
+		//REMOVE CONNECTION FROM THEIR ROOM
+		currRoom := (*conn).room
+		if currRoom != nil && currRoom.Name() != "" {
+			u.mux.Unlock()
+			currRoom.RemoveUser(u.name, connID)
+			u.mux.Lock()
+		}
+
+		//LOG CONNECTION OUT
+		(*conn).clientMux.Lock()
+		if *((*conn).user) != nil {
+			*((*conn).user) = nil
+		}
+		(*conn).clientMux.Unlock()
+
+		//SEND RESPONSE
+		(*conn).socket.WriteJSON(clientResp)
+	}
+
+	u.mux.Unlock()
+
+	//REMOVE USER FROM users
+	usersMux.Lock()
+	delete(users, u.name)
+	usersMux.Unlock()
 
 	//RUN CALLBACK
 	if LogoutCallback != nil {
@@ -708,10 +767,34 @@ func SettingsSet(kickDups bool, name string, deleteOnLeave bool, sqlFeat bool, r
 
 // Pause is only for internal Gopher Game Server mechanics.
 func Pause() {
+	if !serverPaused {
+		serverPaused = true
 
+		//
+		clientResp := helpers.MakeClientResponse(helpers.ClientActionLogout, nil, helpers.NewError("", 0))
+		usersMux.Lock()
+		for _, user := range users {
+			(*user).mux.Lock()
+			for _, conn := range user.conns {
+				(*conn).socket.WriteJSON(clientResp)
+				(*conn).clientMux.Lock()
+				*((*conn).user) = nil
+				(*conn).clientMux.Unlock()
+			}
+			(*user).mux.Unlock()
+		}
+		users = make(map[string]*User)
+		usersMux.Unlock()
+
+		//
+		serverStarted = false
+	}
 }
 
 // Resume is only for internal Gopher Game Server mechanics.
 func Resume() {
-
+	if serverPaused {
+		serverStarted = true
+		serverPaused = false
+	}
 }

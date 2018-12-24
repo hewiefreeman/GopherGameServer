@@ -40,7 +40,9 @@ type ClientError struct {
 
 var (
 	customClientActions map[string]CustomClientAction = make(map[string]CustomClientAction)
-	serverStarted                                     = false
+
+	serverStarted = false
+	serverPaused  = false
 )
 
 // Default `ClientError`s
@@ -249,5 +251,25 @@ func (c *Client) Action() string {
 func SetServerStarted(val bool) {
 	if !serverStarted {
 		serverStarted = val
+	}
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+//   SERVER PAUSE AND RESUME   ///////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// Pause is only for internal Gopher Game Server mechanics.
+func Pause() {
+	if !serverPaused {
+		serverPaused = true
+		serverStarted = false
+	}
+}
+
+// Resume is only for internal Gopher Game Server mechanics.
+func Resume() {
+	if serverPaused {
+		serverStarted = true
+		serverPaused = false
 	}
 }

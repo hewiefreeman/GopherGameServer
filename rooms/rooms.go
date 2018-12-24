@@ -69,6 +69,7 @@ var (
 
 	//SERVER SETTINGS
 	serverStarted     bool = false
+	serverPaused      bool = false
 	serverName        string
 	deleteRoomOnLeave bool = true
 	multiConnect      bool = false
@@ -581,5 +582,25 @@ func SettingsSet(name string, deleteOnLeave bool, multiConn bool) {
 		serverName = name
 		deleteRoomOnLeave = deleteOnLeave
 		multiConnect = multiConn
+	}
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+//   SERVER PAUSE AND RESUME   ///////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// Pause is only for internal Gopher Game Server mechanics.
+func Pause() {
+	if !serverPaused {
+		serverPaused = true
+		serverStarted = false
+	}
+}
+
+// Resume is only for internal Gopher Game Server mechanics.
+func Resume() {
+	if serverPaused {
+		serverStarted = true
+		serverPaused = false
 	}
 }
