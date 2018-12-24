@@ -87,7 +87,7 @@ func SetStopCallback(cb interface{}) error {
 //	     //code...
 //	 }
 //
-// The function returns a boolean. If false is returned, the client will recieve an HTTP error `http.StatusForbidden` and
+// The function returns a boolean. If false is returned, the client will receive an HTTP error `http.StatusForbidden` and
 // will be rejected from the server. This can be used to, for instance, make a black/white list for your server.
 func SetClientConnectCallback(cb interface{}) error {
 	if serverStarted {
@@ -103,18 +103,18 @@ func SetClientConnectCallback(cb interface{}) error {
 // SetLoginCallback sets the callback that triggers when a client logs in as a User. The
 // function passed must have the same parameter types as the following example:
 //
-//    func clientLoggedIn(userName string, databaseID int, recievedColumns map[string]interface{}, clientColumns map[string]interface{}) bool {
+//    func clientLoggedIn(userName string, databaseID int, receivedColumns map[string]interface{}, clientColumns map[string]interface{}) bool {
 //	     //code...
 //	 }
 //
-// `userName` is the name of the User logging in, `databaseID` is the index of the User on the database, `recievedColumns` are the custom `AccountInfoColumn` (keys) and their values
-// recieved from the database, and `clientColumns` have the same keys as the `recievedColumns`, but are the input from the client.
+// `userName` is the name of the User logging in, `databaseID` is the index of the User on the database, `receivedColumns` are the custom `AccountInfoColumn` (keys) and their values
+// received from the database, and `clientColumns` have the same keys as the `receivedColumns`, but are the input from the client.
 //
-// The function returns a boolean. If false is returned, the client will recieve a `helpers.Error_Action_Denied` (1052) error and will be
+// The function returns a boolean. If false is returned, the client will receive a `helpers.Error_Action_Denied` (1052) error and will be
 // denied from logging in. This can be used to, for instance, suspend or ban a User.
 //
-// Note: the `clientColumns` decides which `AccountInfoColumn`s were fetched from the database, so the keys will always be the same as `recievedColumns`.
-// You can compare the `recievedColumns` and `clientColumns` to, for instance, compare the key 'email' to make sure the
+// Note: the `clientColumns` decides which `AccountInfoColumn`s were fetched from the database, so the keys will always be the same as `receivedColumns`.
+// You can compare the `receivedColumns` and `clientColumns` to, for instance, compare the key 'email' to make sure the
 // client also provided the right email address for that account on the database.
 func SetLoginCallback(cb interface{}) error {
 	if serverStarted {
@@ -160,7 +160,7 @@ func SetLogoutCallback(cb interface{}) error {
 // `userName` is the name of the User logging in, `clientColumns` is the input from the client for setting
 // custom `AccountInfoColumn`s on the database.
 //
-// The function returns a boolean. If false is returned, the client will recieve a `helpers.Error_Action_Denied` (1052) error and will be
+// The function returns a boolean. If false is returned, the client will receive a `helpers.Error_Action_Denied` (1052) error and will be
 // denied from signing up. This can be used to, for instance, deny user names or `AccountInfoColumn`s with profanity.
 func SetSignupCallback(cb interface{}) error {
 	if serverStarted {
@@ -176,18 +176,18 @@ func SetSignupCallback(cb interface{}) error {
 // SetDeleteAccountCallback sets the callback that triggers when a client deletes their account. The
 // function passed must have the same parameter types as the following example:
 //
-//    func clientDeletedAccount(userName string, databaseID int, recievedColumns map[string]interface{}, clientColumns map[string]interface{}) bool {
+//    func clientDeletedAccount(userName string, databaseID int, receivedColumns map[string]interface{}, clientColumns map[string]interface{}) bool {
 //	     //code...
 //	 }
 //
-// `userName` is the name of the User deleting their account, `databaseID` is the index of the User on the database, `recievedColumns` are the custom `AccountInfoColumn` (keys) and their values
-// recieved from the database, and `clientColumns` have the same keys as the `recievedColumns`, but are the input from the client.
+// `userName` is the name of the User deleting their account, `databaseID` is the index of the User on the database, `receivedColumns` are the custom `AccountInfoColumn` (keys) and their values
+// received from the database, and `clientColumns` have the same keys as the `receivedColumns`, but are the input from the client.
 //
-// The function returns a boolean. If false is returned, the client will recieve a `helpers.Error_Action_Denied` (1052) error and will be
+// The function returns a boolean. If false is returned, the client will receive a `helpers.Error_Action_Denied` (1052) error and will be
 // denied from deleting the account. This can be used to, for instance, make extra input requirements for this action.
 //
-// Note: the `clientColumns` decides which `AccountInfoColumn`s were fetched from the database, so the keys will always be the same as `recievedColumns`.
-// You can compare the `recievedColumns` and `clientColumns` to, for instance, compare the keys named 'email' to make sure the
+// Note: the `clientColumns` decides which `AccountInfoColumn`s were fetched from the database, so the keys will always be the same as `receivedColumns`.
+// You can compare the `receivedColumns` and `clientColumns` to, for instance, compare the keys named 'email' to make sure the
 // client also provided the right email address for that account on the database.
 func SetDeleteAccountCallback(cb interface{}) error {
 	if serverStarted {
@@ -203,18 +203,18 @@ func SetDeleteAccountCallback(cb interface{}) error {
 // SetAccountInfoChangeCallback sets the callback that triggers when a client changes an `AccountInfoColumn`. The
 // function passed must have the same parameter types as the following example:
 //
-//    func clientChangedAccountInfo(userName string, databaseID int, recievedColumns map[string]interface{}, clientColumns map[string]interface{}) bool {
+//    func clientChangedAccountInfo(userName string, databaseID int, receivedColumns map[string]interface{}, clientColumns map[string]interface{}) bool {
 //	     //code...
 //	 }
 //
-// `userName` is the name of the User changing info, `databaseID` is the index of the User on the database, `recievedColumns` are the custom `AccountInfoColumn` (keys) and their values
-// recieved from the database, and `clientColumns` have the same keys as the `recievedColumns`, but are the input from the client.
+// `userName` is the name of the User changing info, `databaseID` is the index of the User on the database, `receivedColumns` are the custom `AccountInfoColumn` (keys) and their values
+// received from the database, and `clientColumns` have the same keys as the `receivedColumns`, but are the input from the client.
 //
-// The function returns a boolean. If false is returned, the client will recieve a `helpers.Error_Action_Denied` (1052) error and will be
+// The function returns a boolean. If false is returned, the client will receive a `helpers.Error_Action_Denied` (1052) error and will be
 // denied from changing the info. This can be used to, for instance, make extra input requirements for this action.
 //
-// Note: the `clientColumns` decides which `AccountInfoColumn`s were fetched from the database, so the keys will always be the same as `recievedColumns`.
-// You can compare the `recievedColumns` and `clientColumns` to, for instance, compare the keys named 'email' to make sure the
+// Note: the `clientColumns` decides which `AccountInfoColumn`s were fetched from the database, so the keys will always be the same as `receivedColumns`.
+// You can compare the `receivedColumns` and `clientColumns` to, for instance, compare the keys named 'email' to make sure the
 // client also provided the right email address for that account on the database.
 func SetAccountInfoChangeCallback(cb interface{}) error {
 	if serverStarted {
@@ -230,18 +230,18 @@ func SetAccountInfoChangeCallback(cb interface{}) error {
 // SetPasswordChangeCallback sets the callback that triggers when a client changes their password. The
 // function passed must have the same parameter types as the following example:
 //
-//    func clientChangedPassword(userName string, databaseID int, recievedColumns map[string]interface{}, clientColumns map[string]interface{}) bool {
+//    func clientChangedPassword(userName string, databaseID int, receivedColumns map[string]interface{}, clientColumns map[string]interface{}) bool {
 //	     //code...
 //	 }
 //
-// `userName` is the name of the User changing their password, `databaseID` is the index of the User on the database, `recievedColumns` are the custom `AccountInfoColumn` (keys) and their values
-// recieved from the database, and `clientColumns` have the same keys as the `recievedColumns`, but are the input from the client.
+// `userName` is the name of the User changing their password, `databaseID` is the index of the User on the database, `receivedColumns` are the custom `AccountInfoColumn` (keys) and their values
+// received from the database, and `clientColumns` have the same keys as the `receivedColumns`, but are the input from the client.
 //
-// The function returns a boolean. If false is returned, the client will recieve a `helpers.Error_Action_Denied` (1052) error and will be
+// The function returns a boolean. If false is returned, the client will receive a `helpers.Error_Action_Denied` (1052) error and will be
 // denied from changing the password. This can be used to, for instance, make extra input requirements for this action.
 //
-// Note: the `clientColumns` decides which `AccountInfoColumn`s were fetched from the database, so the keys will always be the same as `recievedColumns`.
-// You can compare the `recievedColumns` and `clientColumns` to, for instance, compare the keys named 'email' to make sure the
+// Note: the `clientColumns` decides which `AccountInfoColumn`s were fetched from the database, so the keys will always be the same as `receivedColumns`.
+// You can compare the `receivedColumns` and `clientColumns` to, for instance, compare the keys named 'email' to make sure the
 // client also provided the right email address for that account on the database.
 func SetPasswordChangeCallback(cb interface{}) error {
 	if serverStarted {

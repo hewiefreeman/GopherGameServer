@@ -60,8 +60,8 @@ var (
 	rememberMe   bool = false
 	multiConnect bool = false
 
-	LoginCallback  func(string, int, map[string]interface{}, map[string]interface{}) bool = nil
-	LogoutCallback func(string, int)                                                      = nil
+	LoginCallback  func(string, int, map[string]interface{}, map[string]interface{}) bool
+	LogoutCallback func(string, int)
 )
 
 // These represent the four statuses a User could be.

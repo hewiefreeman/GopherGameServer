@@ -16,11 +16,11 @@ var (
 	customAccountInfoChangeRequirements map[string]struct{} = make(map[string]struct{})
 	customDeleteAccountRequirements     map[string]struct{} = make(map[string]struct{})
 
-	SignUpCallback            func(string, map[string]interface{}) bool                              = nil
-	LoginCallback             func(string, int, map[string]interface{}, map[string]interface{}) bool = nil
-	DeleteAccountCallback     func(string, int, map[string]interface{}, map[string]interface{}) bool = nil
-	AccountInfoChangeCallback func(string, int, map[string]interface{}, map[string]interface{}) bool = nil
-	PasswordChangeCallback    func(string, int, map[string]interface{}, map[string]interface{}) bool = nil
+	SignUpCallback            func(string, map[string]interface{}) bool
+	LoginCallback             func(string, int, map[string]interface{}, map[string]interface{}) bool
+	DeleteAccountCallback     func(string, int, map[string]interface{}, map[string]interface{}) bool
+	AccountInfoChangeCallback func(string, int, map[string]interface{}, map[string]interface{}) bool
+	PasswordChangeCallback    func(string, int, map[string]interface{}, map[string]interface{}) bool
 )
 
 // Authentication error messages
@@ -289,18 +289,18 @@ func LoginClient(userName string, password string, deviceTag string, remMe bool,
 
 	//RUN CALLBACK
 	if LoginCallback != nil {
-		// GET THE RECIEVED COLUMN VALUES AS MAP
-		var recievedVals map[string]interface{} = make(map[string]interface{})
+		// GET THE RECEIVED COLUMN VALUES AS MAP
+		var receivedVals map[string]interface{} = make(map[string]interface{})
 		if customCols != nil {
 			i := 3
 			for key := range customCols {
-				recievedVals[key] = *(vals[i].(*interface{}))
+				receivedVals[key] = *(vals[i].(*interface{}))
 				//
 				i++
 			}
 		}
 
-		if !LoginCallback(*uName, *dbIndex, recievedVals, customCols) {
+		if !LoginCallback(*uName, *dbIndex, receivedVals, customCols) {
 			return "", 0, "", helpers.NewError(errorDenied, helpers.Error_Action_Denied)
 		}
 	}
@@ -466,18 +466,18 @@ func ChangePassword(userName string, password string, newPassword string, custom
 
 	//RUN CALLBACK
 	if PasswordChangeCallback != nil {
-		// GET THE RECIEVED COLUMN VALUES AS MAP
-		var recievedVals map[string]interface{} = make(map[string]interface{})
+		// GET THE RECEIVED COLUMN VALUES AS MAP
+		var receivedVals map[string]interface{} = make(map[string]interface{})
 		if customCols != nil {
 			i := 2
 			for key := range customCols {
-				recievedVals[key] = *(vals[i].(*interface{}))
+				receivedVals[key] = *(vals[i].(*interface{}))
 				//
 				i++
 			}
 		}
 
-		if !PasswordChangeCallback(userName, dbIndex, recievedVals, customCols) {
+		if !PasswordChangeCallback(userName, dbIndex, receivedVals, customCols) {
 			return helpers.NewError(errorDenied, helpers.Error_Action_Denied)
 		}
 	}
@@ -559,18 +559,18 @@ func ChangeAccountInfo(userName string, password string, customCols map[string]i
 
 	//RUN CALLBACK
 	if AccountInfoChangeCallback != nil {
-		// GET THE RECIEVED COLUMN VALUES AS MAP
-		var recievedVals map[string]interface{} = make(map[string]interface{})
+		// GET THE RECEIVED COLUMN VALUES AS MAP
+		var receivedVals map[string]interface{} = make(map[string]interface{})
 		if customCols != nil {
 			i := 2
 			for key := range customCols {
-				recievedVals[key] = *(vals[i].(*interface{}))
+				receivedVals[key] = *(vals[i].(*interface{}))
 				//
 				i++
 			}
 		}
 
-		if !AccountInfoChangeCallback(userName, dbIndex, recievedVals, customCols) {
+		if !AccountInfoChangeCallback(userName, dbIndex, receivedVals, customCols) {
 			return helpers.NewError(errorDenied, helpers.Error_Action_Denied)
 		}
 	}
@@ -656,18 +656,18 @@ func DeleteAccount(userName string, password string, customCols map[string]inter
 
 	//RUN CALLBACK
 	if DeleteAccountCallback != nil {
-		// GET THE RECIEVED COLUMN VALUES AS MAP
-		var recievedVals map[string]interface{} = make(map[string]interface{})
+		// GET THE RECEIVED COLUMN VALUES AS MAP
+		var receivedVals map[string]interface{} = make(map[string]interface{})
 		if customCols != nil {
 			i := 2
 			for key := range customCols {
-				recievedVals[key] = *(vals[i].(*interface{}))
+				receivedVals[key] = *(vals[i].(*interface{}))
 				//
 				i++
 			}
 		}
 
-		if !DeleteAccountCallback(userName, dbIndex, recievedVals, customCols) {
+		if !DeleteAccountCallback(userName, dbIndex, receivedVals, customCols) {
 			return helpers.NewError(errorDenied, helpers.Error_Action_Denied)
 		}
 	}

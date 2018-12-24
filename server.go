@@ -77,11 +77,11 @@ var (
 	serverStopping bool       = false
 	serverEndChan  chan error = make(chan error)
 
-	startCallback         func()                                         = nil
-	pauseCallback         func()                                         = nil
-	stopCallback          func()                                         = nil
-	resumeCallback        func()                                         = nil
-	clientConnectCallback func(*http.ResponseWriter, *http.Request) bool = nil
+	startCallback         func()
+	pauseCallback         func()
+	stopCallback          func()
+	resumeCallback        func()
+	clientConnectCallback func(*http.ResponseWriter, *http.Request) bool
 
 	//SERVER VERSION NUMBER
 	version string = "1.0-ALPHA.2"
