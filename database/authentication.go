@@ -156,24 +156,24 @@ func checkCustomRequirements(customCols map[string]interface{}, requirements map
 // client up when using the SQL features.
 func SignUpClient(userName string, password string, customCols map[string]interface{}) helpers.GopherError {
 	if len(userName) == 0 {
-		return helpers.NewError(errorRequiredName, helpers.Error_Auth_Required_Name)
+		return helpers.NewError(errorRequiredName, helpers.ErrorAuthRequiredName)
 	} else if len(password) == 0 {
-		return helpers.NewError(errorRequiredPass, helpers.Error_Auth_Required_Pass)
+		return helpers.NewError(errorRequiredPass, helpers.ErrorAuthRequiredPass)
 	} else if checkStringSQLInjection(userName) {
-		return helpers.NewError(errorMaliciousChars, helpers.Error_Auth_Malicious_Chars)
+		return helpers.NewError(errorMaliciousChars, helpers.ErrorAuthMaliciousChars)
 	} else if !checkCustomRequirements(customCols, customSignupRequirements) {
-		return helpers.NewError(errorIncorrectCols, helpers.Error_Auth_Incorrect_Cols)
+		return helpers.NewError(errorIncorrectCols, helpers.ErrorAuthIncorrectCols)
 	}
 
 	//RUN CALLBACK
 	if SignUpCallback != nil && !SignUpCallback(userName, customCols) {
-		return helpers.NewError(errorDenied, helpers.Error_Action_Denied)
+		return helpers.NewError(errorDenied, helpers.ErrorActionDenied)
 	}
 
 	//ENCRYPT PASSWORD
 	passHash, hashErr := helpers.EncryptString(password, encryptionCost)
 	if hashErr != nil {
-		return helpers.NewError(hashErr.Error(), helpers.Error_Auth_Encryption)
+		return helpers.NewError(hashErr.Error(), helpers.ErrorAuthEncryption)
 	}
 
 	var vals []interface{} = []interface{}{}
@@ -183,7 +183,7 @@ func SignUpClient(userName string, password string, customCols map[string]interf
 	if customCols != nil {
 		if customLoginColumn != "" {
 			if _, ok := customCols[customLoginColumn]; !ok {
-				return helpers.NewError(errorInsufficientCols, helpers.Error_Auth_Insufficient_Cols)
+				return helpers.NewError(errorInsufficientCols, helpers.ErrorAuthInsufficientCols)
 			}
 		}
 		for key, val := range customCols {
@@ -192,7 +192,7 @@ func SignUpClient(userName string, password string, customCols map[string]interf
 			vals = append(vals, []interface{}{val, customAccountInfo[key]})
 		}
 	} else if customLoginColumn != "" {
-		return helpers.NewError(errorInsufficientCols, helpers.Error_Auth_Insufficient_Cols)
+		return helpers.NewError(errorInsufficientCols, helpers.ErrorAuthInsufficientCols)
 	}
 	queryPart1 = queryPart1[0:len(queryPart1)-2] + ") "
 
@@ -204,13 +204,13 @@ func SignUpClient(userName string, password string, customCols map[string]interf
 			//GET STRING VALUE & CHECK FOR INJECTIONS
 			value, valueErr := convertDataToString(dataTypes[dt.dataType], dt.dataType)
 			if valueErr != nil {
-				return helpers.NewError(errorInsufficientCols, helpers.Error_Auth_Insufficient_Cols)
+				return helpers.NewError(errorInsufficientCols, helpers.ErrorAuthInsufficientCols)
 			}
 			//CHECK FOR ENCRYPT
 			if dt.encrypt {
 				value, valueErr = helpers.EncryptString(value, encryptionCost)
 				if valueErr != nil {
-					return helpers.NewError(valueErr.Error(), helpers.Error_Auth_Encryption)
+					return helpers.NewError(valueErr.Error(), helpers.ErrorAuthEncryption)
 				}
 			}
 			//
@@ -223,7 +223,7 @@ func SignUpClient(userName string, password string, customCols map[string]interf
 	//EXECUTE QUERY
 	_, insertErr := database.Exec(queryPart1 + queryPart2)
 	if insertErr != nil {
-		return helpers.NewError(insertErr.Error(), helpers.Error_Auth_Query)
+		return helpers.NewError(insertErr.Error(), helpers.ErrorAuthQuery)
 	}
 
 	//
@@ -240,15 +240,15 @@ func SignUpClient(userName string, password string, customCols map[string]interf
 // client when using the SQL features.
 func LoginClient(userName string, password string, deviceTag string, remMe bool, customCols map[string]interface{}) (string, int, string, helpers.GopherError) {
 	if len(userName) == 0 {
-		return "", 0, "", helpers.NewError(errorRequiredName, helpers.Error_Auth_Required_Name)
+		return "", 0, "", helpers.NewError(errorRequiredName, helpers.ErrorAuthRequiredName)
 	} else if len(password) == 0 {
-		return "", 0, "", helpers.NewError(errorRequiredPass, helpers.Error_Auth_Required_Pass)
+		return "", 0, "", helpers.NewError(errorRequiredPass, helpers.ErrorAuthRequiredPass)
 	} else if checkStringSQLInjection(userName) {
-		return "", 0, "", helpers.NewError(errorMaliciousChars, helpers.Error_Auth_Malicious_Chars)
+		return "", 0, "", helpers.NewError(errorMaliciousChars, helpers.ErrorAuthMaliciousChars)
 	} else if checkStringSQLInjection(deviceTag) {
-		return "", 0, "", helpers.NewError(errorMaliciousChars, helpers.Error_Auth_Malicious_Chars)
+		return "", 0, "", helpers.NewError(errorMaliciousChars, helpers.ErrorAuthMaliciousChars)
 	} else if !checkCustomRequirements(customCols, customLoginRequirements) {
-		return "", 0, "", helpers.NewError(errorIncorrectCols, helpers.Error_Auth_Incorrect_Cols)
+		return "", 0, "", helpers.NewError(errorIncorrectCols, helpers.ErrorAuthIncorrectCols)
 	}
 
 	//FIRST THREE ARE id, password, name IN THAT ORDER
@@ -272,13 +272,13 @@ func LoginClient(userName string, password string, deviceTag string, remMe bool,
 	//EXECUTE SELECT QUERY
 	checkRows, err := database.Query(selectQuery)
 	if err != nil {
-		return "", 0, "", helpers.NewError(errorIncorrectLogin, helpers.Error_Auth_Incorrect_Login)
+		return "", 0, "", helpers.NewError(errorIncorrectLogin, helpers.ErrorAuthIncorrectLogin)
 	}
 	//
 	checkRows.Next()
 	if scanErr := checkRows.Scan(vals...); scanErr != nil {
 		checkRows.Close()
-		return "", 0, "", helpers.NewError(errorIncorrectLogin, helpers.Error_Auth_Incorrect_Login)
+		return "", 0, "", helpers.NewError(errorIncorrectLogin, helpers.ErrorAuthIncorrectLogin)
 	}
 	checkRows.Close()
 
@@ -301,13 +301,13 @@ func LoginClient(userName string, password string, deviceTag string, remMe bool,
 		}
 
 		if !LoginCallback(*uName, *dbIndex, receivedVals, customCols) {
-			return "", 0, "", helpers.NewError(errorDenied, helpers.Error_Action_Denied)
+			return "", 0, "", helpers.NewError(errorDenied, helpers.ErrorActionDenied)
 		}
 	}
 
 	//COMPARE HASHED PASSWORDS
 	if !helpers.CompareEncryptedData(password, *dbPass) {
-		return "", 0, "", helpers.NewError(errorIncorrectLogin, helpers.Error_Auth_Incorrect_Login)
+		return "", 0, "", helpers.NewError(errorIncorrectLogin, helpers.ErrorAuthIncorrectLogin)
 	}
 
 	//AUTO-LOGGING
@@ -337,20 +337,20 @@ func LoginClient(userName string, password string, deviceTag string, remMe bool,
 // log in a client when using the "Remember Me" SQL feature.
 func AutoLoginClient(tag string, pass string, newPass string, dbID int) (string, helpers.GopherError) {
 	if checkStringSQLInjection(tag) {
-		return "", helpers.NewError(errorMaliciousChars, helpers.Error_Auth_Malicious_Chars)
+		return "", helpers.NewError(errorMaliciousChars, helpers.ErrorAuthMaliciousChars)
 	}
 	//EXECUTE SELECT QUERY
 	var dPass string
 	checkRows, err := database.Query("Select " + autologsColumnDevicePass + " FROM " + tableAutologs + " WHERE " + autologsColumnID + "=" + strconv.Itoa(dbID) + " AND " +
 		autologsColumnDeviceTag + "=\"" + tag + "\" LIMIT 1;")
 	if err != nil {
-		return "", helpers.NewError(errorInvalidAutoLog, helpers.Error_Database_Invalid_Autolog)
+		return "", helpers.NewError(errorInvalidAutoLog, helpers.ErrorDatabaseInvalidAutolog)
 	}
 	//
 	checkRows.Next()
 	if scanErr := checkRows.Scan(&dPass); scanErr != nil {
 		checkRows.Close()
-		return "", helpers.NewError(errorInvalidAutoLog, helpers.Error_Database_Invalid_Autolog)
+		return "", helpers.NewError(errorInvalidAutoLog, helpers.ErrorDatabaseInvalidAutolog)
 	}
 	checkRows.Close()
 
@@ -364,26 +364,26 @@ func AutoLoginClient(tag string, pass string, newPass string, dbID int) (string,
 	_, updateErr := database.Exec("UPDATE " + tableAutologs + " SET " + autologsColumnDevicePass + "=\"" + newPass + "\" WHERE " + autologsColumnID + "=" + strconv.Itoa(dbID) + " AND " +
 		autologsColumnDeviceTag + "=\"" + tag + "\" LIMIT 1;")
 	if updateErr != nil {
-		return "", helpers.NewError(errorInvalidAutoLog, helpers.Error_Database_Invalid_Autolog)
+		return "", helpers.NewError(errorInvalidAutoLog, helpers.ErrorDatabaseInvalidAutolog)
 	}
 
 	//EVERYTHING WENT WELL, GET THE User's NAME
 	var userName string
 	userRows, err := database.Query("Select " + usersColumnName + " FROM " + tableUsers + " WHERE " + usersColumnID + "=" + strconv.Itoa(dbID) + " LIMIT 1;")
 	if err != nil {
-		return "", helpers.NewError(errorInvalidAutoLog, helpers.Error_Database_Invalid_Autolog)
+		return "", helpers.NewError(errorInvalidAutoLog, helpers.ErrorDatabaseInvalidAutolog)
 	}
 	//
 	userRows.Next()
 	if scanErr := userRows.Scan(&userName); scanErr != nil {
 		userRows.Close()
-		return "", helpers.NewError(errorInvalidAutoLog, helpers.Error_Database_Invalid_Autolog)
+		return "", helpers.NewError(errorInvalidAutoLog, helpers.ErrorDatabaseInvalidAutolog)
 	}
 	userRows.Close()
 
 	//RUN CALLBACK
 	if LoginCallback != nil && !LoginCallback(userName, dbID, nil, nil) {
-		return "", helpers.NewError(errorDenied, helpers.Error_Action_Denied)
+		return "", helpers.NewError(errorDenied, helpers.ErrorActionDenied)
 	}
 
 	//
@@ -415,15 +415,15 @@ func RemoveAutoLog(userID int, deviceTag string) {
 // a user's password when using the SQL features.
 func ChangePassword(userName string, password string, newPassword string, customCols map[string]interface{}) helpers.GopherError {
 	if len(userName) == 0 {
-		return helpers.NewError(errorRequiredName, helpers.Error_Auth_Required_Name)
+		return helpers.NewError(errorRequiredName, helpers.ErrorAuthRequiredName)
 	} else if len(password) == 0 {
-		return helpers.NewError(errorRequiredPass, helpers.Error_Auth_Required_Pass)
+		return helpers.NewError(errorRequiredPass, helpers.ErrorAuthRequiredPass)
 	} else if len(newPassword) == 0 {
-		return helpers.NewError(errorRequiredNewPass, helpers.Error_Auth_Required_New_Pass)
+		return helpers.NewError(errorRequiredNewPass, helpers.ErrorAuthRequiredNewPass)
 	} else if checkStringSQLInjection(userName) {
-		return helpers.NewError(errorMaliciousChars, helpers.Error_Auth_Malicious_Chars)
+		return helpers.NewError(errorMaliciousChars, helpers.ErrorAuthMaliciousChars)
 	} else if !checkCustomRequirements(customCols, customPasswordChangeRequirements) {
-		return helpers.NewError(errorIncorrectCols, helpers.Error_Auth_Incorrect_Cols)
+		return helpers.NewError(errorIncorrectCols, helpers.ErrorAuthIncorrectCols)
 	}
 
 	//FIRST TWO ARE id, password IN THAT ORDER
@@ -445,13 +445,13 @@ func ChangePassword(userName string, password string, newPassword string, custom
 	//EXECUTE SELECT QUERY
 	checkRows, err := database.Query(selectQuery)
 	if err != nil {
-		return helpers.NewError(errorIncorrectLogin, helpers.Error_Auth_Incorrect_Login)
+		return helpers.NewError(errorIncorrectLogin, helpers.ErrorAuthIncorrectLogin)
 	}
 	//
 	checkRows.Next()
 	if scanErr := checkRows.Scan(vals...); scanErr != nil {
 		checkRows.Close()
-		return helpers.NewError(errorIncorrectLogin, helpers.Error_Auth_Incorrect_Login)
+		return helpers.NewError(errorIncorrectLogin, helpers.ErrorAuthIncorrectLogin)
 	}
 	checkRows.Close()
 
@@ -461,7 +461,7 @@ func ChangePassword(userName string, password string, newPassword string, custom
 
 	//COMPARE HASHED PASSWORDS
 	if !helpers.CompareEncryptedData(password, dbPass) {
-		return helpers.NewError(errorIncorrectLogin, helpers.Error_Auth_Incorrect_Login)
+		return helpers.NewError(errorIncorrectLogin, helpers.ErrorAuthIncorrectLogin)
 	}
 
 	//RUN CALLBACK
@@ -478,20 +478,20 @@ func ChangePassword(userName string, password string, newPassword string, custom
 		}
 
 		if !PasswordChangeCallback(userName, dbIndex, receivedVals, customCols) {
-			return helpers.NewError(errorDenied, helpers.Error_Action_Denied)
+			return helpers.NewError(errorDenied, helpers.ErrorActionDenied)
 		}
 	}
 
 	//ENCRYPT NEW PASSWORD
 	passHash, hashErr := helpers.EncryptString(newPassword, encryptionCost)
 	if hashErr != nil {
-		return helpers.NewError(hashErr.Error(), helpers.Error_Auth_Encryption)
+		return helpers.NewError(hashErr.Error(), helpers.ErrorAuthEncryption)
 	}
 
 	//UPDATE THE PASSWORD
 	_, updateErr := database.Exec("UPDATE " + tableUsers + " SET " + usersColumnPassword + "=\"" + passHash + "\" WHERE " + usersColumnID + "=" + strconv.Itoa(dbIndex) + " LIMIT 1;")
 	if updateErr != nil {
-		return helpers.NewError(updateErr.Error(), helpers.Error_Auth_Query)
+		return helpers.NewError(updateErr.Error(), helpers.ErrorAuthQuery)
 	}
 
 	//
@@ -508,15 +508,15 @@ func ChangePassword(userName string, password string, newPassword string, custom
 // a user's AccountInfoColumn when using the SQL features.
 func ChangeAccountInfo(userName string, password string, customCols map[string]interface{}) helpers.GopherError {
 	if len(userName) == 0 {
-		return helpers.NewError(errorRequiredName, helpers.Error_Auth_Required_Name)
+		return helpers.NewError(errorRequiredName, helpers.ErrorAuthRequiredName)
 	} else if len(password) == 0 {
-		return helpers.NewError(errorRequiredPass, helpers.Error_Auth_Required_Pass)
+		return helpers.NewError(errorRequiredPass, helpers.ErrorAuthRequiredPass)
 	} else if len(customCols) == 0 {
-		return helpers.NewError(errorInsufficientCols, helpers.Error_Auth_Insufficient_Cols)
+		return helpers.NewError(errorInsufficientCols, helpers.ErrorAuthInsufficientCols)
 	} else if checkStringSQLInjection(userName) {
-		return helpers.NewError(errorMaliciousChars, helpers.Error_Auth_Malicious_Chars)
+		return helpers.NewError(errorMaliciousChars, helpers.ErrorAuthMaliciousChars)
 	} else if !checkCustomRequirements(customCols, customAccountInfoChangeRequirements) {
-		return helpers.NewError(errorIncorrectCols, helpers.Error_Auth_Incorrect_Cols)
+		return helpers.NewError(errorIncorrectCols, helpers.ErrorAuthIncorrectCols)
 	}
 
 	//FIRST TWO ARE id, password IN THAT ORDER
@@ -538,13 +538,13 @@ func ChangeAccountInfo(userName string, password string, customCols map[string]i
 	//EXECUTE SELECT QUERY
 	checkRows, err := database.Query(selectQuery)
 	if err != nil {
-		return helpers.NewError(errorIncorrectLogin, helpers.Error_Auth_Incorrect_Login)
+		return helpers.NewError(errorIncorrectLogin, helpers.ErrorAuthIncorrectLogin)
 	}
 	//
 	checkRows.Next()
 	if scanErr := checkRows.Scan(vals...); scanErr != nil {
 		checkRows.Close()
-		return helpers.NewError(errorIncorrectLogin, helpers.Error_Auth_Incorrect_Login)
+		return helpers.NewError(errorIncorrectLogin, helpers.ErrorAuthIncorrectLogin)
 	}
 	checkRows.Close()
 
@@ -554,7 +554,7 @@ func ChangeAccountInfo(userName string, password string, customCols map[string]i
 
 	//COMPARE HASHED PASSWORDS
 	if !helpers.CompareEncryptedData(password, dbPass) {
-		return helpers.NewError(errorIncorrectLogin, helpers.Error_Auth_Incorrect_Login)
+		return helpers.NewError(errorIncorrectLogin, helpers.ErrorAuthIncorrectLogin)
 	}
 
 	//RUN CALLBACK
@@ -571,7 +571,7 @@ func ChangeAccountInfo(userName string, password string, customCols map[string]i
 		}
 
 		if !AccountInfoChangeCallback(userName, dbIndex, receivedVals, customCols) {
-			return helpers.NewError(errorDenied, helpers.Error_Action_Denied)
+			return helpers.NewError(errorDenied, helpers.ErrorActionDenied)
 		}
 	}
 
@@ -582,7 +582,7 @@ func ChangeAccountInfo(userName string, password string, customCols map[string]i
 		//GET STRING VALUE & CHECK FOR INJECTIONS
 		value, valueErr := convertDataToString(dataTypes[dt], valsList[i].([]interface{})[0])
 		if valueErr != nil {
-			return helpers.NewError(valueErr.Error(), helpers.Error_Auth_Conversion)
+			return helpers.NewError(valueErr.Error(), helpers.ErrorAuthConversion)
 		}
 		//
 		updateQuery = updateQuery + valsList[i].([]interface{})[2].(string) + "=" + value + ", "
@@ -592,7 +592,7 @@ func ChangeAccountInfo(userName string, password string, customCols map[string]i
 	//EXECUTE THE UPDATE QUERY
 	_, updateErr := database.Exec(updateQuery)
 	if updateErr != nil {
-		return helpers.NewError(updateErr.Error(), helpers.Error_Auth_Query)
+		return helpers.NewError(updateErr.Error(), helpers.ErrorAuthQuery)
 	}
 
 	//
@@ -609,13 +609,13 @@ func ChangeAccountInfo(userName string, password string, customCols map[string]i
 // user's account when using the SQL features.
 func DeleteAccount(userName string, password string, customCols map[string]interface{}) helpers.GopherError {
 	if len(userName) == 0 {
-		return helpers.NewError(errorRequiredName, helpers.Error_Auth_Required_Name)
+		return helpers.NewError(errorRequiredName, helpers.ErrorAuthRequiredName)
 	} else if len(password) == 0 {
-		return helpers.NewError(errorRequiredPass, helpers.Error_Auth_Required_Pass)
+		return helpers.NewError(errorRequiredPass, helpers.ErrorAuthRequiredPass)
 	} else if checkStringSQLInjection(userName) {
-		return helpers.NewError(errorMaliciousChars, helpers.Error_Auth_Malicious_Chars)
+		return helpers.NewError(errorMaliciousChars, helpers.ErrorAuthMaliciousChars)
 	} else if !checkCustomRequirements(customCols, customDeleteAccountRequirements) {
-		return helpers.NewError(errorIncorrectCols, helpers.Error_Auth_Incorrect_Cols)
+		return helpers.NewError(errorIncorrectCols, helpers.ErrorAuthIncorrectCols)
 	}
 
 	//FIRST TWO ARE id, password IN THAT ORDER
@@ -635,13 +635,13 @@ func DeleteAccount(userName string, password string, customCols map[string]inter
 	//EXECUTE SELECT QUERY
 	checkRows, err := database.Query(selectQuery)
 	if err != nil {
-		return helpers.NewError(errorIncorrectLogin, helpers.Error_Auth_Incorrect_Login)
+		return helpers.NewError(errorIncorrectLogin, helpers.ErrorAuthIncorrectLogin)
 	}
 	//
 	checkRows.Next()
 	if scanErr := checkRows.Scan(vals...); scanErr != nil {
 		checkRows.Close()
-		return helpers.NewError(errorIncorrectLogin, helpers.Error_Auth_Incorrect_Login)
+		return helpers.NewError(errorIncorrectLogin, helpers.ErrorAuthIncorrectLogin)
 	}
 	checkRows.Close()
 
@@ -651,7 +651,7 @@ func DeleteAccount(userName string, password string, customCols map[string]inter
 
 	//COMPARE HASHED PASSWORDS
 	if !helpers.CompareEncryptedData(password, dbPass) {
-		return helpers.NewError(errorIncorrectLogin, helpers.Error_Auth_Incorrect_Login)
+		return helpers.NewError(errorIncorrectLogin, helpers.ErrorAuthIncorrectLogin)
 	}
 
 	//RUN CALLBACK
@@ -668,7 +668,7 @@ func DeleteAccount(userName string, password string, customCols map[string]inter
 		}
 
 		if !DeleteAccountCallback(userName, dbIndex, receivedVals, customCols) {
-			return helpers.NewError(errorDenied, helpers.Error_Action_Denied)
+			return helpers.NewError(errorDenied, helpers.ErrorActionDenied)
 		}
 	}
 
@@ -678,7 +678,7 @@ func DeleteAccount(userName string, password string, customCols map[string]inter
 	//DELETE THE ACCOUNT
 	_, deleteErr := database.Exec("DELETE FROM " + tableUsers + " WHERE " + usersColumnID + "=" + strconv.Itoa(dbIndex) + " LIMIT 1;")
 	if deleteErr != nil {
-		return helpers.NewError(deleteErr.Error(), helpers.Error_Auth_Query)
+		return helpers.NewError(deleteErr.Error(), helpers.ErrorAuthQuery)
 	}
 
 	//

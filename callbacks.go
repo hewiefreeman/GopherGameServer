@@ -110,7 +110,7 @@ func SetClientConnectCallback(cb interface{}) error {
 // `userName` is the name of the User logging in, `databaseID` is the index of the User on the database, `receivedColumns` are the custom `AccountInfoColumn` (keys) and their values
 // received from the database, and `clientColumns` have the same keys as the `receivedColumns`, but are the input from the client.
 //
-// The function returns a boolean. If false is returned, the client will receive a `helpers.Error_Action_Denied` (1052) error and will be
+// The function returns a boolean. If false is returned, the client will receive a `helpers.ErrorActionDenied` (1052) error and will be
 // denied from logging in. This can be used to, for instance, suspend or ban a User.
 //
 // Note: the `clientColumns` decides which `AccountInfoColumn`s were fetched from the database, so the keys will always be the same as `receivedColumns`.
@@ -160,7 +160,7 @@ func SetLogoutCallback(cb interface{}) error {
 // `userName` is the name of the User logging in, `clientColumns` is the input from the client for setting
 // custom `AccountInfoColumn`s on the database.
 //
-// The function returns a boolean. If false is returned, the client will receive a `helpers.Error_Action_Denied` (1052) error and will be
+// The function returns a boolean. If false is returned, the client will receive a `helpers.ErrorActionDenied` (1052) error and will be
 // denied from signing up. This can be used to, for instance, deny user names or `AccountInfoColumn`s with profanity.
 func SetSignupCallback(cb interface{}) error {
 	if serverStarted {
@@ -183,7 +183,7 @@ func SetSignupCallback(cb interface{}) error {
 // `userName` is the name of the User deleting their account, `databaseID` is the index of the User on the database, `receivedColumns` are the custom `AccountInfoColumn` (keys) and their values
 // received from the database, and `clientColumns` have the same keys as the `receivedColumns`, but are the input from the client.
 //
-// The function returns a boolean. If false is returned, the client will receive a `helpers.Error_Action_Denied` (1052) error and will be
+// The function returns a boolean. If false is returned, the client will receive a `helpers.ErrorActionDenied` (1052) error and will be
 // denied from deleting the account. This can be used to, for instance, make extra input requirements for this action.
 //
 // Note: the `clientColumns` decides which `AccountInfoColumn`s were fetched from the database, so the keys will always be the same as `receivedColumns`.
@@ -210,7 +210,7 @@ func SetDeleteAccountCallback(cb interface{}) error {
 // `userName` is the name of the User changing info, `databaseID` is the index of the User on the database, `receivedColumns` are the custom `AccountInfoColumn` (keys) and their values
 // received from the database, and `clientColumns` have the same keys as the `receivedColumns`, but are the input from the client.
 //
-// The function returns a boolean. If false is returned, the client will receive a `helpers.Error_Action_Denied` (1052) error and will be
+// The function returns a boolean. If false is returned, the client will receive a `helpers.ErrorActionDenied` (1052) error and will be
 // denied from changing the info. This can be used to, for instance, make extra input requirements for this action.
 //
 // Note: the `clientColumns` decides which `AccountInfoColumn`s were fetched from the database, so the keys will always be the same as `receivedColumns`.
@@ -237,7 +237,7 @@ func SetAccountInfoChangeCallback(cb interface{}) error {
 // `userName` is the name of the User changing their password, `databaseID` is the index of the User on the database, `receivedColumns` are the custom `AccountInfoColumn` (keys) and their values
 // received from the database, and `clientColumns` have the same keys as the `receivedColumns`, but are the input from the client.
 //
-// The function returns a boolean. If false is returned, the client will receive a `helpers.Error_Action_Denied` (1052) error and will be
+// The function returns a boolean. If false is returned, the client will receive a `helpers.ErrorActionDenied` (1052) error and will be
 // denied from changing the password. This can be used to, for instance, make extra input requirements for this action.
 //
 // Note: the `clientColumns` decides which `AccountInfoColumn`s were fetched from the database, so the keys will always be the same as `receivedColumns`.

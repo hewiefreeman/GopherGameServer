@@ -93,15 +93,15 @@ func Login(userName string, dbID int, autologPass string, isGuest bool, remMe bo
 	connUser **User, clientMux *sync.Mutex) (string, helpers.GopherError) {
 	//REJECT INCORRECT INPUT
 	if serverPaused {
-		return "", helpers.NewError(errorServerPaused, helpers.Error_Server_Paused)
+		return "", helpers.NewError(errorServerPaused, helpers.ErrorServerPaused)
 	} else if len(userName) == 0 {
-		return "", helpers.NewError(errorRequiredName, helpers.Error_Auth_Required_Name)
+		return "", helpers.NewError(errorRequiredName, helpers.ErrorAuthRequiredName)
 	} else if userName == serverName {
-		return "", helpers.NewError(errorNameUnavail, helpers.Error_Auth_Name_Unavail)
+		return "", helpers.NewError(errorNameUnavail, helpers.ErrorAuthNameUnavail)
 	} else if dbID < -1 {
-		return "", helpers.NewError(errorRequiredID, helpers.Error_Auth_Required_ID)
+		return "", helpers.NewError(errorRequiredID, helpers.ErrorAuthRequiredID)
 	} else if socket == nil {
-		return "", helpers.NewError(errorRequiredSocket, helpers.Error_Auth_Required_Socket)
+		return "", helpers.NewError(errorRequiredSocket, helpers.ErrorAuthRequiredSocket)
 	}
 
 	//ALWAYS SET A GUEST'S id TO -1
@@ -112,7 +112,7 @@ func Login(userName string, dbID int, autologPass string, isGuest bool, remMe bo
 
 	//RUN CALLBACK
 	if LoginCallback != nil && !LoginCallback(userName, dbID, nil, nil) {
-		return "", helpers.NewError(errorDenied, helpers.Error_Action_Denied)
+		return "", helpers.NewError(errorDenied, helpers.ErrorActionDenied)
 	}
 
 	//MAKE *User IN users MAP & MAKE connID
@@ -155,7 +155,7 @@ func Login(userName string, dbID int, autologPass string, isGuest bool, remMe bo
 				connID, connErr = helpers.GenerateSecureString(5)
 				if connErr != nil {
 					usersMux.Unlock()
-					return "", helpers.NewError(errorUnexpected, helpers.Error_Auth_Unexpected)
+					return "", helpers.NewError(errorUnexpected, helpers.ErrorAuthUnexpected)
 				}
 				userOnline.mux.Lock()
 				if _, found := (*userOnline).conns[connID]; !found {
@@ -166,14 +166,14 @@ func Login(userName string, dbID int, autologPass string, isGuest bool, remMe bo
 			}
 		} else {
 			usersMux.Unlock()
-			return "", helpers.NewError(errorAlreadyLogged, helpers.Error_Auth_Already_Logged)
+			return "", helpers.NewError(errorAlreadyLogged, helpers.ErrorAuthAlreadyLogged)
 		}
 	} else if multiConnect {
 		//MAKE UNIQUE connID
 		connID, connErr = helpers.GenerateSecureString(5)
 		if connErr != nil {
 			usersMux.Unlock()
-			return "", helpers.NewError(errorUnexpected, helpers.Error_Auth_Unexpected)
+			return "", helpers.NewError(errorUnexpected, helpers.ErrorAuthUnexpected)
 		}
 	} else {
 		//MAKE connID
@@ -285,7 +285,7 @@ func Login(userName string, dbID int, autologPass string, isGuest bool, remMe bo
 // options. You can read more about the "Remember Me" login in the project's usage section.
 func AutoLogIn(tag string, pass string, newPass string, dbID int, conn *websocket.Conn, connUser **User, clientMux *sync.Mutex) (string, helpers.GopherError) {
 	if serverPaused {
-		return "", helpers.NewError(errorServerPaused, helpers.Error_Server_Paused)
+		return "", helpers.NewError(errorServerPaused, helpers.ErrorServerPaused)
 	}
 
 	//VERIFY AND GET USER NAME FROM DATABASE
