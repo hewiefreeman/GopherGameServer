@@ -84,7 +84,7 @@ var (
 	clientConnectCallback func(*http.ResponseWriter, *http.Request) bool
 
 	//SERVER VERSION NUMBER
-	version string = "1.0-ALPHA.2"
+	version string = "1.0-ALPHA.3"
 )
 
 // Start will start the server. Call with a pointer to your `ServerSettings` (or nil for defaults) to start the server. The default
@@ -200,6 +200,8 @@ func Start(s *ServerSettings) {
 
 	fmt.Println("Startup complete")
 
+	//Start macro command listener
+
 	doneErr := <-serverEndChan
 
 	if doneErr != http.ErrServerClosed {
@@ -266,7 +268,7 @@ func Resume() {
 }
 
 // Stop will log all Users off, save the state of the server if EnableRecovery in ServerSettings is set to true, then shut the server down.
-func Stop() error {
+func ShutDown() error {
 	fmt.Println("Stopping server...")
 
 	//PAUSE SERVER
