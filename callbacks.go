@@ -8,7 +8,9 @@ import (
 )
 
 const (
+	// Incorrect function input or return parameters
 	ErrorIncorrectFunction = "Incorrect function parameters or return parameters"
+	// The server is running
 	ErrorServerRunning     = "Cannot call when the server is running."
 )
 

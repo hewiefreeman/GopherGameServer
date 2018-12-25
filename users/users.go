@@ -60,8 +60,10 @@ var (
 	rememberMe   bool = false
 	multiConnect bool = false
 
-	LoginCallback  func(string, int, map[string]interface{}, map[string]interface{}) bool // LoginCallback is only for internal Gopher Game Server mechanics.
-	LogoutCallback func(string, int)                                                      // LogoutCallback is only for internal Gopher Game Server mechanics.
+	// LoginCallback is only for internal Gopher Game Server mechanics.
+	LoginCallback func(string, int, map[string]interface{}, map[string]interface{}) bool
+	// LogoutCallback is only for internal Gopher Game Server mechanics.
+	LogoutCallback func(string, int)
 )
 
 // These represent the four statuses a User could be.

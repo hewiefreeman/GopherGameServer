@@ -605,7 +605,7 @@ func Resume() {
 	}
 }
 
-// Resume is only for internal Gopher Game Server mechanics.
+// GetState is only for internal Gopher Game Server mechanics.
 func GetState() map[string]interface{} {
 	state := make(map[string]interface{})
 	roomsMux.Lock()

@@ -6,6 +6,7 @@ import (
 	"time"
 )
 
+// SaveState is only for internal Gopher Server mechanics.
 func SaveState(stateObj map[string]interface{}, saveFolder string) error {
 	//WRITE THE STATE
 	stateStr, err := json.Marshal(stateObj)

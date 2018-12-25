@@ -16,11 +16,16 @@ var (
 	customAccountInfoChangeRequirements map[string]struct{} = make(map[string]struct{})
 	customDeleteAccountRequirements     map[string]struct{} = make(map[string]struct{})
 
-	SignUpCallback            func(string, map[string]interface{}) bool                              // SignUpCallback is only for internal Gopher Game Server mechanics.
-	LoginCallback             func(string, int, map[string]interface{}, map[string]interface{}) bool // LoginCallback is only for internal Gopher Game Server mechanics.
-	DeleteAccountCallback     func(string, int, map[string]interface{}, map[string]interface{}) bool // DeleteAccountCallback is only for internal Gopher Game Server mechanics.
-	AccountInfoChangeCallback func(string, int, map[string]interface{}, map[string]interface{}) bool // AccountInfoChangeCallback is only for internal Gopher Game Server mechanics.
-	PasswordChangeCallback    func(string, int, map[string]interface{}, map[string]interface{}) bool // PasswordChangeCallback is only for internal Gopher Game Server mechanics.
+	// SignUpCallback is only for internal Gopher Game Server mechanics.
+	SignUpCallback func(string, map[string]interface{}) bool
+	// LoginCallback is only for internal Gopher Game Server mechanics.
+	LoginCallback func(string, int, map[string]interface{}, map[string]interface{}) bool
+	// DeleteAccountCallback is only for internal Gopher Game Server mechanics.
+	DeleteAccountCallback func(string, int, map[string]interface{}, map[string]interface{}) bool
+	// AccountInfoChangeCallback is only for internal Gopher Game Server mechanics.
+	AccountInfoChangeCallback func(string, int, map[string]interface{}, map[string]interface{}) bool
+	// PasswordChangeCallback is only for internal Gopher Game Server mechanics.
+	PasswordChangeCallback func(string, int, map[string]interface{}, map[string]interface{}) bool
 )
 
 // Authentication error messages
