@@ -61,4 +61,7 @@ Then install the server:
 
 # Contributions
 
-**Gopher Game Server will be open for contributions as soon as version 1.0 is finished. At that time, contribution information will be posted here.**
+Please read the following articles before submitting any contributions or filing an Issue!
+
+ - [Contribution Guidlines](https://github.com/hewiefreeman/GopherGameServer/blob/master/CONTRIBUTING.md)
+ - [Code of Conduct](https://github.com/hewiefreeman/GopherGameServer/blob/master/CODE_OF_CONDUCT.md)
