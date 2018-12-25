@@ -4,7 +4,7 @@
 
 Gopher Game Server is designed to provide all necessary tools to greatly ease developments of any type of online game (or any real-time app/chat). Gopher will handle all server-side synchronizing and data type conversions, therefore, client actions receiving, variable setting, message sending, and other functionalities are unproblematic.
 
-Moreover, Gopher has a built-in, fully customizable MySQL client authentication mechanism that manages users' accounts for you. It even ties in a friending tool, so users can befriend and invite one another to groups, check each other's status, and more. All components are easily configurable and customizable for specific project's needs.
+Moreover, Gopher has a built-in, fully customizable SQL client authentication mechanism that manages users' accounts for you. It even ties in a friending tool, so users can befriend and invite one another to groups, check each other's status, and more. All components are easily configurable and customizable for specific project's needs.
 
 ### Main features:
 
