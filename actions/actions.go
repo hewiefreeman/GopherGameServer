@@ -47,8 +47,8 @@ var (
 
 // Default `ClientError`s
 const (
-	ErrorMismatchedTypes = iota + 1001 // Client didn't pass the right data type for the given action
-	ErrorUnrecognizedAction            // The custom action has not been defined
+	ErrorMismatchedTypes    = iota + 1001 // Client didn't pass the right data type for the given action
+	ErrorUnrecognizedAction               // The custom action has not been defined
 )
 
 // These are the accepted data types that a client can send with a CustomClientMessage. You must use one

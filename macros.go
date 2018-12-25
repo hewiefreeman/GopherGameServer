@@ -3,19 +3,19 @@ package gopher
 import (
 	"bufio"
 	"fmt"
-	"os"
-	"strings"
-	"strconv"
-	"github.com/hewiefreeman/GopherGameServer/users"
 	"github.com/hewiefreeman/GopherGameServer/rooms"
+	"github.com/hewiefreeman/GopherGameServer/users"
+	"os"
+	"strconv"
+	"strings"
 )
 
-func macroListener(){
+func macroListener() {
 	for {
 		reader := bufio.NewReader(os.Stdin)
 		fmt.Print("[Gopher] Command: ")
 		text, _ := reader.ReadString('\n')
-		stop := handleMacro(text[0:len(text)-2])
+		stop := handleMacro(text[0 : len(text)-2])
 		if stop {
 			return
 		}
@@ -49,7 +49,7 @@ func macroKick(macro string) {
 		return
 	}
 	user.Kick()
-	fmt.Println("Kicked user '"+userName+"'")
+	fmt.Println("Kicked user '" + userName + "'")
 }
 
 func macroNewRoom(macro string) {
@@ -72,7 +72,7 @@ func macroNewRoom(macro string) {
 		fmt.Println(roomErr)
 		return
 	}
-	fmt.Println("Created room '"+s[1]+"'")
+	fmt.Println("Created room '" + s[1] + "'")
 }
 
 func macroNewRoomType(macro string) {
@@ -90,5 +90,5 @@ func macroNewRoomType(macro string) {
 		fmt.Println("The server must be paused to create a room type")
 		return
 	}
-	fmt.Println("Created room type '"+s[1]+"'")
+	fmt.Println("Created room type '" + s[1] + "'")
 }

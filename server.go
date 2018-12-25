@@ -6,17 +6,17 @@ package gopher
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"github.com/hewiefreeman/GopherGameServer/actions"
 	"github.com/hewiefreeman/GopherGameServer/database"
+	"github.com/hewiefreeman/GopherGameServer/helpers"
 	"github.com/hewiefreeman/GopherGameServer/rooms"
 	"github.com/hewiefreeman/GopherGameServer/users"
-	"github.com/hewiefreeman/GopherGameServer/helpers"
-	"net/http"
-	"strconv"
-	"encoding/json"
 	"io/ioutil"
+	"net/http"
 	"os"
+	"strconv"
 )
 
 /////////// TO DOs:
@@ -141,7 +141,7 @@ func Start(s *ServerSettings) {
 				fmt.Println("Shutting down...")
 				return
 			}
-			os.Remove(settings.RecoveryLocation+"/test.txt")
+			os.Remove(settings.RecoveryLocation + "/test.txt")
 
 		} else if settings.EnableAdminTools == true && (settings.AdminToolsLogin == "" || settings.AdminToolsPassword == "") {
 			fmt.Println("AdminToolsLogin and AdminToolsPassword in ServerSettings are required for Administrator Tools. Shutting down...")
@@ -437,7 +437,7 @@ func recoverState() {
 		for name, val := range roomsMap {
 			var m map[string]interface{}
 			if m, ok = val.(map[string]interface{}); !ok {
-				fmt.Println("Error recovering room '"+name+"': Incorrect room format")
+				fmt.Println("Error recovering room '" + name + "': Incorrect room format")
 				continue
 			}
 			var rType string
@@ -446,23 +446,23 @@ func recoverState() {
 			var inviteList []interface{}
 			var owner string
 			if rType, ok = m["t"].(string); !ok {
-				fmt.Println("Error recovering room '"+name+"': Incorrect room type format")
+				fmt.Println("Error recovering room '" + name + "': Incorrect room type format")
 				continue
 			}
 			if isPrivate, ok = m["p"].(bool); !ok {
-				fmt.Println("Error recovering room '"+name+"': Incorrect private format")
+				fmt.Println("Error recovering room '" + name + "': Incorrect private format")
 				continue
 			}
 			if maxUsers, ok = m["m"].(float64); !ok {
-				fmt.Println("Error recovering room '"+name+"': Incorrect maximum users format")
+				fmt.Println("Error recovering room '" + name + "': Incorrect maximum users format")
 				continue
 			}
 			if inviteList, ok = m["i"].([]interface{}); !ok {
-				fmt.Println("Error recovering room '"+name+"': Incorrect invite list format")
+				fmt.Println("Error recovering room '" + name + "': Incorrect invite list format")
 				continue
 			}
 			if owner, ok = m["o"].(string); !ok {
-				fmt.Println("Error recovering room '"+name+"': Incorrect owner format")
+				fmt.Println("Error recovering room '" + name + "': Incorrect owner format")
 				continue
 			}
 			room, roomErr := rooms.New(name, rType, isPrivate, int(maxUsers), owner)
@@ -473,7 +473,7 @@ func recoverState() {
 			for i := 0; i < len(inviteList); i++ {
 				var userName string
 				if userName, ok = inviteList[i].(string); !ok {
-					fmt.Println("Error recovering room '"+name+"': Incorrect user name format in invite list")
+					fmt.Println("Error recovering room '" + name + "': Incorrect user name format in invite list")
 					continue
 				}
 				invErr := room.AddInvite(userName)

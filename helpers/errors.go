@@ -10,18 +10,18 @@ type GopherError struct {
 
 // Client response message error IDs
 const (
-	ErrorGopherInvalidAction = iota + 1001 // Invalid client action
-	ErrorGopherIncorrectFormat // The client's data is not a map/object
-	ErrorGopherIncorrectCustomAction // Incorrect custom client action type
-	ErrorGopherNotLoggedIn // The client must be logged in to take action
-	ErrorGopherLoggedIn // The client must be logged out to take action
-	ErrorGopherStatusChange // Error while changing User's status
-	ErrorGopherFeatureDisabled // The feature required for the action is disabled
-	ErrorGopherColumnsFormat // The client's custom columns data is not a map/object
-	ErrorGopherNameFormat // The client's user name data is not a string
-	ErrorGopherPasswordFormat // The client's password data is not a string
-	ErrorGopherRememberFormat // The client's remember-me data is not a boolean
-	ErrorGopherGuestFormat // The client's guest data is not a boolean
+	ErrorGopherInvalidAction         = iota + 1001 // Invalid client action
+	ErrorGopherIncorrectFormat                     // The client's data is not a map/object
+	ErrorGopherIncorrectCustomAction               // Incorrect custom client action type
+	ErrorGopherNotLoggedIn                         // The client must be logged in to take action
+	ErrorGopherLoggedIn                            // The client must be logged out to take action
+	ErrorGopherStatusChange                        // Error while changing User's status
+	ErrorGopherFeatureDisabled                     // The feature required for the action is disabled
+	ErrorGopherColumnsFormat                       // The client's custom columns data is not a map/object
+	ErrorGopherNameFormat                          // The client's user name data is not a string
+	ErrorGopherPasswordFormat                      // The client's password data is not a string
+	ErrorGopherRememberFormat                      // The client's remember-me data is not a boolean
+	ErrorGopherGuestFormat                         // The client's guest data is not a boolean
 	ErrorGopherNewPasswordFormat
 	ErrorGopherRoomNameFormat
 	ErrorGopherRoomTypeFormat
