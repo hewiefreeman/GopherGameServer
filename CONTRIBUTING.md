@@ -2,7 +2,7 @@
 
 1) See if there is an Issue that you can take up to fix or implement
 2) Help expand and clarify documentation and/or usage section
-3) Have a good idea? Open and submit a detailed Issue.
+3) Have a good idea? Open and submit a detailed Issue
 4) Email me with comments or recommendations directly: dominiquedebergue@gmail.com
 
 ## Guidlines
