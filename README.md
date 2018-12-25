@@ -90,7 +90,7 @@ Then install the server:
 
 # Contributions
 
-Please read the following articles before submitting any contributions or filing an Issue!
+Please read the following articles before submitting any contributions or filing an Issue:
 
  - [Contribution Guidlines](https://github.com/hewiefreeman/GopherGameServer/blob/master/CONTRIBUTING.md)
  - [Code of Conduct](https://github.com/hewiefreeman/GopherGameServer/blob/master/CODE_OF_CONDUCT.md)
