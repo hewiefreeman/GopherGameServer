@@ -55,7 +55,38 @@ Then install the server:
 
 # Usage
 
-(Coming soon...)
+**-UNDER CONSTRUCTION-**
+
+### Table of Contents
+
+1) [**Getting Started**](https://github.com/hewiefreeman/GopherGameServer/wiki/Getting-Started)
+   - [Set-Up](https://github.com/hewiefreeman/GopherGameServer/wiki/Getting-Started#set-up)
+   - [Core Server Settings](https://github.com/hewiefreeman/GopherGameServer/wiki/Getting-Started#core-server-settings)
+   - Server Callbacks
+   - Micro Commands
+2) **Rooms**
+   - Room Types
+   - Creating Rooms
+   - Room Variables
+   - Room Callbacks
+   - Chat & Voice Messaging
+3) **Users**
+   - Login & Logout
+   - Joining & Leaving Rooms
+   - User Variables
+   - Initiating and Revoking Room Invites
+   - Messaging
+4) **Custom Client Actions**
+   - Creating a Custom Client Action
+   - Responding to a Custom Client Action
+6) **Saving & Restoring**
+   - Set-Up
+5) **MySQL Features**
+   - Set-Up
+   - Securely Authenticating Clients
+   - Customize Authentication Features
+   - Custom Account Info
+   - Friending
 
 # Contributions
 
