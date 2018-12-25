@@ -337,7 +337,7 @@ func Resume() {
 	}
 }
 
-// Stop will log all Users off, save the state of the server if EnableRecovery in ServerSettings is set to true, then shut the server down.
+// ShutDown will log all Users off, save the state of the server if EnableRecovery in ServerSettings is set to true, then shut the server down.
 func ShutDown() error {
 	if !serverStopping {
 		serverStopping = true
@@ -399,7 +399,7 @@ func recoverState() {
 		return
 	}
 	var newestFile string
-	var newestTime int64 = 0
+	var newestTime int64
 	for _, f := range files {
 		if len(f.Name()) < 19 || f.Name()[0:15] != "Gopher Recovery" {
 			continue

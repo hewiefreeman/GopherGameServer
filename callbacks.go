@@ -8,9 +8,10 @@ import (
 )
 
 const (
-	// Incorrect function input or return parameters
+	// ErrorIncorrectFunction is thrown when function input or return parameters don't match with the callback
 	ErrorIncorrectFunction = "Incorrect function parameters or return parameters"
-	// The server is running
+	// ErrorServerRunning is thrown when an action cannot be taken because the server is running. Pausing the server
+	// will enable you to run the command.
 	ErrorServerRunning     = "Cannot call when the server is running."
 )
 
