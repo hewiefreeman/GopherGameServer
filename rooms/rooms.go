@@ -604,3 +604,23 @@ func Resume() {
 		serverPaused = false
 	}
 }
+
+// Resume is only for internal Gopher Game Server mechanics.
+func GetState() map[string]interface{} {
+	state := make(map[string]interface{})
+	roomsMux.Lock()
+	for _, room := range rooms {
+		room.mux.Lock()
+		state[room.name] = make(map[string]interface{})
+		state[room.name].(map[string]interface{})["t"] = room.rType
+		state[room.name].(map[string]interface{})["p"] = room.private
+		state[room.name].(map[string]interface{})["o"] = room.owner
+		state[room.name].(map[string]interface{})["m"] = room.maxUsers
+		state[room.name].(map[string]interface{})["i"] = room.inviteList
+		state[room.name].(map[string]interface{})["v"] = room.vars
+		room.mux.Unlock()
+	}
+	roomsMux.Unlock()
+	//
+	return state
+}

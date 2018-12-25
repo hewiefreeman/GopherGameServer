@@ -775,11 +775,24 @@ func Pause() {
 		usersMux.Lock()
 		for _, user := range users {
 			(*user).mux.Lock()
-			for _, conn := range user.conns {
-				(*conn).socket.WriteJSON(clientResp)
+			for connID, conn := range (*user).conns {
+				//REMOVE CONNECTION FROM THEIR ROOM
+				currRoom := (*conn).room
+				if currRoom != nil && currRoom.Name() != "" {
+					(*user).mux.Unlock()
+					currRoom.RemoveUser((*user).name, connID)
+					(*user).mux.Lock()
+				}
+
+				//LOG CONNECTION OUT
 				(*conn).clientMux.Lock()
-				*((*conn).user) = nil
+				if *((*conn).user) != nil {
+					*((*conn).user) = nil
+				}
 				(*conn).clientMux.Unlock()
+
+				//SEND LOG OUT MESSAGE
+				(*conn).socket.WriteJSON(clientResp)
 			}
 			(*user).mux.Unlock()
 		}

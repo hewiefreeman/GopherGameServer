@@ -11,13 +11,15 @@ import (
 	"github.com/hewiefreeman/GopherGameServer/database"
 	"github.com/hewiefreeman/GopherGameServer/rooms"
 	"github.com/hewiefreeman/GopherGameServer/users"
+	"github.com/hewiefreeman/GopherGameServer/helpers"
 	"net/http"
 	"strconv"
+	"encoding/json"
+	"io/ioutil"
+	"os"
 )
 
 /////////// TO DOs:
-///////////	- Save state on shut-down
-///////////		- Test
 ///////////	- Admin tools
 ///////////         - More useful command-line macros
 
@@ -84,6 +86,10 @@ var (
 	version string = "1.0-ALPHA.3"
 )
 
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+//   SERVER START-UP   ///////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+
 // Start will start the server. Call with a pointer to your `ServerSettings` (or nil for defaults) to start the server. The default
 // settings are for local testing ONLY. There are security-related options in `ServerSettings`
 // for SSL/TLS, connection origin testing, administrator tools, and more. It's highly recommended to look into
@@ -92,6 +98,10 @@ var (
 // This function will block the thread that it is ran on until the server either errors, or is manually shut-down. To run code after the
 // server starts/stops/pauses/etc, use the provided server callback setter functions.
 func Start(s *ServerSettings) {
+	if serverStarted || serverPaused {
+		return
+	}
+	serverStarted = true
 	fmt.Println(" _____             _               _____\n|  __ \\           | |             /  ___|\n| |  \\/ ___  _ __ | |__   ___ _ __\\ `--.  ___ _ ____   _____ _ __\n| | __ / _ \\| '_ \\| '_ \\ / _ \\ '__|`--. \\/ _ \\ '__\\ \\ / / _ \\ '__|\n| |_\\ \\ (_) | |_) | | | |  __/ |  /\\__/ /  __/ |   \\ V /  __/ |\n \\____/\\___/| .__/|_| |_|\\___|_|  \\____/ \\___|_|    \\_/ \\___|_|\n            | |\n            |_|                                      v" + version + "\n\n")
 	fmt.Println("Starting server...")
 	//SET SERVER SETTINGS
@@ -101,7 +111,7 @@ func Start(s *ServerSettings) {
 			fmt.Println("ServerName in ServerSettings is required. Shutting down...")
 			return
 
-		} else if settings.HostName == "" || settings.IP == "" || settings.Port > 1 {
+		} else if settings.HostName == "" || settings.IP == "" || settings.Port < 1 {
 			fmt.Println("HostName, IP, and Port in ServerSettings are required. Shutting down...")
 			return
 
@@ -117,6 +127,21 @@ func Start(s *ServerSettings) {
 		} else if settings.EnableRecovery == true && settings.RecoveryLocation == "" {
 			fmt.Println("RecoveryLocation in ServerSettings is required for server recovery. Shutting down...")
 			return
+
+		} else if settings.EnableRecovery {
+			//CHECK IF INVALID LOCATION
+			if _, err := os.Stat(settings.RecoveryLocation); err != nil {
+				fmt.Println("RecoveryLocation error:", err)
+				fmt.Println("Shutting down...")
+				return
+			}
+			var d []byte
+			if err := ioutil.WriteFile(settings.RecoveryLocation+"/test.txt", d, 0644); err != nil {
+				fmt.Println("RecoveryLocation error:", err)
+				fmt.Println("Shutting down...")
+				return
+			}
+			os.Remove(settings.RecoveryLocation+"/test.txt")
 
 		} else if settings.EnableAdminTools == true && (settings.AdminToolsLogin == "" || settings.AdminToolsPassword == "") {
 			fmt.Println("AdminToolsLogin and AdminToolsPassword in ServerSettings are required for Administrator Tools. Shutting down...")
@@ -172,7 +197,6 @@ func Start(s *ServerSettings) {
 		(*settings).RememberMe, (*settings).MultiConnect)
 
 	//NOTIFY PACKAGES OF SERVER START
-	serverStarted = true
 	users.SetServerStarted(true)
 	rooms.SetServerStarted(true)
 	actions.SetServerStarted(true)
@@ -186,12 +210,16 @@ func Start(s *ServerSettings) {
 			(*settings).RememberMe, (*settings).CustomLoginColumn)
 		if dbErr != nil {
 			fmt.Println("Database error:", dbErr.Error())
+			fmt.Println("Shutting down...")
 			return
 		}
 		fmt.Println("Database initialized")
 	}
 
 	//RECOVER PREVIOUS SERVER STATE
+	if settings.EnableRecovery {
+		recoverState()
+	}
 
 	//START HTTP/SOCKET LISTENER
 	if settings.TLS {
@@ -215,14 +243,20 @@ func Start(s *ServerSettings) {
 
 	if doneErr != http.ErrServerClosed {
 		fmt.Println("Fatal server error:", doneErr.Error())
-		fmt.Println("Shutting server down...")
 
 		if !serverStopping {
+			fmt.Println("Disconnecting users...")
+
 			//PAUSE SERVER
-			Pause()
+			users.Pause()
+			rooms.Pause()
+			actions.Pause()
+			database.Pause()
 
 			//SAVE STATE
-			fmt.Println("Saving server state...")
+			if settings.EnableRecovery {
+				saveState()
+			}
 		}
 	}
 
@@ -251,6 +285,10 @@ func makeServer(handleDir string, tls bool) *http.Server {
 	//
 	return server
 }
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+//   SERVER ACTIONS   ////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // Pause will log all Users off and prevent anyone from logging in. All rooms and their variables created by the server will remain in memory.
 // Same goes for rooms created by Users unless `RoomDeleteOnLeave` in `ServerSettings` is set to true.
@@ -303,7 +341,7 @@ func Resume() {
 func ShutDown() error {
 	if !serverStopping {
 		serverStopping = true
-		fmt.Println("Kicking users...")
+		fmt.Println("Disconnecting users...")
 
 		//PAUSE SERVER
 		users.Pause()
@@ -312,7 +350,9 @@ func ShutDown() error {
 		database.Pause()
 
 		//SAVE STATE
-		fmt.Println("Saving server state...")
+		if settings.EnableRecovery {
+			saveState()
+		}
 
 		//SHUT DOWN SERVER
 		fmt.Println("Shutting server down...")
@@ -323,4 +363,130 @@ func ShutDown() error {
 	}
 	//
 	return nil
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+//   SAVING AND RECOVERING STATE   ///////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+
+func saveState() {
+	fmt.Println("Saving server state...")
+	saveErr := helpers.SaveState(getState(), settings.RecoveryLocation)
+	if saveErr != nil {
+		fmt.Println("Error saving state:", saveErr)
+		return
+	}
+	fmt.Println("Save state successful")
+}
+
+func getState() map[string]interface{} {
+	state := make(map[string]interface{})
+
+	//GET ROOM STATES
+	state["rooms"] = rooms.GetState()
+
+	//
+	return state
+}
+
+func recoverState() {
+	fmt.Println("Recovering previous state...")
+
+	//GET LATEST RECOVERY FILE
+	files, fileErr := ioutil.ReadDir(settings.RecoveryLocation)
+	if fileErr != nil {
+		fmt.Println("Error recovering state:", fileErr)
+		return
+	}
+	var newestFile string
+	var newestTime int64 = 0
+	for _, f := range files {
+		if len(f.Name()) < 19 || f.Name()[0:15] != "Gopher Recovery" {
+			continue
+		}
+		fi, err := os.Stat(settings.RecoveryLocation + "/" + f.Name())
+		if err != nil {
+			fmt.Println("Error recovering state:", err)
+			return
+		}
+		currTime := fi.ModTime().Unix()
+		if currTime > newestTime {
+			newestTime = currTime
+			newestFile = f.Name()
+		}
+	}
+
+	//READ RECOVERY FILE
+	r, err := ioutil.ReadFile(settings.RecoveryLocation + "/" + newestFile)
+	if err != nil {
+		fmt.Println("Error recovering state:", err)
+		return
+	}
+
+	//CONVERT JSON TO MAP
+	var recovery map[string]interface{}
+	if err = json.Unmarshal(r, &recovery); err != nil {
+		fmt.Println("Error recovering state:", err)
+		return
+	}
+
+	//RECOVER ROOMS
+	var roomsMap map[string]interface{}
+	var ok bool
+	if roomsMap, ok = recovery["rooms"].(map[string]interface{}); ok {
+		for name, val := range roomsMap {
+			var m map[string]interface{}
+			if m, ok = val.(map[string]interface{}); !ok {
+				fmt.Println("Error recovering room '"+name+"': Incorrect room format")
+				continue
+			}
+			var rType string
+			var isPrivate bool
+			var maxUsers float64
+			var inviteList []interface{}
+			var owner string
+			if rType, ok = m["t"].(string); !ok {
+				fmt.Println("Error recovering room '"+name+"': Incorrect room type format")
+				continue
+			}
+			if isPrivate, ok = m["p"].(bool); !ok {
+				fmt.Println("Error recovering room '"+name+"': Incorrect private format")
+				continue
+			}
+			if maxUsers, ok = m["m"].(float64); !ok {
+				fmt.Println("Error recovering room '"+name+"': Incorrect maximum users format")
+				continue
+			}
+			if inviteList, ok = m["i"].([]interface{}); !ok {
+				fmt.Println("Error recovering room '"+name+"': Incorrect invite list format")
+				continue
+			}
+			if owner, ok = m["o"].(string); !ok {
+				fmt.Println("Error recovering room '"+name+"': Incorrect owner format")
+				continue
+			}
+			room, roomErr := rooms.New(name, rType, isPrivate, int(maxUsers), owner)
+			if roomErr != nil {
+				fmt.Println("Error recovering room '"+name+"':", roomErr)
+				continue
+			}
+			for i := 0; i < len(inviteList); i++ {
+				var userName string
+				if userName, ok = inviteList[i].(string); !ok {
+					fmt.Println("Error recovering room '"+name+"': Incorrect user name format in invite list")
+					continue
+				}
+				invErr := room.AddInvite(userName)
+				if invErr != nil {
+					fmt.Println("Error inviting '"+userName+"' to the room '"+name+"':", invErr)
+				}
+			}
+		}
+	} else {
+		fmt.Println("Error recovering state: Error interpreting JSON in recovery file")
+		return
+	}
+
+	//
+	fmt.Println("State recovery successful")
 }
