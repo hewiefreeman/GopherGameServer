@@ -2,7 +2,7 @@
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0) [![GoDoc](https://godoc.org/github.com/hewiefreeman/GopherGameServer?status.svg)](https://godoc.org/github.com/hewiefreeman/GopherGameServer) <img src="https://img.shields.io/badge/version-v1.0--beta.1-blue.svg"> [![Go Report Card](https://goreportcard.com/badge/github.com/hewiefreeman/GopherGameServer)](https://goreportcard.com/report/github.com/hewiefreeman/GopherGameServer)
 
-Gopher Game Server is a full featured, super fast, and fully customizable game server written in Go. Comes with a client API for JavaScript (and eventually Java, C++, and C).
+Gopher Game Server is a full featured, fast, and fully customizable game server written in Go. Comes with a client API for JavaScript (and eventually Java, C++, and C).
 
 Gopher Game Server is designed to provide all necessary tools to ease developments of any type of online game (or any real-time app/chat). Gopher will handle all server-side synchronizing and data type conversions, therefore, client actions receiving, variable setting, message sending, and other functionalities are unproblematic.
 
@@ -55,11 +55,42 @@ Then install the server:
 
 # Usage
 
-(Coming soon...)
+**-UNDER CONSTRUCTION-**
+
+### Table of Contents
+
+1) [**Getting Started**](https://github.com/hewiefreeman/GopherGameServer/wiki/Getting-Started)
+   - [Set-Up](https://github.com/hewiefreeman/GopherGameServer/wiki/Getting-Started#set-up)
+   - [Core Server Settings](https://github.com/hewiefreeman/GopherGameServer/wiki/Getting-Started#core-server-settings)
+   - Server Callbacks
+   - Micro Commands
+2) **Rooms**
+   - Room Types
+   - Creating Rooms
+   - Room Variables
+   - Room Callbacks
+   - Chat & Voice Messaging
+3) **Users**
+   - Login & Logout
+   - Joining & Leaving Rooms
+   - User Variables
+   - Initiating and Revoking Room Invites
+   - Messaging
+4) **Custom Client Actions**
+   - Creating a Custom Client Action
+   - Responding to a Custom Client Action
+6) **Saving & Restoring**
+   - Set-Up
+5) **MySQL Features**
+   - Set-Up
+   - Securely Authenticating Clients
+   - Customize Authentication Features
+   - Custom Account Info
+   - Friending
 
 # Contributions
 
-Please read the following articles before submitting any contributions or filing an Issue!
+Please read the following articles before submitting any contributions or filing an Issue:
 
  - [Contribution Guidlines](https://github.com/hewiefreeman/GopherGameServer/blob/master/CONTRIBUTING.md)
  - [Code of Conduct](https://github.com/hewiefreeman/GopherGameServer/blob/master/CODE_OF_CONDUCT.md)
