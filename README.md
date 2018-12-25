@@ -4,8 +4,6 @@
 
 Gopher Game Server is a full featured, super fast, and fully customizable game server written in Go. Comes with a client API for JavaScript (and eventually Java, C++, and C).
 
--**PROJECT IN DEVELOPMENT**-
-
 Gopher Game Server is designed to provide all necessary tools to ease developments of any type of online game (or any real-time app/chat). Gopher will handle all server-side synchronizing and data type conversions, therefore, client actions receiving, variable setting, message sending, and other functionalities are unproblematic.
 
 Gopher uses WebSockets and JSON to pass messages between the clients and the server. The JSON enabled server is designed to pass any types of data between client and server without cares of type conversions on either end. WebSockets increases efficiency of the server as far as possible on the network, since the WebSocket protocol is newer and doesn't send as much header and meta data that standard HTTP and most other protocols require.
