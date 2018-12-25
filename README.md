@@ -62,8 +62,8 @@ Then install the server:
 1) [**Getting Started**](https://github.com/hewiefreeman/GopherGameServer/wiki/Getting-Started)
    - [Set-Up](https://github.com/hewiefreeman/GopherGameServer/wiki/Getting-Started#set-up)
    - [Core Server Settings](https://github.com/hewiefreeman/GopherGameServer/wiki/Getting-Started#core-server-settings)
-   - Server Callbacks
-   - Micro Commands
+   - [Server Callbacks](https://github.com/hewiefreeman/GopherGameServer/wiki/Getting-Started#server-callbacks)
+   - [Macro Commands](https://github.com/hewiefreeman/GopherGameServer/wiki/Getting-Started#macro-commands)
 2) **Rooms**
    - Room Types
    - Creating Rooms
