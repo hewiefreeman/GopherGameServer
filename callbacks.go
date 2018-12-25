@@ -12,7 +12,7 @@ const (
 	ErrorIncorrectFunction = "Incorrect function parameters or return parameters"
 	// ErrorServerRunning is thrown when an action cannot be taken because the server is running. Pausing the server
 	// will enable you to run the command.
-	ErrorServerRunning     = "Cannot call when the server is running."
+	ErrorServerRunning = "Cannot call when the server is running."
 )
 
 // SetStartCallback sets the callback that triggers when the server first starts up. The

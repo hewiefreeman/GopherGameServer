@@ -1,7 +1,5 @@
 package rooms
 
-import ()
-
 var (
 	roomTypes = make(map[string]*RoomType)
 )

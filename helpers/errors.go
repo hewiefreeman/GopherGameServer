@@ -1,7 +1,5 @@
 package helpers
 
-import ()
-
 // GopherError is used when sending an error message to the client API.
 type GopherError struct {
 	Message string

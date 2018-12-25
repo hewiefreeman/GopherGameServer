@@ -1,7 +1,5 @@
 package helpers
 
-import ()
-
 //BUILT-IN CLIENT ACTION/RESPONSE MESSAGE TYPES
 const (
 	ClientActionSignup            = "s"

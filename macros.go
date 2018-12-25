@@ -42,7 +42,7 @@ func handleMacro(macro string) bool {
 
 // KICK A USER
 func macroKick(macro string) {
-	userName := macro[5:len(macro)]
+	userName := macro[5:]
 	user, userErr := users.Get(userName)
 	if userErr != nil {
 		fmt.Println(userErr)
