@@ -30,7 +30,7 @@ func socketInitializer(w http.ResponseWriter, r *http.Request) {
 		origin := r.Header.Get("Origin") + ":" + strconv.Itoa(settings.Port)
 		host := settings.HostName + ":" + strconv.Itoa(settings.Port)
 		hostAlias := settings.HostAlias + ":" + strconv.Itoa(settings.Port)
-		if origin != host && (hostAlias != "" && origin != hostAlias) {
+		if origin != host && (settings.HostAlias != "" && origin != hostAlias) {
 			http.Error(w, "Origin not allowed.", http.StatusForbidden)
 			return
 		}

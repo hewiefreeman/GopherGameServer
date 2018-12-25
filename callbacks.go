@@ -72,7 +72,7 @@ func SetResumeCallback(cb interface{}) error {
 //    func serverStopped(){
 //	     //code...
 //	 }
-func SetStopCallback(cb interface{}) error {
+func SetShutDownCallback(cb interface{}) error {
 	if serverStarted {
 		return errors.New(ErrorServerRunning)
 	} else if callback, ok := cb.(func()); ok {
