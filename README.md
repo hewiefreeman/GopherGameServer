@@ -66,7 +66,7 @@ Then install the server:
    - [Room Callbacks](https://github.com/hewiefreeman/GopherGameServer/wiki/Rooms#room-callbacks)
    - [Creating & Deleting Rooms](https://github.com/hewiefreeman/GopherGameServer/wiki/Rooms#creating--deleting-rooms)
    - [Room Variables](https://github.com/hewiefreeman/GopherGameServer/wiki/Rooms#room-variables)
-   - Chat & Voice Messaging
+   - [Chat & Voice Messaging](https://github.com/hewiefreeman/GopherGameServer/wiki/Rooms#chat--voice-messaging)
 3) **Users**
    - Login & Logout
    - Joining & Leaving Rooms
