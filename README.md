@@ -60,11 +60,12 @@ Then install the server:
    - [Core Server Settings](https://github.com/hewiefreeman/GopherGameServer/wiki/Getting-Started#core-server-settings)
    - [Server Callbacks](https://github.com/hewiefreeman/GopherGameServer/wiki/Getting-Started#server-callbacks)
    - [Macro Commands](https://github.com/hewiefreeman/GopherGameServer/wiki/Getting-Started#macro-commands)
-2) **Rooms**
-   - Room Types
-   - Creating Rooms
-   - Room Variables
-   - Room Callbacks
+2) [**Rooms**](https://github.com/hewiefreeman/GopherGameServer/wiki/Rooms)
+   - [Room Types](https://github.com/hewiefreeman/GopherGameServer/wiki/Rooms#room-types)
+   - [Room Broadcasts](https://github.com/hewiefreeman/GopherGameServer/wiki/Rooms#room-broadcasts)
+   - [Room Callbacks](https://github.com/hewiefreeman/GopherGameServer/wiki/Rooms#room-callbacks)
+   - [Creating & Deleting Rooms](https://github.com/hewiefreeman/GopherGameServer/wiki/Rooms#creating--deleting-rooms)
+   - [Room Variables](https://github.com/hewiefreeman/GopherGameServer/wiki/Rooms#room-variables)
    - Chat & Voice Messaging
 3) **Users**
    - Login & Logout
