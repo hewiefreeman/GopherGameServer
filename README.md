@@ -67,12 +67,12 @@ Then install the server:
    - [Creating & Deleting Rooms](https://github.com/hewiefreeman/GopherGameServer/wiki/Rooms#creating--deleting-rooms)
    - [Room Variables](https://github.com/hewiefreeman/GopherGameServer/wiki/Rooms#room-variables)
    - [Messaging](https://github.com/hewiefreeman/GopherGameServer/wiki/Rooms#messaging)
-3) **Users**
-   - Login & Logout
-   - Joining & Leaving Rooms
-   - User Variables
-   - Initiating and Revoking Room Invites
-   - Messaging
+3) [**Users**](https://github.com/hewiefreeman/GopherGameServer/wiki/Users)
+   - [Login & Logout](https://github.com/hewiefreeman/GopherGameServer/wiki/Users#login-and-logout)
+   - [Joining & Leaving Rooms](https://github.com/hewiefreeman/GopherGameServer/wiki/Users#joining--leaving-rooms)
+   - [User Variables](https://github.com/hewiefreeman/GopherGameServer/wiki/Users#user-variables)
+   - [Initiating and Revoking Room Invites](https://github.com/hewiefreeman/GopherGameServer/wiki/Users#initiating-and-revoking-room-invites)
+   - [Messaging](https://github.com/hewiefreeman/GopherGameServer/wiki/Users#messaging)
 4) **Custom Client Actions**
    - Creating a Custom Client Action
    - Responding to a Custom Client Action
