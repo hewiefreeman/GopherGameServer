@@ -78,8 +78,8 @@ Then install the server:
    - [Responding to a Custom Client Action](https://github.com/hewiefreeman/GopherGameServer/wiki/Custom-Client-Actions#responding-to-a-custom-client-action)
 6) [**Saving & Restoring**](https://github.com/hewiefreeman/GopherGameServer/wiki/Saving-&-Restoring)
    - [Set-Up](https://github.com/hewiefreeman/GopherGameServer/wiki/Saving-&-Restoring#set-up)
-5) **MySQL Features**
-   - Set-Up
+5) [**SQL Features**](https://github.com/hewiefreeman/GopherGameServer/wiki/SQL-Features)
+   - [Set-Up](https://github.com/hewiefreeman/GopherGameServer/wiki/SQL-Features#set-up)
    - Securely Authenticating Clients
    - Customize Authentication Features
    - Custom Account Info
