@@ -51,8 +51,6 @@ Then install the server:
 
 # Usage
 
-**-UNDER CONSTRUCTION-**
-
 ### Table of Contents
 
 1) [**Getting Started**](https://github.com/hewiefreeman/GopherGameServer/wiki/Getting-Started)
