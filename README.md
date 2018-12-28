@@ -86,7 +86,7 @@ Then install the server:
    - Friending
 
 # Contributions
-Contributions are open and welcomed! Help is needed for everything from documentation, cleaning up code, performance enhancements, client APIs and more. Show your support by starring or following the project!
+Contributions are open and welcomed! Help is needed for everything from documentation, cleaning up code, performance enhancements, client APIs and more. Don't forget to show your support by starring or following the project!
 
 Please read the following articles before submitting any contributions or filing an Issue:
 
