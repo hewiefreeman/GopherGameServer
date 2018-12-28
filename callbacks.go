@@ -66,7 +66,7 @@ func SetResumeCallback(cb interface{}) error {
 	return nil
 }
 
-// SetStopCallback sets the callback that triggers when the server is stopped. The
+// SetShutDownCallback sets the callback that triggers when the server is shut down. The
 // function passed must have the same parameter types as the following example:
 //
 //    func serverStopped(){

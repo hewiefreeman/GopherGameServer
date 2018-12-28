@@ -16,7 +16,7 @@ import (
 type CustomClientAction struct {
 	dataType int
 
-	callback func(interface{}, Client)
+	callback func(interface{}, *Client)
 }
 
 // Client objects are created and sent along with your CustomClientAction callback function when a
@@ -75,7 +75,7 @@ const (
 //
 // (*)Callback function format:
 //
-//     func yourFunction(actionData interface{}, client Client) {
+//     func yourFunction(actionData interface{}, client *Client) {
 //         //...
 //
 //         // optional client response
@@ -88,7 +88,7 @@ const (
 //
 //
 // Note: This function can only be called BEFORE starting the server.
-func New(actionType string, dataType int, callback func(interface{}, Client)) error {
+func New(actionType string, dataType int, callback func(interface{}, *Client)) error {
 	if serverStarted {
 		return errors.New("Cannot make a new CustomClientAction once the server has started")
 	}
@@ -126,7 +126,7 @@ func HandleCustomClientAction(action string, data interface{}, user *users.User,
 			return
 		}
 		//EXECUTE CALLBACK
-		customAction.callback(data, client)
+		customAction.callback(data, &client)
 	} else {
 		client.Respond(nil, NewError("Unrecognized action", ErrorUnrecognizedAction))
 	}

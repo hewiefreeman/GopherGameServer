@@ -30,8 +30,8 @@ func handleMacro(macro string) bool {
 	} else if macro == "shutdown" {
 		ShutDown()
 		return true
-	} else if len(macro) >= 13 && macro[0:11] == "newroomtype" {
-		macroNewRoomType(macro)
+	} else if len(macro) >= 12 && macro[0:10] == "deleteroom" {
+		macroDeleteRoom(macro)
 	} else if len(macro) >= 9 && macro[0:7] == "newroom" {
 		macroNewRoom(macro)
 	} else if len(macro) >= 6 && macro[0:4] == "kick" {
@@ -75,20 +75,21 @@ func macroNewRoom(macro string) {
 	fmt.Println("Created room '" + s[1] + "'")
 }
 
-func macroNewRoomType(macro string) {
+func macroDeleteRoom(macro string) {
 	s := strings.Split(macro, " ")
-	if len(s) != 3 {
-		fmt.Println("newroomtype expects 2 parameters (name string, serverOnly bool)")
+	if len(s) != 2 {
+		fmt.Println("deleteroom expects 1 parameter (name string)")
 		return
 	}
-	serverOnly := false
-	if s[2] == "true" || s[2] == "t" {
-		serverOnly = true
-	}
-	rooms.NewRoomType(s[1], serverOnly)
-	if _, ok := rooms.GetRoomTypes()[s[1]]; !ok {
-		fmt.Println("The server must be paused to create a room type")
+	room, roomErr := rooms.Get(s[1])
+	if roomErr != nil {
+		fmt.Println(roomErr)
 		return
 	}
-	fmt.Println("Created room type '" + s[1] + "'")
+	deleteErr := room.Delete()
+	if deleteErr != nil {
+		fmt.Println(deleteErr)
+		return
+	}
+	fmt.Println("Deleted room '" + s[1] + "'")
 }
