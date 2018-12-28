@@ -2,13 +2,9 @@
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0) [![GoDoc](https://godoc.org/github.com/hewiefreeman/GopherGameServer?status.svg)](https://godoc.org/github.com/hewiefreeman/GopherGameServer) <img src="https://img.shields.io/badge/version-v1.0--beta.1-blue.svg"> [![Go Report Card](https://goreportcard.com/badge/github.com/hewiefreeman/GopherGameServer)](https://goreportcard.com/report/github.com/hewiefreeman/GopherGameServer)
 
-Gopher Game Server is a full featured, fast, and fully customizable game server written in Go. Comes with a client API for JavaScript (and eventually Java, C++, and C).
+Gopher Game Server is designed to provide all necessary tools to greatly ease developments of any type of online game (or any real-time app/chat). Gopher will handle all server-side synchronizing and data type conversions, therefore, client actions receiving, variable setting, message sending, and other functionalities are unproblematic.
 
-Gopher Game Server is designed to provide all necessary tools to ease developments of any type of online game (or any real-time app/chat). Gopher will handle all server-side synchronizing and data type conversions, therefore, client actions receiving, variable setting, message sending, and other functionalities are unproblematic.
-
-Gopher uses WebSockets and JSON to pass messages between the clients and the server. The JSON enabled server is designed to pass any types of data between client and server without cares of type conversions on either end. WebSockets increases efficiency of the server as far as possible on the network, since the WebSocket protocol is newer and doesn't send as much header and meta data that standard HTTP and most other protocols require.
-
-Moreover, Gopher has a built-in, fully customizable MySQL client authentication mechanism that manages users' accounts for you. It even ties in a friending tool, so users can befriend and invite one another to groups, check each other's status, and more. All components are easily configurable and customizable for specific project's needs.
+Moreover, Gopher has a built-in, fully customizable SQL client authentication mechanism that manages users' accounts for you. It even ties in a friending tool, so users can befriend and invite one another to groups, check each other's status, and more. All components are easily configurable and customizable for specific project's needs.
 
 ### Main features:
 
@@ -62,20 +58,21 @@ Then install the server:
 1) [**Getting Started**](https://github.com/hewiefreeman/GopherGameServer/wiki/Getting-Started)
    - [Set-Up](https://github.com/hewiefreeman/GopherGameServer/wiki/Getting-Started#set-up)
    - [Core Server Settings](https://github.com/hewiefreeman/GopherGameServer/wiki/Getting-Started#core-server-settings)
-   - Server Callbacks
-   - Micro Commands
-2) **Rooms**
-   - Room Types
-   - Creating Rooms
-   - Room Variables
-   - Room Callbacks
-   - Chat & Voice Messaging
-3) **Users**
-   - Login & Logout
-   - Joining & Leaving Rooms
-   - User Variables
-   - Initiating and Revoking Room Invites
-   - Messaging
+   - [Server Callbacks](https://github.com/hewiefreeman/GopherGameServer/wiki/Getting-Started#server-callbacks)
+   - [Macro Commands](https://github.com/hewiefreeman/GopherGameServer/wiki/Getting-Started#macro-commands)
+2) [**Rooms**](https://github.com/hewiefreeman/GopherGameServer/wiki/Rooms)
+   - [Room Types](https://github.com/hewiefreeman/GopherGameServer/wiki/Rooms#room-types)
+   - [Room Broadcasts](https://github.com/hewiefreeman/GopherGameServer/wiki/Rooms#room-broadcasts)
+   - [Room Callbacks](https://github.com/hewiefreeman/GopherGameServer/wiki/Rooms#room-callbacks)
+   - [Creating & Deleting Rooms](https://github.com/hewiefreeman/GopherGameServer/wiki/Rooms#creating--deleting-rooms)
+   - [Room Variables](https://github.com/hewiefreeman/GopherGameServer/wiki/Rooms#room-variables)
+   - [Messaging](https://github.com/hewiefreeman/GopherGameServer/wiki/Rooms#messaging)
+3) [**Users**](https://github.com/hewiefreeman/GopherGameServer/wiki/Users)
+   - [Login & Logout](https://github.com/hewiefreeman/GopherGameServer/wiki/Users#login-and-logout)
+   - [Joining & Leaving Rooms](https://github.com/hewiefreeman/GopherGameServer/wiki/Users#joining--leaving-rooms)
+   - [User Variables](https://github.com/hewiefreeman/GopherGameServer/wiki/Users#user-variables)
+   - [Initiating and Revoking Room Invites](https://github.com/hewiefreeman/GopherGameServer/wiki/Users#initiating-and-revoking-room-invites)
+   - [Messaging](https://github.com/hewiefreeman/GopherGameServer/wiki/Users#messaging)
 4) **Custom Client Actions**
    - Creating a Custom Client Action
    - Responding to a Custom Client Action
@@ -89,6 +86,7 @@ Then install the server:
    - Friending
 
 # Contributions
+Contributions are open and welcomed! Help is needed for everything from documentation, cleaning up code, performance enhancements, client APIs and more. Show your support by starring or following the project!
 
 Please read the following articles before submitting any contributions or filing an Issue:
 
