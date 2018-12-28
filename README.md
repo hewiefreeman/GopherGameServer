@@ -73,9 +73,9 @@ Then install the server:
    - [User Variables](https://github.com/hewiefreeman/GopherGameServer/wiki/Users#user-variables)
    - [Initiating and Revoking Room Invites](https://github.com/hewiefreeman/GopherGameServer/wiki/Users#initiating-and-revoking-room-invites)
    - [Messaging](https://github.com/hewiefreeman/GopherGameServer/wiki/Users#messaging)
-4) **Custom Client Actions**
-   - Creating a Custom Client Action
-   - Responding to a Custom Client Action
+4) [**Custom Client Actions**](https://github.com/hewiefreeman/GopherGameServer/wiki/Custom-Client-Actions)
+   - [Creating a Custom Client Action](https://github.com/hewiefreeman/GopherGameServer/wiki/Custom-Client-Actions#creating-a-custom-client-action)
+   - [Responding to a Custom Client Action](https://github.com/hewiefreeman/GopherGameServer/wiki/Custom-Client-Actions#responding-to-a-custom-client-action)
 6) **Saving & Restoring**
    - Set-Up
 5) **MySQL Features**
