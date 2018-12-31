@@ -2,9 +2,9 @@
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0) [![GoDoc](https://godoc.org/github.com/hewiefreeman/GopherGameServer?status.svg)](https://godoc.org/github.com/hewiefreeman/GopherGameServer) <img src="https://img.shields.io/badge/version-v1.0--beta.1-blue.svg"> [![Go Report Card](https://goreportcard.com/badge/github.com/hewiefreeman/GopherGameServer)](https://goreportcard.com/report/github.com/hewiefreeman/GopherGameServer)
 
-Gopher Game Server is designed to provide all necessary tools to greatly ease developments of any type of online game (or any real-time app/chat). Gopher will handle all server-side synchronizing and data type conversions, therefore, client actions receiving, variable setting, message sending, and other functionalities are unproblematic.
+Gopher Game Server is designed to provide all necessary tools to greatly ease developments of any type of online game (or any real-time app/chat). Gopher will handle all server-side synchronizing and data type conversions, therefore, client actions receiving, variable setting, messaging, and other functionalities are unproblematic.
 
-Moreover, Gopher has a built-in, fully customizable SQL client authentication mechanism that manages users' accounts for you. It even ties in a friending tool, so users can befriend and invite one another to groups, check each other's status, and more. All components are easily configurable and customizable for specific project's needs.
+Moreover, Gopher has a built-in, fully customizable SQL client authentication mechanism that creates and manages users' accounts for you. It even ties in a friending tool, so users can befriend and invite one another to groups, check each other's status, and more. All components are easily configurable and customizable for specific project's needs.
 
 ### Main features:
 
@@ -51,8 +51,6 @@ Then install the server:
 
 # Usage
 
-**-UNDER CONSTRUCTION-**
-
 ### Table of Contents
 
 1) [**Getting Started**](https://github.com/hewiefreeman/GopherGameServer/wiki/Getting-Started)
@@ -72,21 +70,23 @@ Then install the server:
    - [Joining & Leaving Rooms](https://github.com/hewiefreeman/GopherGameServer/wiki/Users#joining--leaving-rooms)
    - [User Variables](https://github.com/hewiefreeman/GopherGameServer/wiki/Users#user-variables)
    - [Initiating and Revoking Room Invites](https://github.com/hewiefreeman/GopherGameServer/wiki/Users#initiating-and-revoking-room-invites)
+   - [User Status](https://github.com/hewiefreeman/GopherGameServer/wiki/Users#user-status)
    - [Messaging](https://github.com/hewiefreeman/GopherGameServer/wiki/Users#messaging)
-4) **Custom Client Actions**
-   - Creating a Custom Client Action
-   - Responding to a Custom Client Action
-6) **Saving & Restoring**
-   - Set-Up
-5) **MySQL Features**
-   - Set-Up
-   - Securely Authenticating Clients
-   - Customize Authentication Features
-   - Custom Account Info
-   - Friending
+4) [**Custom Client Actions**](https://github.com/hewiefreeman/GopherGameServer/wiki/Custom-Client-Actions)
+   - [Creating a Custom Client Action](https://github.com/hewiefreeman/GopherGameServer/wiki/Custom-Client-Actions#creating-a-custom-client-action)
+   - [Responding to a Custom Client Action](https://github.com/hewiefreeman/GopherGameServer/wiki/Custom-Client-Actions#responding-to-a-custom-client-action)
+6) [**Saving & Restoring**](https://github.com/hewiefreeman/GopherGameServer/wiki/Saving-&-Restoring)
+   - [Set-Up](https://github.com/hewiefreeman/GopherGameServer/wiki/Saving-&-Restoring#set-up)
+5) [**SQL Features**](https://github.com/hewiefreeman/GopherGameServer/wiki/SQL-Features)
+   - [Set-Up](https://github.com/hewiefreeman/GopherGameServer/wiki/SQL-Features#set-up)
+   - [Authenticating Clients](https://github.com/hewiefreeman/GopherGameServer/wiki/SQL-Features#authenticating-clients)
+   - [Custom Account Info](https://github.com/hewiefreeman/GopherGameServer/wiki/SQL-Features#custom-account-info)
+   - [Customizing Authentication Features](https://github.com/hewiefreeman/GopherGameServer/wiki/SQL-Features#customizing-authentication-features)
+   - [Auto-Login (Remember Me)](https://github.com/hewiefreeman/GopherGameServer/wiki/SQL-Features#auto-login-remember-me)
+   - [Friending](https://github.com/hewiefreeman/GopherGameServer/wiki/SQL-Features#friending)
 
 # Contributions
-Contributions are open and welcomed! Help is needed for everything from documentation, cleaning up code, performance enhancements, client APIs and more. Show your support by starring or following the project!
+Contributions are open and welcomed! Help is needed for everything from documentation, cleaning up code, performance enhancements, client APIs and more. Don't forget to show your support by starring or following the project!
 
 Please read the following articles before submitting any contributions or filing an Issue:
 
