@@ -451,6 +451,7 @@ func (r *Room) RemoveInvite(userName string) error {
 	}
 
 	r.mux.Lock()
+
 	if r.usersMap == nil {
 		r.mux.Unlock()
 		return errors.New("The room '" + r.name + "' does not exist")

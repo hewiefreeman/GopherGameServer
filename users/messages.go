@@ -42,15 +42,21 @@ func (u *User) PrivateMessage(userName string, message interface{}) {
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // DataMessage sends a data message directly to the User.
-func (u *User) DataMessage(data interface{}) {
+func (u *User) DataMessage(data interface{}, connID string) {
 	//CONSTRUCT MESSAGE
 	message := make(map[string]interface{})
 	message[helpers.ServerActionDataMessage] = data
 
 	//SEND MESSAGE TO USER
 	u.mux.Lock()
-	for _, conn := range u.conns {
-		(*conn).socket.WriteJSON(message)
+	if connID == "" {
+		for _, conn := range u.conns {
+			(*conn).socket.WriteJSON(message)
+		}
+	} else {
+		if conn, ok := u.conns[connID]; ok {
+			(*conn).socket.WriteJSON(message)
+		}
 	}
 	u.mux.Unlock()
 }

@@ -381,7 +381,7 @@ func clientActionLogin(params interface{}, user **users.User, deviceTag *string,
 	var dPass string
 	var cID string
 	var err helpers.GopherError
-	if (*settings).EnableSqlFeatures {
+	if (*settings).EnableSqlFeatures && !guest {
 		uName, dbIndex, dPass, err = database.LoginClient(name, pass, *deviceTag, remMe, customCols)
 		if err.ID != 0 {
 			return nil, true, err
