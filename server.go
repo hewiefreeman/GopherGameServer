@@ -21,7 +21,7 @@ import (
 
 /////////// TO DOs:
 ///////////	- Admin tools
-///////////         - More useful command-line macros
+///////////    - More useful command-line macros
 
 // ServerSettings are the core settings for the Gopher Game Server. You must fill one of these out to customize
 // the server's functionality to your liking.
