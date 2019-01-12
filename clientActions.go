@@ -571,7 +571,7 @@ func clientActionDeleteRoom(params interface{}, user **users.User, clientMux *sy
 		return nil, true, helpers.NewError(deleteErr.Error(), helpers.ErrorGopherDeleteRoom)
 	}
 
-	return nil, true, helpers.NoError()
+	return roomName, true, helpers.NoError()
 }
 
 func clientActionRoomInvite(params interface{}, user **users.User, connID string, clientMux *sync.Mutex) (interface{}, bool, helpers.GopherError) {

@@ -388,7 +388,7 @@ func (r *Room) RemoveUser(userName string, connID string) error {
 	}
 
 	//SEND RESPONSE TO CLIENT
-	clientResp := helpers.MakeClientResponse(helpers.ClientActionLeaveRoom, nil, helpers.NewError("", 0))
+	clientResp := helpers.MakeClientResponse(helpers.ClientActionLeaveRoom, r.Name(), helpers.NewError("", 0))
 	uConn.socket.WriteJSON(clientResp)
 
 	//

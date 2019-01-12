@@ -52,7 +52,7 @@ const (
 	ErrorAuthNameUnavail        // 1040. The user name is unavailable
 	ErrorAuthMaliciousChars     // 1041. There are malicious characters in the client's request variables
 	ErrorAuthIncorrectCols      // 1042. The client supplied incorrect custom account info column data
-	ErrorAuthInsufficientCols   // 1043. The client supplied an insufficient ammount of custom account info columns
+	ErrorAuthInsufficientCols   // 1043. The client supplied an insufficient amount of custom account info columns
 	ErrorAuthEncryption         // 1044. There was an error while encrypting data
 	ErrorAuthQuery              // 1045. There was an error while querying the database
 	ErrorAuthIncorrectLogin     // 1046. The client supplied an incorrect login or password
@@ -69,6 +69,7 @@ func NewError(message string, id int) GopherError {
 	return GopherError{Message: message, ID: id}
 }
 
+// NoError creates a new GopherError that represents a state in which no error occured.
 func NoError() GopherError {
 	return GopherError{Message: "", ID: 0}
 }

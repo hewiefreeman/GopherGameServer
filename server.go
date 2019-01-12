@@ -291,7 +291,7 @@ func makeServer(handleDir string, tls bool) *http.Server {
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // Pause will log all Users off and prevent anyone from logging in. All rooms and their variables created by the server will remain in memory.
-// Same goes for rooms created by Users unless `RoomDeleteOnLeave` in `ServerSettings` is set to true.
+// Same goes for rooms created by Users unless RoomDeleteOnLeave in ServerSettings is set to true.
 func Pause() {
 	if !serverPaused {
 		serverPaused = true
