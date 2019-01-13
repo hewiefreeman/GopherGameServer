@@ -37,18 +37,6 @@ Then install the server:
 
     go get github.com/hewiefreeman/GopherGameServer
 
-# Documentation
-
-[Package gopher](https://godoc.org/github.com/hewiefreeman/GopherGameServer) - Main server package for startup and settings
-
-[Package rooms](https://godoc.org/github.com/hewiefreeman/GopherGameServer/rooms) - Package for using the Room, RoomType, and RoomUser types
-
-[Package users](https://godoc.org/github.com/hewiefreeman/GopherGameServer/users) - Package for using the User type
-
-[Package actions](https://godoc.org/github.com/hewiefreeman/GopherGameServer/actions) - Package for making custom client actions
-
-[Package database](https://godoc.org/github.com/hewiefreeman/GopherGameServer/database) - Package for customizing your database
-
 # Usage
 
 ### Table of Contents
@@ -84,6 +72,18 @@ Then install the server:
    - [Customizing Authentication Features](https://github.com/hewiefreeman/GopherGameServer/wiki/SQL-Features#customizing-authentication-features)
    - [Auto-Login (Remember Me)](https://github.com/hewiefreeman/GopherGameServer/wiki/SQL-Features#auto-login-remember-me)
    - [Friending](https://github.com/hewiefreeman/GopherGameServer/wiki/SQL-Features#friending)
+
+# Documentation
+
+[Package gopher](https://godoc.org/github.com/hewiefreeman/GopherGameServer) - Main server package for startup and settings
+
+[Package rooms](https://godoc.org/github.com/hewiefreeman/GopherGameServer/rooms) - Package for using the Room, RoomType, and RoomUser types
+
+[Package users](https://godoc.org/github.com/hewiefreeman/GopherGameServer/users) - Package for using the User type
+
+[Package actions](https://godoc.org/github.com/hewiefreeman/GopherGameServer/actions) - Package for making custom client actions
+
+[Package database](https://godoc.org/github.com/hewiefreeman/GopherGameServer/database) - Package for customizing your database
 
 # Contributions
 Contributions are open and welcomed! Help is needed for everything from documentation, cleaning up code, performance enhancements, client APIs and more. Don't forget to show your support by starring or following the project!
