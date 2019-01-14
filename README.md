@@ -22,8 +22,6 @@ Moreover, Gopher has a built-in, fully customizable SQL client authentication me
 
  - JavaScript: [Gopher Client JS](https://github.com/hewiefreeman/GopherClientJS)
 
-The Java, C++, and C (possibly more with some help) client APIs will be made after completing version 1.0 and the JavaScript client API.
-
 # Installing
 Gopher Game Server requires at least **Go v1.8+** (and **MySQL v5.7+** for the authentication and friending features).
 
