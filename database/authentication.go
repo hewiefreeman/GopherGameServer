@@ -363,6 +363,7 @@ func AutoLoginClient(tag string, pass string, newPass string, dbID int) (string,
 	if pass != dPass {
 		//SOMEONE TRIED TO COMPROMISE THIS KEY PAIR. DELETE IT NOW.
 		RemoveAutoLog(dbID, tag)
+		return "", helpers.NewError(errorInvalidAutoLog, helpers.ErrorDatabaseInvalidAutolog)
 	}
 
 	//UPDATE TO NEW PASS

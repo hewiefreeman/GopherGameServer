@@ -20,6 +20,7 @@ import (
 )
 
 /////////// TO DOs:
+///////////    - Database sharding by every 20,000 IDs for friends tables
 ///////////	- Admin tools
 ///////////    - More useful command-line macros
 

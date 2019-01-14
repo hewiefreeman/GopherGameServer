@@ -56,9 +56,7 @@ func setUp() error {
 		_, friendsErr := database.Exec("CREATE TABLE " + tableFriends + " (" +
 			friendsColumnUser + " INTEGER NOT NULL, " +
 			friendsColumnFriend + " INTEGER NOT NULL, " +
-			friendsColumnStatus + " INTEGER NOT NULL, " +
-			"FOREIGN KEY(" + friendsColumnUser + ") REFERENCES " + tableUsers + "(" + usersColumnID + "), " +
-			"FOREIGN KEY(" + friendsColumnFriend + ") REFERENCES " + tableUsers + "(" + usersColumnID + ")" +
+			friendsColumnStatus + " INTEGER NOT NULL" +
 			");")
 		if friendsErr != nil {
 			return friendsErr
