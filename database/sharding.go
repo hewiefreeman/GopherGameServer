@@ -4,10 +4,11 @@ import (
 	"errors"
 	"sync"
 	"database/sql"
+	"strconv"
 )
 
 var (
-	shardingRules []shardingOptions = []shardingOptions{shardingOptions{}, shardingOptions{}, shardingOptions{}}
+	shardingRules []ShardingRules = []ShardingRules{ShardingRules{}, ShardingRules{}, ShardingRules{}}
 )
 
 const (
@@ -21,7 +22,7 @@ const (
 	ShardByNumber
 )
 
-type shardingOptions struct {
+type ShardingRules struct {
 	column string // The name of the column to use for sharding
 
 	letterShards map[string]dbShard
@@ -77,6 +78,13 @@ func SetShardingColumn (table int, column string, shardType int) error {
 	}
 
 	return nil
+}
+
+func GetShardingRules(table int) ShardingRules {
+	if table < 0 || table > len(shardingRules)-1 {
+		return ShardingRules{}
+	}
+	return shardingRules[table]
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -181,13 +189,22 @@ func defaultNewNumberShard(table int) error {
 	protocol := shardingRules[table].numberShards[prevInterval].protocol
 	user := shardingRules[table].numberShards[prevInterval].user
 	password := shardingRules[table].numberShards[prevInterval].password
-	db := shardingRules[table].numberShards[prevInterval].database
 	shardingRules[table].numberMux.Unlock()
 
 	// make a new table on same database instance as the previous interval
+	var db string
+	if table == ShardingTableFriends {
+		db = tableFriends
+	} else if table == ShardingTableUsers {
+		db = tableUsers
+	} else if table == ShardingTableAutologs {
+		db = tableAutologs
+	}
+
+	db = db + strconv.Itoa(shardingRules[table].highestInterval)
 
 	//
-	err := NewNumberShard(table, shardingRules[table].highestInterval, ip, port, protocol, user, password, db);
+	err := NewNumberShard(table, shardingRules[table].highestInterval, ip, port, protocol, user, password, db)
 
 	return err
 }

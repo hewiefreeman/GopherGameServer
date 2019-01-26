@@ -143,6 +143,10 @@ func macroGetRoom(macro string) {
 	fmt.Println("Private:", room.IsPrivate())
 	fmt.Println("Owner:", room.Owner())
 	fmt.Println("Max Users:", room.MaxUsers())
-	fmt.Println("Users:", "("+strconv.Itoa(room.NumUsers())+")", usrMap)
+	var users []string
+	for name, _ := range usrMap {
+		users = append(users, name)
+	}
+	fmt.Println("Users:", "("+strconv.Itoa(room.NumUsers())+")", users)
 	fmt.Println("Invite List:", invList)
 }
