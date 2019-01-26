@@ -21,6 +21,7 @@ import (
 
 /////////// TO DOs:
 ///////////    - Database sharding by every 20,000 IDs for friends tables
+///////////    - Database sharding for Users tables
 ///////////	- Admin tools
 ///////////    - More useful command-line macros
 
@@ -56,7 +57,8 @@ type ServerSettings struct {
 	SqlDatabase       string // SQL database name (Required for SQL features)
 	EncryptionCost    int    // The amount of encryption iterations the server will run when storing and checking passwords. The higher the number, the longer encryptions take, but are more secure. Default is 4, range is 4-31.
 	CustomLoginColumn string // The custom AccountInfoColumn you wish to use for logging in instead of the default name column.
-	RememberMe        bool   // Enables the "Remember Me" login feature. You can read more about this in project's "Usage" section.
+	RememberMe        bool   // Enables the "Remember Me" login feature. You can read more about this in project's wiki.
+	//ShardingRules   database.ShardingRules
 
 	EnableRecovery   bool   // Enables the recovery of all Rooms, their settings, and their variables on start-up after terminating the server.
 	RecoveryLocation string // The folder location (starting from system's root folder) where you would like to store the recovery data. (Required for recovery)
