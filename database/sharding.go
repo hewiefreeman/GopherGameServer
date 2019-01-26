@@ -135,7 +135,7 @@ func SetShardingInterval(table int, interval int, newShardNumber int, newShardCa
 	return nil
 }
 
-// NewNumberDatabase will open a connection to a database shard
+// NewNumberDatabase will open a connection to the database shard for the starting interval
 func NewNumberShard(table int, start int, ip string, port int, protocol string, user string, password string, db string) error {
 	if table < 0 || table > len(shardingRules)-1 {
 		return errors.New("Incorrect table number")
@@ -144,7 +144,7 @@ func NewNumberShard(table int, start int, ip string, port int, protocol string, 
 	} else if shardingRules[table].column == "" {
 		return errors.New("Table has no sharding column set")
 	} else if start != 1 && start % shardingRules[table].interval != 0 {
-		return errors.New("Shard start number must be 1 or divisible by the sharding interval")
+		return errors.New("New shard's start must be 1 or divisible by the table's sharding interval")
 	}
 
 	rule := dbShard{ ip: ip, port: port, protocol: protocol, user: user, password: password, database: db }
@@ -167,6 +167,27 @@ func NewNumberShard(table int, start int, ip string, port int, protocol string, 
 }
 
 func defaultNewNumberShard(table int) error {
-	// make a new table on same database instance
-	return nil
+	var prevInterval int
+	if shardingRules[table].highestInterval == shardingRules[table].interval {
+		prevInterval = 1
+	} else {
+		prevInterval = shardingRules[table].highestInterval-shardingRules[table].interval
+	}
+
+	// Get previous interval's info
+	shardingRules[table].numberMux.Lock()
+	ip := shardingRules[table].numberShards[prevInterval].ip
+	port := shardingRules[table].numberShards[prevInterval].port
+	protocol := shardingRules[table].numberShards[prevInterval].protocol
+	user := shardingRules[table].numberShards[prevInterval].user
+	password := shardingRules[table].numberShards[prevInterval].password
+	db := shardingRules[table].numberShards[prevInterval].database
+	shardingRules[table].numberMux.Unlock()
+
+	// make a new table on same database instance as the previous interval
+
+	//
+	err := NewNumberShard(table, shardingRules[table].highestInterval, ip, port, protocol, user, password, db);
+
+	return err
 }
