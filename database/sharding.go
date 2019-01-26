@@ -89,7 +89,7 @@ func SetShardingColumn(table int, column string, shardType int) error {
 // GetShardingRules gets the *ShardingRules for a table.
 func GetShardingRules(table int) *ShardingRules {
 	if table < 0 || table > len(shardingRules)-1 {
-		return ShardingRules{}
+		return &ShardingRules{}
 	}
 	return &shardingRules[table]
 }
