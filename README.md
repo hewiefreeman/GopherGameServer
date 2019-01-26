@@ -6,17 +6,25 @@ Gopher Game Server is designed to provide all necessary tools to greatly ease de
 
 Moreover, Gopher has a built-in, fully customizable SQL client authentication mechanism that creates and manages users' accounts for you. It even ties in a friending tool, so users can befriend and invite one another to groups, check each other's status, and more. All components are easily configurable and customizable for specific project's needs.
 
-### Main features:
+### Main features
 
  - Super easy and flexible APIs for server, database, and client coding
  - Chat, private messaging, and voice chat
  - Customizable client authentication (**\***)
- - Built-in Friending (**\***)
+ - Built-in friending mechanism (**\***)
  - Supports multiple connections on the same User
  - Server saves state on shut-down and restores on reboot
  - Tools provided for administrating server while running
 
 (**\***) A MySQL (or similar SQL) database is required for the authentication/friending feature, but is an optional (like most) feature that can be enabled or disabled to use your own implementations.
+
+### Upcoming features
+
+ - Customizable sharding mechanism for accounts, freinds, and auto-login databases (**\***)
+ - Distributed server deployment tools
+ - Secure server cluster broadcasts with caching optimizations
+
+(**\***) Replication limitations: Sharding will be supported for MySQL master-slave replication (or no replication) **only**. Master-master replication support will be considered if the demand is high enough, or a contributor submits a viable solution.
 
 # Client APIs
 
