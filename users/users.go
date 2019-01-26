@@ -739,10 +739,11 @@ func (u *User) IsGuest() bool {
 	return u.isGuest
 }
 
+// ConnectionIDs returns a []string of all the User's connection IDs
 func (u *User) ConnectionIDs() []string {
 	var ids []string
 	u.mux.Lock()
-	for id, _ := range u.conns {
+	for id := range u.conns {
 		ids = append(ids, id)
 	}
 	u.mux.Unlock()

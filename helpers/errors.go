@@ -69,7 +69,7 @@ func NewError(message string, id int) GopherError {
 	return GopherError{Message: message, ID: id}
 }
 
-// NoError creates a new GopherError that represents a state in which no error occured.
+// NoError creates a new GopherError that represents a state in which no error occurred.
 func NoError() GopherError {
 	return GopherError{Message: "", ID: 0}
 }

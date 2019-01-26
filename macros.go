@@ -110,7 +110,7 @@ func macroGetUser(macro string) {
 		return
 	}
 
-	fmt.Println("-- User '"+s[1]+"' --")
+	fmt.Println("-- User '" + s[1] + "' --")
 	fmt.Println("Status:", user.Status())
 	fmt.Println("Guest:", user.IsGuest())
 	fmt.Println("Connections:")
@@ -138,13 +138,13 @@ func macroGetRoom(macro string) {
 	invList, _ := room.InviteList()
 	usrMap, _ := room.GetUserMap()
 
-	fmt.Println("-- Room '"+s[1]+"' --")
+	fmt.Println("-- Room '" + s[1] + "' --")
 	fmt.Println("Type:", room.Type())
 	fmt.Println("Private:", room.IsPrivate())
 	fmt.Println("Owner:", room.Owner())
 	fmt.Println("Max Users:", room.MaxUsers())
 	var users []string
-	for name, _ := range usrMap {
+	for name := range usrMap {
 		users = append(users, name)
 	}
 	fmt.Println("Users:", "("+strconv.Itoa(room.NumUsers())+")", users)

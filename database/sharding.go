@@ -1,29 +1,34 @@
 package database
 
 import (
-	"errors"
-	"sync"
 	"database/sql"
+	"errors"
 	"strconv"
+	"sync"
 )
 
 var (
 	shardingRules []ShardingRules = []ShardingRules{ShardingRules{}, ShardingRules{}, ShardingRules{}}
 )
 
+// Definitions for the three built-in Gopher Game Server tables. Chose one of these to make your sharding
+// rules.
 const (
-	ShardingTableUsers = iota // The Users table is being sharded
-	ShardingTableFriends      // The Friends table is being sharded
-	ShardingTableAutologs     // The Autologs table is being sharded
+	ShardingTableUsers    = iota // The Users table is being sharded
+	ShardingTableFriends         // The Friends table is being sharded
+	ShardingTableAutologs        // The Autologs table is being sharded
 )
 
+// Sharding rule types. ShardByLetter shards the table by starting letter(s), and ShardByNumber shards
+// the table in increments (best used with auto-incrementing primary keys).
 const (
 	ShardByLetter = iota
 	ShardByNumber
 )
 
+// ShardingRules holds the necessary sharding rules and data for a table.
 type ShardingRules struct {
-	column string // The name of the column to use for sharding
+	column string
 
 	letterShards map[string]dbShard
 
@@ -46,7 +51,8 @@ type dbShard struct {
 	database string
 }
 
-func SetShardingColumn (table int, column string, shardType int) error {
+// SetShardingColumn sets the column name and sharding type for a table.
+func SetShardingColumn(table int, column string, shardType int) error {
 	if serverPaused || serverStarted {
 		return errors.New("Cannot make new sharding rule type once the server has started")
 	} else if table < 0 || table > len(shardingRules)-1 {
@@ -58,7 +64,7 @@ func SetShardingColumn (table int, column string, shardType int) error {
 	} else if shardingRules[table].letterShards != nil && shardType == ShardByNumber {
 		return errors.New("Table is already using letter sharding rules")
 	} else if shardingRules[table].column != "" {
-		return errors.New("Table already has a sharding rule type for the column '"+shardingRules[table].column+"'")
+		return errors.New("Table already has a sharding rule type for the column '" + shardingRules[table].column + "'")
 	} else if column == "" {
 		return errors.New("Must supply a column name")
 	}
@@ -71,26 +77,29 @@ func SetShardingColumn (table int, column string, shardType int) error {
 	} else if shardType == ShardByNumber {
 		shardingRules[table].numberShards = make(map[int]dbShard)
 		// Set defaults
-		shardingRules[table].interval = 20000;
-		shardingRules[table].newShardNumber = 19000;
-		shardingRules[table].highestInterval = 1;
-		shardingRules[table].newShardCallback = defaultNewNumberShard;
+		shardingRules[table].interval = 20000
+		shardingRules[table].newShardNumber = 19000
+		shardingRules[table].highestInterval = 1
+		shardingRules[table].newShardCallback = defaultNewNumberShard
 	}
 
 	return nil
 }
 
-func GetShardingRules(table int) ShardingRules {
+// GetShardingRules gets the *ShardingRules for a table.
+func GetShardingRules(table int) *ShardingRules {
 	if table < 0 || table > len(shardingRules)-1 {
 		return ShardingRules{}
 	}
-	return shardingRules[table]
+	return &shardingRules[table]
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //   SHARDING BY LETTER   //////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+// SetShardingLetterDatabase opens a connection to a database that holds all entries where the specified sharding column starts with the
+// starting letter(s).
 func SetShardingLetterDatabase(table int, letter string, ip string, port int, protocol string, user string, password string, db string) error {
 	if serverPaused || serverStarted {
 		return errors.New("Cannot make new sharding rule by letter once the server has started")
@@ -102,13 +111,14 @@ func SetShardingLetterDatabase(table int, letter string, ip string, port int, pr
 		return errors.New("Table has no sharding column set")
 	}
 
-	rule := dbShard{ ip: ip, port: port, protocol: protocol, user: user, password: password, database: db }
+	rule := dbShard{ip: ip, port: port, protocol: protocol, user: user, password: password, database: db}
 
-	shardingRules[table].letterShards[letter] = rule;
+	shardingRules[table].letterShards[letter] = rule
 
 	return nil
 }
 
+// GetLetterDatabase gets the database that could be holding the entry.
 func GetLetterDatabase(s string) {
 	// Get a database by the starting letter(s) of a string
 }
@@ -133,17 +143,17 @@ func SetShardingInterval(table int, interval int, newShardNumber int, newShardCa
 		return errors.New("New shard number requires a minimum of 50 and must be less than sharding interval")
 	}
 
-	shardingRules[table].interval = interval;
-	shardingRules[table].highestInterval = 1;
-	shardingRules[table].newShardNumber = newShardNumber;
+	shardingRules[table].interval = interval
+	shardingRules[table].highestInterval = 1
+	shardingRules[table].newShardNumber = newShardNumber
 	if newShardCallback != nil {
-		shardingRules[table].newShardCallback = newShardCallback;
+		shardingRules[table].newShardCallback = newShardCallback
 	}
 
 	return nil
 }
 
-// NewNumberDatabase will open a connection to the database shard for the starting interval
+// NewNumberShard opens a connection to the database shard for the starting interval.
 func NewNumberShard(table int, start int, ip string, port int, protocol string, user string, password string, db string) error {
 	if table < 0 || table > len(shardingRules)-1 {
 		return errors.New("Incorrect table number")
@@ -151,11 +161,11 @@ func NewNumberShard(table int, start int, ip string, port int, protocol string, 
 		return errors.New("Table is using letter sharding rules")
 	} else if shardingRules[table].column == "" {
 		return errors.New("Table has no sharding column set")
-	} else if start != 1 && start % shardingRules[table].interval != 0 {
+	} else if start != 1 && start%shardingRules[table].interval != 0 {
 		return errors.New("New shard's start must be 1 or divisible by the table's sharding interval")
 	}
 
-	rule := dbShard{ ip: ip, port: port, protocol: protocol, user: user, password: password, database: db }
+	rule := dbShard{ip: ip, port: port, protocol: protocol, user: user, password: password, database: db}
 
 	shardingRules[table].numberMux.Lock()
 	if start != shardingRules[table].highestInterval {
@@ -165,8 +175,8 @@ func NewNumberShard(table int, start int, ip string, port int, protocol string, 
 
 	if start == 1 {
 		shardingRules[table].highestInterval = shardingRules[table].interval
-	}else{
-		shardingRules[table].highestInterval = start+shardingRules[table].interval
+	} else {
+		shardingRules[table].highestInterval = start + shardingRules[table].interval
 	}
 	shardingRules[table].numberShards[start] = rule
 	shardingRules[table].numberMux.Unlock()
@@ -179,7 +189,7 @@ func defaultNewNumberShard(table int) error {
 	if shardingRules[table].highestInterval == shardingRules[table].interval {
 		prevInterval = 1
 	} else {
-		prevInterval = shardingRules[table].highestInterval-shardingRules[table].interval
+		prevInterval = shardingRules[table].highestInterval - shardingRules[table].interval
 	}
 
 	// Get previous interval's info
