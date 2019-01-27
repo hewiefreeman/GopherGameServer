@@ -1,0 +1,39 @@
+body {
+	font-family: 'Open Sans', sans-serif;
+	font-weight: 600;
+	font-size: 16px;
+	color: #ffffff;
+
+	background: #1c1c1c;
+}
+
+.flexWrap {
+	display: flex;
+	flex-direction: column;
+	justify-content: flex-start;
+	align-items: stretch;
+	align-content: flex-start;
+
+	top: 0;
+	left: 0;
+
+	width: 100%;
+	height: 100%;
+}
+
+.topBar {
+	display: flex;
+	flex-direction: column;
+
+	height: 0px;
+	min-height: 0px;
+
+	background: orange;
+	z-index: 2;
+}
+
+.content {
+	display: block;
+
+	background: #1c1c1c;
+}
