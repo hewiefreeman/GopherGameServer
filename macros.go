@@ -15,7 +15,10 @@ func macroListener() {
 		reader := bufio.NewReader(os.Stdin)
 		fmt.Print("[Gopher] Command: ")
 		text, _ := reader.ReadString('\n')
-		stop := handleMacro(text[0 : len(text)-2])
+		var stop bool
+		if(len(text) >= 2){
+			stop = handleMacro(text[0 : len(text)-2])
+		}
 		if stop {
 			return
 		}
