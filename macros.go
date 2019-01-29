@@ -24,7 +24,6 @@ func macroListener() {
 }
 
 func handleMacro(macro string) bool {
-	fmt.Println("'"+macro+"'");
 	if macro == "pause" {
 		Pause()
 	} else if macro == "resume" {
@@ -32,6 +31,10 @@ func handleMacro(macro string) bool {
 	} else if macro == "shutdown" {
 		ShutDown()
 		return true
+	} else if macro == "roomcount" {
+		fmt.Println("Room count: ", rooms.RoomCount())
+	} else if macro == "usercount" {
+		fmt.Println("User count: ", users.UserCount())
 	} else if len(macro) >= 12 && macro[0:10] == "deleteroom" {
 		macroDeleteRoom(macro)
 	} else if len(macro) >= 9 && macro[0:7] == "newroom" {

@@ -513,6 +513,14 @@ func (r *Room) GetUserMap() (map[string]*RoomUser, error) {
 //   Room ATTRIBUTE READERS   /////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+// RoomCount returns the number of Rooms created on the server.
+func RoomCount() int {
+	roomsMux.Lock()
+	length := len(rooms)
+	roomsMux.Unlock()
+	return length
+}
+
 // Name gets the name of the Room.
 func (r *Room) Name() string {
 	return r.name

@@ -672,6 +672,14 @@ func (u *User) RevokeInvite(revokeUser string, connID string) error {
 //   User ATTRIBUTE READERS   ////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
+// UserCount returns the number of Users logged into the server.
+func UserCount() int {
+	usersMux.Lock()
+	length := len(users)
+	usersMux.Unlock()
+	return length
+}
+
 // Name gets the name of the User.
 func (u *User) Name() string {
 	return u.name
