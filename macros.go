@@ -23,6 +23,7 @@ func macroListener() {
 }
 
 func handleMacro(macro string) bool {
+	fmt.Println(macro);
 	if macro == "pause" {
 		Pause()
 	} else if macro == "resume" {

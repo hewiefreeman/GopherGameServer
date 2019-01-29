@@ -98,9 +98,9 @@ func GetShardingRules(table int) *ShardingRules {
 //   SHARDING BY LETTER   //////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// SetShardingLetterDatabase opens a connection to a database that holds all entries where the specified sharding column starts with the
+// NewLetterShard opens a connection to a database that holds all entries where the specified sharding column starts with the
 // starting letter(s).
-func SetShardingLetterDatabase(table int, letter string, ip string, port int, protocol string, user string, password string, db string) error {
+func NewLetterShard(table int, letter string, ip string, port int, protocol string, user string, password string, db string) error {
 	if serverPaused || serverStarted {
 		return errors.New("Cannot make new sharding rule by letter once the server has started")
 	} else if table < 0 || table > len(shardingRules)-1 {
