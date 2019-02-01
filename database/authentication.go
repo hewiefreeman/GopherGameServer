@@ -181,11 +181,12 @@ func SignUpClient(userName string, password string, customCols map[string]interf
 		return helpers.NewError(hashErr.Error(), helpers.ErrorAuthEncryption)
 	}
 
-	var vals []interface{} = []interface{}{}
+	var vals []interface{}
 
 	//CREATE PART 1 OF QUERY
 	queryPart1 := "INSERT INTO " + tableUsers + " (" + usersColumnName + ", " + usersColumnPassword + ", "
 	if customCols != nil {
+		vals = make([]interface{}, 0, len(customCols))
 		if customLoginColumn != "" {
 			if _, ok := customCols[customLoginColumn]; !ok {
 				return helpers.NewError(errorInsufficientCols, helpers.ErrorAuthInsufficientCols)
@@ -257,17 +258,22 @@ func LoginClient(userName string, password string, deviceTag string, remMe bool,
 	}
 
 	//FIRST THREE ARE id, password, name IN THAT ORDER
-	var vals []interface{} = []interface{}{new(int), new([]byte), new(string)}
-
+	var vals []interface{}
 	//CONSTRUCT SELECT QUERY
 	selectQuery := "Select " + usersColumnID + ", " + usersColumnPassword + ", " + usersColumnName + ", "
 	if customCols != nil {
+		vals = make([]interface{}, 0, len(customCols)+3)
+		vals = append(vals, new(int), new([]byte), new(string))
 		for key := range customCols {
 			selectQuery = selectQuery + key + ", "
 			//MAINTAIN THE ORDER IN WHICH THE COLUMNS WERE DECLARED VIA A SLICE
 			vals = append(vals, new(interface{}))
 		}
+	} else {
+		vals = make([]interface{}, 0, 3)
+		vals = append(vals, new(int), new([]byte), new(string))
 	}
+
 	if len(customLoginColumn) > 0 {
 		selectQuery = selectQuery[0:len(selectQuery)-2] + " FROM " + tableUsers + " WHERE " + customLoginColumn + "=\"" + userName + "\" LIMIT 1;"
 	} else {
@@ -433,18 +439,24 @@ func ChangePassword(userName string, password string, newPassword string, custom
 	}
 
 	//FIRST TWO ARE id, password IN THAT ORDER
-	var vals []interface{} = []interface{}{new(int), new([]byte)}
-	var valsList []interface{} = []interface{}{}
+	var vals []interface{}
+	var valsList []interface{}
 
 	//CONSTRUCT SELECT QUERY
 	selectQuery := "Select " + usersColumnID + ", " + usersColumnPassword + ", "
 	if customCols != nil {
+		vals = make([]interface{}, 0, len(customCols)+2)
+		vals = append(vals, new(int), new([]byte))
+		valsList = make([]interface{}, 0, len(customCols))
 		for key, val := range customCols {
 			selectQuery = selectQuery + key + ", "
 			//MAINTAIN THE ORDER IN WHICH THE COLUMNS WERE DECLARED VIA A SLICE
 			vals = append(vals, new(interface{}))
 			valsList = append(valsList, []interface{}{val, customAccountInfo[key].dataType, key})
 		}
+	}else{
+		vals = make([]interface{}, 0, 2)
+		vals = append(vals, new(int), new([]byte))
 	}
 	selectQuery = selectQuery[0:len(selectQuery)-2] + " FROM " + tableUsers + " WHERE " + usersColumnName + "=\"" + userName + "\" LIMIT 1;"
 
@@ -526,18 +538,24 @@ func ChangeAccountInfo(userName string, password string, customCols map[string]i
 	}
 
 	//FIRST TWO ARE id, password IN THAT ORDER
-	var vals []interface{} = []interface{}{new(int), new([]byte)}
-	var valsList []interface{} = []interface{}{}
+	var vals []interface{}
+	var valsList []interface{}
 
 	//CONSTRUCT SELECT QUERY
 	selectQuery := "Select " + usersColumnID + ", " + usersColumnPassword + ", "
 	if customCols != nil {
+		vals = make([]interface{}, 0, len(customCols)+2)
+		vals = append(vals, new(int), new([]byte))
+		valsList = make([]interface{}, 0, len(customCols))
 		for key, val := range customCols {
 			selectQuery = selectQuery + key + ", "
 			//MAINTAIN THE ORDER IN WHICH THE COLUMNS WERE DECLARED VIA A SLICE
 			vals = append(vals, new(interface{}))
 			valsList = append(valsList, []interface{}{val, customAccountInfo[key].dataType, key})
 		}
+	}else{
+		vals = make([]interface{}, 0, 2)
+		vals = append(vals, new(int), new([]byte))
 	}
 	selectQuery = selectQuery[0:len(selectQuery)-2] + " FROM " + tableUsers + " WHERE " + usersColumnName + "=\"" + userName + "\" LIMIT 1;"
 
@@ -625,16 +643,21 @@ func DeleteAccount(userName string, password string, customCols map[string]inter
 	}
 
 	//FIRST TWO ARE id, password IN THAT ORDER
-	var vals []interface{} = []interface{}{new(int), new([]byte)}
+	var vals []interface{}
 
 	//CONSTRUCT SELECT QUERY
 	selectQuery := "Select " + usersColumnID + ", " + usersColumnPassword + ", "
 	if customCols != nil {
+		vals = make([]interface{}, 0, len(customCols)+2)
+		vals = append(vals, new(int), new([]byte))
 		for key := range customCols {
 			selectQuery = selectQuery + key + ", "
 			//MAINTAIN THE ORDER IN WHICH THE COLUMNS WERE DECLARED VIA A SLICE
 			vals = append(vals, new(interface{}))
 		}
+	}else{
+		vals = make([]interface{}, 0, 2)
+		vals = append(vals, new(int), new([]byte))
 	}
 	selectQuery = selectQuery[0:len(selectQuery)-2] + " FROM " + tableUsers + " WHERE " + usersColumnName + "=\"" + userName + "\" LIMIT 1;"
 

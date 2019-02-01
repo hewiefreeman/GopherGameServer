@@ -185,7 +185,7 @@ func Login(userName string, dbID int, autologPass string, isGuest bool, remMe bo
 	vars := make(map[string]interface{})
 	conn := userConn{socket: socket, room: nil, vars: vars, user: connUser, clientMux: clientMux}
 	//FRIENDS OBJECTS
-	var friends []map[string]interface{} = []map[string]interface{}{}
+	var friends []map[string]interface{}
 	var friendsMap map[string]*database.Friend
 	//ADD THE userConn TO THE User OR MAKE THE User
 	if userExists {
@@ -193,6 +193,7 @@ func Login(userName string, dbID int, autologPass string, isGuest bool, remMe bo
 		(*users[userName]).conns[connID] = &conn
 		friendsMap = (*users[userName]).friends
 		(*users[userName]).mux.Unlock()
+		friends = make([]map[string]interface{}, 0, len(friendsMap))
 		//MAKE FRINDS LIST FOR SERVER RESPONSE
 		for _, val := range friendsMap {
 			friendEntry := make(map[string]interface{})
@@ -215,6 +216,7 @@ func Login(userName string, dbID int, autologPass string, isGuest bool, remMe bo
 			friendsMap, friendsErr = database.GetFriends(dbID) // map[string]Friend
 			if friendsErr == nil {
 				//MAKE FRINDS LIST FOR SERVER RESPONSE
+				friends = make([]map[string]interface{}, 0, len(friendsMap))
 				for _, val := range friendsMap {
 					friendEntry := make(map[string]interface{})
 					friendEntry["n"] = val.Name()
@@ -749,8 +751,8 @@ func (u *User) IsGuest() bool {
 
 // ConnectionIDs returns a []string of all the User's connection IDs
 func (u *User) ConnectionIDs() []string {
-	var ids []string
 	u.mux.Lock()
+	ids := make([]string, 0, len(u.conns))
 	for id := range u.conns {
 		ids = append(ids, id)
 	}

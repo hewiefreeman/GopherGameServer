@@ -148,7 +148,7 @@ func macroGetRoom(macro string) {
 	fmt.Println("Private:", room.IsPrivate())
 	fmt.Println("Owner:", room.Owner())
 	fmt.Println("Max Users:", room.MaxUsers())
-	var users []string
+	users := make([]string, 0, len(usrMap))
 	for name := range usrMap {
 		users = append(users, name)
 	}

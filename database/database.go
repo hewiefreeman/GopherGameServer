@@ -20,7 +20,7 @@ var (
 	serverStarted bool = false
 	serverPaused  bool = false
 	rememberMe    bool = false
-	databaseName  string
+	databaseName  string = "gopherDB"
 	inited        bool = false
 )
 
@@ -77,24 +77,29 @@ func Init(userName string, password string, dbName string, protocol string, ip s
 	var err error
 
 	//OPEN THE DATABASE
-	var openErr error
-	database, openErr = sql.Open("mysql", userName+":"+password+"@"+protocol+"("+ip+":"+strconv.Itoa(port)+")/"+dbName)
-	if err != nil {
-		return openErr
-	}
-	//NOTE: Open doesn't open a connection.
-	//MUST PING TO CHECK IF FOUND DATABASE
-	pingErr := database.Ping()
-	if pingErr != nil {
-		return errors.New("Could not connect to database!")
-	}
+	if !shardingInit {
+		database, err = sql.Open("mysql", userName+":"+password+"@"+protocol+"("+ip+":"+strconv.Itoa(port)+")/"+dbName)
+		if err != nil {
+			return err
+		}
+		//NOTE: Open doesn't open a connection.
+		//MUST PING TO CHECK IF FOUND DATABASE
+		err = database.Ping()
+		if err != nil {
+			return errors.New("Could not connect to database!")
+		}
 
-	databaseName = dbName
+		if len(dbName) != 0 {
+			databaseName = dbName
+		}
+	} else {
+		setShardingDefaults(ip, port, protocol, userName, password)
+	}
 
 	//CONFIGURE DATABASE
-	setupErr := setUp()
-	if setupErr != nil {
-		return setupErr
+	err = setUp()
+	if err != nil {
+		return err
 	}
 
 	//
@@ -135,9 +140,10 @@ func GetUserDatabaseIndex(userName string) (int, error) {
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // SetServerStarted is for Gopher Game Server internal mechanics only.
-func SetServerStarted(val bool) {
+func SetServerStarted(val bool, sharding bool) {
 	if !serverStarted {
 		serverStarted = val
+		shardingInit = sharding
 	}
 }
 

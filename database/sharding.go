@@ -2,45 +2,33 @@ package database
 
 import (
 	"database/sql"
-	"errors"
+	//"errors"
 	"strconv"
 	"sync"
 )
 
 var (
-	shardingRules []ShardingRules = []ShardingRules{ShardingRules{}, ShardingRules{}, ShardingRules{}}
+	shardingInit bool
+
+	usersPrefix string = "users_"
+	usersShards map[string]*DBShard
+
+	friendsPrefix string = "friends_"
+	friendsShards map[string]*DBShard
+
+	autologPrefix string = "autologs_"
+	autologShards map[string]*DBShard
 )
 
-// Definitions for the three built-in Gopher Game Server tables. Chose one of these to make your sharding
-// rules.
-const (
-	ShardingTableUsers    = iota // The Users table is being sharded
-	ShardingTableFriends         // The Friends table is being sharded
-	ShardingTableAutologs        // The Autologs table is being sharded
-)
+type DBShard struct {
+	master *DBReplica
 
-// Sharding rule types. ShardByLetter shards the table by starting letter(s), and ShardByNumber shards
-// the table in increments (best used with auto-incrementing primary keys).
-const (
-	ShardByLetter = iota
-	ShardByNumber
-)
-
-// ShardingRules holds the necessary sharding rules and data for a table.
-type ShardingRules struct {
-	column string
-
-	letterShards map[string]dbShard
-
-	interval         int
-	numberMux        sync.Mutex
-	numberShards     map[int]dbShard
-	highestInterval  int
-	newShardNumber   int
-	newShardCallback func(int) error
+	mux       sync.Mutex
+	replicaOn int
+	replicas  []*DBReplica
 }
 
-type dbShard struct {
+type DBReplica struct {
 	conn *sql.DB
 
 	ip       string
@@ -48,173 +36,228 @@ type dbShard struct {
 	protocol string
 	user     string
 	password string
-	database string
+
+	mux     sync.Mutex
+	healthy bool
 }
 
-// SetShardingColumn sets the column name and sharding type for a table.
-func SetShardingColumn(table int, column string, shardType int) error {
-	if serverPaused || serverStarted {
-		return errors.New("Cannot make new sharding rule type once the server has started")
-	} else if table < 0 || table > len(shardingRules)-1 {
-		return errors.New("Incorrect table number")
-	} else if shardType != ShardByLetter && shardType != ShardByNumber {
-		return errors.New("Incorrect sharding type")
-	} else if shardingRules[table].numberShards != nil && shardType == ShardByLetter {
-		return errors.New("Table is already using numeric sharding rules")
-	} else if shardingRules[table].letterShards != nil && shardType == ShardByNumber {
-		return errors.New("Table is already using letter sharding rules")
-	} else if shardingRules[table].column != "" {
-		return errors.New("Table already has a sharding rule type for the column '" + shardingRules[table].column + "'")
-	} else if column == "" {
-		return errors.New("Must supply a column name")
-	}
+/////////////////////////////////////////////////////////////////////////////////////////
+//////   INIT   /////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////
 
-	// Set the rule type
-	shardingRules[table].column = column
-
-	if shardType == ShardByLetter {
-		shardingRules[table].letterShards = make(map[string]dbShard)
-	} else if shardType == ShardByNumber {
-		shardingRules[table].numberShards = make(map[int]dbShard)
-		// Set defaults
-		shardingRules[table].interval = 20000
-		shardingRules[table].newShardNumber = 19000
-		shardingRules[table].highestInterval = 1
-		shardingRules[table].newShardCallback = defaultNewNumberShard
-	}
-
-	return nil
-}
-
-// GetShardingRules gets the *ShardingRules for a table.
-func GetShardingRules(table int) *ShardingRules {
-	if table < 0 || table > len(shardingRules)-1 {
-		return &ShardingRules{}
-	}
-	return &shardingRules[table]
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//   SHARDING BY LETTER   //////////////////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-// NewLetterShard opens a connection to a database that holds all entries where the specified sharding column starts with the
-// starting letter(s).
-func NewLetterShard(table int, letter string, ip string, port int, protocol string, user string, password string, db string) error {
-	if serverPaused || serverStarted {
-		return errors.New("Cannot make new sharding rule by letter once the server has started")
-	} else if table < 0 || table > len(shardingRules)-1 {
-		return errors.New("Incorrect table number")
-	} else if shardingRules[table].numberShards != nil {
-		return errors.New("Table is using numeric sharding rules")
-	} else if shardingRules[table].column == "" {
-		return errors.New("Table has no sharding column set")
-	}
-
-	rule := dbShard{ip: ip, port: port, protocol: protocol, user: user, password: password, database: db}
-
-	shardingRules[table].letterShards[letter] = rule
-
-	return nil
-}
-
-// GetLetterDatabase gets the database that could be holding the entry.
-func GetLetterDatabase(s string) {
-	// Get a database by the starting letter(s) of a string
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//   SHARDING BY NUMBER   //////////////////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-// SetShardingInterval sets the interval at which a numerically sharded database will shard by.
-func SetShardingInterval(table int, interval int, newShardNumber int, newShardCallback func(int) error) error {
-	if serverPaused || serverStarted {
-		return errors.New("Cannot set sharding interval once the server has started")
-	} else if table < 0 || table > len(shardingRules)-1 {
-		return errors.New("Incorrect table number")
-	} else if shardingRules[table].letterShards != nil {
-		return errors.New("Table is using letter sharding rules")
-	} else if shardingRules[table].column == "" {
-		return errors.New("Table has no sharding column set")
-	} else if interval <= 100 {
-		return errors.New("Sharding interval requires a minimum of 100")
-	} else if newShardNumber >= interval || newShardNumber < 50 {
-		return errors.New("New shard number requires a minimum of 50 and must be less than sharding interval")
-	}
-
-	shardingRules[table].interval = interval
-	shardingRules[table].highestInterval = 1
-	shardingRules[table].newShardNumber = newShardNumber
-	if newShardCallback != nil {
-		shardingRules[table].newShardCallback = newShardCallback
-	}
-
-	return nil
-}
-
-// NewNumberShard opens a connection to the database shard for the starting interval.
-func NewNumberShard(table int, start int, ip string, port int, protocol string, user string, password string, db string) error {
-	if table < 0 || table > len(shardingRules)-1 {
-		return errors.New("Incorrect table number")
-	} else if shardingRules[table].letterShards != nil {
-		return errors.New("Table is using letter sharding rules")
-	} else if shardingRules[table].column == "" {
-		return errors.New("Table has no sharding column set")
-	} else if start != 1 && start%shardingRules[table].interval != 0 {
-		return errors.New("New shard's start must be 1 or divisible by the table's sharding interval")
-	}
-
-	rule := dbShard{ip: ip, port: port, protocol: protocol, user: user, password: password, database: db}
-
-	shardingRules[table].numberMux.Lock()
-	if start != shardingRules[table].highestInterval {
-		shardingRules[table].numberMux.Unlock()
-		return errors.New("New shard's start must be equal to the table's highest interval")
-	}
-
-	if start == 1 {
-		shardingRules[table].highestInterval = shardingRules[table].interval
+func setShardingDefaults(ip string, port int, protocol string, userName string, password string) error {
+	if usersShards == nil {
+		shard, shardErr := NewDBShard(ip, port, protocol, userName, password, false)
+		if shardErr != nil {
+			return shardErr
+		}
+		usersShards = make(map[string]*DBShard)
+		//
+		usersShards["a-h"] = shard
+		usersShards["i-q"] = shard
+		usersShards["r-z"] = shard
 	} else {
-		shardingRules[table].highestInterval = start + shardingRules[table].interval
+		fillShardGaps(&usersShards)
 	}
-	shardingRules[table].numberShards[start] = rule
-	shardingRules[table].numberMux.Unlock()
 
-	return nil
-}
-
-func defaultNewNumberShard(table int) error {
-	var prevInterval int
-	if shardingRules[table].highestInterval == shardingRules[table].interval {
-		prevInterval = 1
+	if friendsShards == nil {
+		friendsShards = usersShards
 	} else {
-		prevInterval = shardingRules[table].highestInterval - shardingRules[table].interval
+		fillShardGaps(&friendsShards)
 	}
 
-	// Get previous interval's info
-	shardingRules[table].numberMux.Lock()
-	ip := shardingRules[table].numberShards[prevInterval].ip
-	port := shardingRules[table].numberShards[prevInterval].port
-	protocol := shardingRules[table].numberShards[prevInterval].protocol
-	user := shardingRules[table].numberShards[prevInterval].user
-	password := shardingRules[table].numberShards[prevInterval].password
-	shardingRules[table].numberMux.Unlock()
-
-	// make a new table on same database instance as the previous interval
-	var db string
-	if table == ShardingTableFriends {
-		db = tableFriends
-	} else if table == ShardingTableUsers {
-		db = tableUsers
-	} else if table == ShardingTableAutologs {
-		db = tableAutologs
+	if autologShards == nil {
+		autologShards = usersShards
+	} else {
+		fillShardGaps(&autologShards)
 	}
-
-	db = db + strconv.Itoa(shardingRules[table].highestInterval)
 
 	//
-	err := NewNumberShard(table, shardingRules[table].highestInterval, ip, port, protocol, user, password, db)
+	return nil
+}
 
-	return err
+func fillShardGaps(shardMap *map[string]*DBShard) {
+
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////
+//////   ADDING SHARDS   ////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////
+
+func SetUserShard(letters string, shard *DBShard) error {
+	if !letterFormatCheck(letters) {
+
+	} else if letterConflict(letters, usersShards) {
+
+	}
+
+	//
+	return nil
+}
+
+func SetFriendShard(letters string, shard *DBShard) error {
+	if !letterFormatCheck(letters) {
+
+	} else if letterConflict(letters, friendsShards) {
+
+	}
+
+	//
+	return nil
+}
+
+func SetAutologShard(letters string, shard *DBShard) error {
+	if !letterFormatCheck(letters) {
+
+	} else if letterConflict(letters, autologShards) {
+
+	}
+
+	//
+	return nil
+}
+
+func letterFormatCheck(letters string) bool {
+
+	// Pass
+	return true
+}
+
+func letterConflict(letters string, m map[string]*DBShard) bool {
+
+	// Pass
+	return true
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////
+//////   DBShard   //////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////
+
+func NewDBShard(ip string, port int, protocol string, userName string, password string, master bool) (*DBShard, error) {
+	replica, replicaErr := NewDBReplica(ip, port, protocol, userName, password)
+	if replicaErr != nil {
+		return nil, replicaErr
+	}
+	if master {
+		shard := DBShard{master: replica}
+		return &shard, nil
+	}
+	replicaList := []*DBReplica{replica}
+	shard := DBShard{replicas: replicaList}
+	return &shard, nil
+}
+
+func (s *DBShard) SetMasterDB(r *DBReplica) {
+	if inited {
+		return
+	}
+	s.master = r
+}
+
+func (s *DBShard) AddReplica(r *DBReplica) {
+	s.mux.Lock()
+	s.replicas = append(s.replicas, r)
+	s.mux.Unlock()
+}
+
+func (s *DBShard) Master() *DBReplica {
+	return s.master
+}
+
+func (s *DBShard) GetReplica() *DBReplica {
+	s.mux.Lock()
+	for i := 0; i < len(s.replicas); i++ {
+		s.replicaOn++
+		if s.replicaOn > len(s.replicas)-1 {
+			s.replicaOn = 0
+		}
+		if s.replicas[s.replicaOn].Healthy() {
+			r := s.replicas[s.replicaOn]
+			s.mux.Unlock()
+			return r
+		}
+	}
+	s.mux.Unlock()
+	return nil
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////
+//////   DBReplica   ////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////
+
+func NewDBReplica(ip string, port int, protocol string, userName string, password string) (*DBReplica, error) {
+	db, err := sql.Open("mysql", userName+":"+password+"@"+protocol+"("+ip+":"+strconv.Itoa(port)+")/"+databaseName)
+	if err != nil {
+		return nil, err
+	}
+	err = db.Ping()
+	if err != nil {
+		return nil, err
+	}
+
+	r := DBReplica{conn: db, ip: ip, port: port, protocol: protocol, user:userName, password: password, healthy: true}
+
+	return &r, nil
+}
+
+func (r *DBReplica) Conn() *sql.DB {
+	return r.conn
+}
+
+func (r *DBReplica) IP() string {
+	return r.ip
+}
+
+func (r *DBReplica) Port() int {
+	return r.port
+}
+
+func (r *DBReplica) Protocol() string {
+	return r.protocol
+}
+
+func (r *DBReplica) UserName() string {
+	return r.user
+}
+
+func (r *DBReplica) Password() string {
+	return r.password
+}
+
+func (r *DBReplica) Healthy() bool {
+	r.mux.Lock()
+	h := r.healthy
+	r.mux.Unlock()
+	return h
+}
+
+func (r *DBReplica) SetHealthy(h bool) {
+	r.mux.Lock()
+	r.healthy = h
+	r.mux.Unlock()
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////
+//////   TABE PREFIX SETTERS   //////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////
+
+func SetUsersTablePrefix(prefix string) {
+	if inited {
+		return
+	}
+	usersPrefix = prefix
+}
+
+func SetFriendsTablePrefix(prefix string) {
+	if inited {
+		return
+	}
+	friendsPrefix = prefix
+}
+
+func SetAutologTablePrefix(prefix string) {
+	if inited {
+		return
+	}
+	autologPrefix = prefix
 }

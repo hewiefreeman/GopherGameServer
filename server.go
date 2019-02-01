@@ -58,7 +58,7 @@ type ServerSettings struct {
 	EncryptionCost    int    // The amount of encryption iterations the server will run when storing and checking passwords. The higher the number, the longer encryptions take, but are more secure. Default is 4, range is 4-31.
 	CustomLoginColumn string // The custom AccountInfoColumn you wish to use for logging in instead of the default name column.
 	RememberMe        bool   // Enables the "Remember Me" login feature. You can read more about this in project's wiki.
-	//ShardingRules   database.ShardingRules
+	Sharding          bool   // Enables the built-in database sharding mechanism.
 
 	EnableRecovery   bool   // Enables the recovery of all Rooms, their settings, and their variables on start-up after terminating the server.
 	RecoveryLocation string // The folder location (starting from system's root folder) where you would like to store the recovery data. (Required for recovery)
@@ -185,6 +185,7 @@ func Start(s *ServerSettings) {
 			EncryptionCost:    4,
 			CustomLoginColumn: "",
 			RememberMe:        false,
+			Sharding:          false,
 
 			EnableRecovery:   false,
 			RecoveryLocation: "C:/",
@@ -203,7 +204,7 @@ func Start(s *ServerSettings) {
 	users.SetServerStarted(true)
 	rooms.SetServerStarted(true)
 	actions.SetServerStarted(true)
-	database.SetServerStarted(true)
+	database.SetServerStarted(true, (*settings).Sharding)
 
 	//START UP DATABASE
 	if (*settings).EnableSqlFeatures {
