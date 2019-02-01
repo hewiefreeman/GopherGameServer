@@ -20,11 +20,9 @@ Moreover, Gopher has a built-in, fully customizable SQL client authentication me
 
 ### Upcoming features
 
- - Customizable sharding mechanism for accounts, freinds, and auto-login databases (**\***)
+ - Customizable sharding mechanism for accounts, freinds, and auto-login databases
  - Distributed server deployment tools
  - Secure server cluster broadcasts with caching optimizations
-
-> (**\***) Replication limitations: Sharding will be supported for MySQL master-slave replication (or no replication) **only**. Master-master replication support will be considered if the demand is high enough, or a contributor submits a viable solution.
 
 # Client APIs
 
