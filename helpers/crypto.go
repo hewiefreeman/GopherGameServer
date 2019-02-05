@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"golang.org/x/crypto/bcrypt"
+	"hash/fnv"
 )
 
 // GenerateRandomBytes uses the `crypto/rand` library to create a secure random `[]byte` at a given size `n`.
@@ -36,4 +37,10 @@ func EncryptString(str string, cost int) (string, error) {
 func CompareEncryptedData(str string, hash []byte) bool {
 	err := bcrypt.CompareHashAndPassword(hash, []byte(str))
 	return err == nil
+}
+
+func HashNumber(s string, amount int) int {
+	h := fnv.New32a()
+	h.Write([]byte(s))
+	return int(h.Sum32())%amount
 }
