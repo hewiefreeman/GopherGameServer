@@ -14,15 +14,16 @@ Moreover, Gopher has a built-in, fully customizable SQL client authentication me
  - Built-in friending mechanism (**\***)
  - Supports multiple connections on the same User
  - Server saves state on shut-down and restores on reboot
- - Tools provided for administrating server while running
 
 > (**\***) A MySQL (or similar SQL) database is required for the authentication/friending feature, but is an optional (like most) feature that can be enabled or disabled to use your own implementations.
 
 ### Upcoming features
 
  - Customizable sharding mechanism for accounts, freinds, and auto-login databases
- - Distributed server deployment tools
+ - Support for master-slave and master-master replication (or MySQL Group Replication)
+ - Distributed load balancer/monitor
  - Secure server cluster broadcasts with caching optimizations
+ - Tools for administrating and monitoring servers
 
 # Client APIs
 
