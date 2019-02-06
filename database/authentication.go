@@ -39,6 +39,7 @@ const (
 	errorInsufficientCols = "Insufficient custom column data"
 	errorIncorrectLogin   = "Incorrect login or password"
 	errorInvalidAutoLog   = "Invalid auto-login data"
+	errorNoShardFound     = "Could not find a master or healthy replica database"
 )
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -184,7 +185,19 @@ func SignUpClient(userName string, password string, customCols map[string]interf
 	var vals []interface{}
 
 	//CREATE PART 1 OF QUERY
-	queryPart1 := "INSERT INTO " + tableUsers + " (" + usersColumnName + ", " + usersColumnPassword + ", "
+	var queryPart1 string
+	var shard *DBShard
+	var err error
+	if shardingInit {
+		shard, err = GetUserShard(helpers.UserHashNumber(userName))
+		if err != nil {
+			return helpers.NewError(err.Error(), helpers.ErrorAuthUnexpected)
+		}
+		queryPart1 = "INSERT INTO " + usersShardPrefix + strconv.Itoa(shard.ID()) + " (" + usersColumnName + ", " + usersColumnPassword + ", "
+	}else{
+		queryPart1 = "INSERT INTO " + tableUsers + " (" + usersColumnName + ", " + usersColumnPassword + ", "
+	}
+
 	if customCols != nil {
 		vals = make([]interface{}, 0, len(customCols))
 		if customLoginColumn != "" {
@@ -226,8 +239,19 @@ func SignUpClient(userName string, password string, customCols map[string]interf
 
 	queryPart2 = queryPart2[0:len(queryPart2)-2] + ");"
 
-	//EXECUTE QUERY
-	_, insertErr := database.Exec(queryPart1 + queryPart2)
+	var insertErr error
+	if shardingInit {
+		// GET MASTER OR NEXT HEALTHY REPLICA
+		var r *DBReplica = shard.Master()
+		if r == nil {
+			return helpers.NewError(errorNoShardFound, helpers.ErrorAuthUnexpected)
+		}
+		//EXECUTE QUERY
+		_, insertErr = r.Conn().Exec(queryPart1 + queryPart2)
+	} else {
+		//EXECUTE QUERY
+		_, insertErr = database.Exec(queryPart1 + queryPart2)
+	}
 	if insertErr != nil {
 		return helpers.NewError(insertErr.Error(), helpers.ErrorAuthQuery)
 	}
@@ -257,10 +281,23 @@ func LoginClient(userName string, password string, deviceTag string, remMe bool,
 		return "", 0, "", helpers.NewError(errorIncorrectCols, helpers.ErrorAuthIncorrectCols)
 	}
 
+	// GET SHARD
+	var shard *DBShard
+	var err error
+	hashNum := helpers.UserHashNumber(userName)
+	if shardingInit {
+		shard, err = GetUserShard(hashNum)
+		if err != nil {
+			return "", 0, "", helpers.NewError(err.Error(), helpers.ErrorAuthUnexpected)
+		}
+	}
+
 	//FIRST THREE ARE id, password, name IN THAT ORDER
 	var vals []interface{}
+
 	//CONSTRUCT SELECT QUERY
 	selectQuery := "Select " + usersColumnID + ", " + usersColumnPassword + ", " + usersColumnName + ", "
+
 	if customCols != nil {
 		vals = make([]interface{}, 0, len(customCols)+3)
 		vals = append(vals, new(int), new([]byte), new(string))
@@ -274,14 +311,30 @@ func LoginClient(userName string, password string, deviceTag string, remMe bool,
 		vals = append(vals, new(int), new([]byte), new(string))
 	}
 
+	// GET LOGIN COLUMN AND TABLE NAME
+	var loginCol string = usersColumnName
+	var tableName string = tableUsers
 	if len(customLoginColumn) > 0 {
-		selectQuery = selectQuery[0:len(selectQuery)-2] + " FROM " + tableUsers + " WHERE " + customLoginColumn + "=\"" + userName + "\" LIMIT 1;"
-	} else {
-		selectQuery = selectQuery[0:len(selectQuery)-2] + " FROM " + tableUsers + " WHERE " + usersColumnName + "=\"" + userName + "\" LIMIT 1;"
+		loginCol = customLoginColumn
+	}
+	if shardingInit {
+		tableName = usersShardPrefix + strconv.Itoa(shard.ID())
 	}
 
+	selectQuery = selectQuery[0:len(selectQuery)-2] + " FROM " + tableName + " WHERE " + loginCol + "=\"" + userName + "\" LIMIT 1;"
+
 	//EXECUTE SELECT QUERY
-	checkRows, err := database.Query(selectQuery)
+	var checkRows *sql.Rows
+	if shardingInit {
+		// GET REPLICA
+		var r *DBReplica = shard.GetReplica()
+		if r == nil {
+			return "", 0, "", helpers.NewError(errorNoShardFound, helpers.ErrorAuthUnexpected)
+		}
+		checkRows, err = r.Conn().Query(selectQuery)
+	} else {
+		checkRows, err = database.Query(selectQuery)
+	}
 	if err != nil {
 		return "", 0, "", helpers.NewError(errorIncorrectLogin, helpers.ErrorAuthIncorrectLogin)
 	}
@@ -329,8 +382,30 @@ func LoginClient(userName string, password string, deviceTag string, remMe bool,
 		//MAKE AUTO-LOG ENTRY
 		devicePass, devicePassErr = helpers.GenerateSecureString(32)
 		if devicePassErr == nil {
-			database.Exec("INSERT INTO " + tableAutologs + " (" + autologsColumnID + ", " + autologsColumnDeviceTag + ", " + autologsColumnDevicePass +
-				") VALUES (" + strconv.Itoa(*dbIndex) + ", \"" + deviceTag + "\", \"" + devicePass + "\");")
+			var exErr error
+			if shardingInit {
+				// GET AUTOLOG SHARD/MASTER
+				shard, err = GetAutologShard(hashNum)
+				if err == nil {
+					var r *DBReplica = shard.Master()
+					if r != nil {
+						_, exErr = r.Conn().Exec("INSERT INTO " + autologShardPrefix + strconv.Itoa(shard.ID()) + " (" + autologsColumnID + ", " + autologsColumnDeviceTag + ", " + autologsColumnDevicePass +
+						") VALUES (" + strconv.Itoa(hashNum) + ", \"" + deviceTag + "\", \"" + devicePass + "\");")
+					} else {
+						///// LOG ERROR!!!!
+					}
+				} else {
+					////// LOG ERROR!!!!!!!
+				}
+			} else {
+				_, exErr = database.Exec("INSERT INTO " + tableAutologs + " (" + autologsColumnID + ", " + autologsColumnDeviceTag + ", " + autologsColumnDevicePass +
+						") VALUES (" + strconv.Itoa(*dbIndex) + ", \"" + deviceTag + "\", \"" + devicePass + "\");")
+			}
+			if exErr != nil {
+				////// LOG ERROR!!!!!!
+			}
+		} else {
+			////// LOG ERROR!!!!!!
 		}
 	}
 
@@ -350,11 +425,29 @@ func AutoLoginClient(tag string, pass string, newPass string, dbID int) (string,
 	if checkStringSQLInjection(tag) {
 		return "", helpers.NewError(errorMaliciousChars, helpers.ErrorAuthMaliciousChars)
 	}
+
 	//EXECUTE SELECT QUERY
 	var dPass string
-	checkRows, err := database.Query("Select " + autologsColumnDevicePass + " FROM " + tableAutologs + " WHERE " + autologsColumnID + "=" + strconv.Itoa(dbID) + " AND " +
+	var shard *DBShard
+	var err error
+	db := database
+	tableName := tableAutologs
+	if shardingInit {
+		// SET DB TO SHARD REPLICA
+		shard, err = GetAutologShard(dbID)
+		if err != nil {
+			return "", helpers.NewError(err, helpers.ErrorAuthUnexpected)
+		}
+		r := shard.GetReplica()
+		if r == nil {
+			return "", helpers.NewError(errorNoShardFound, helpers.ErrorAuthUnexpected)
+		}
+		tableName = autologShardPrefix + strconv.Itoa(shard.ID())
+		db = r.Conn()
+	}
+	checkRows, checkErr := db.Query("Select " + autologsColumnDevicePass + " FROM " + tableName + " WHERE " + autologsColumnID + "=" + strconv.Itoa(dbID) + " AND " +
 		autologsColumnDeviceTag + "=\"" + tag + "\" LIMIT 1;")
-	if err != nil {
+	if checkErr != nil {
 		return "", helpers.NewError(errorInvalidAutoLog, helpers.ErrorDatabaseInvalidAutolog)
 	}
 	//
@@ -373,16 +466,38 @@ func AutoLoginClient(tag string, pass string, newPass string, dbID int) (string,
 	}
 
 	//UPDATE TO NEW PASS
-	_, updateErr := database.Exec("UPDATE " + tableAutologs + " SET " + autologsColumnDevicePass + "=\"" + newPass + "\" WHERE " + autologsColumnID + "=" + strconv.Itoa(dbID) + " AND " +
+	if shardingInit {
+		// SWITCH TO MASTER
+		r := shard.Master()
+		if r == nil {
+			return "", helpers.NewError(errorNoShardFound, helpers.ErrorAuthUnexpected)
+		}
+		db = r.Conn()
+	}
+	_, updateErr := db.Exec("UPDATE " + tableName + " SET " + autologsColumnDevicePass + "=\"" + newPass + "\" WHERE " + autologsColumnID + "=" + strconv.Itoa(dbID) + " AND " +
 		autologsColumnDeviceTag + "=\"" + tag + "\" LIMIT 1;")
 	if updateErr != nil {
 		return "", helpers.NewError(errorInvalidAutoLog, helpers.ErrorDatabaseInvalidAutolog)
 	}
 
 	//EVERYTHING WENT WELL, GET THE User's NAME
+	tableName = tableUsers
+	if shardingInit {
+		// SET DB TO SHARD REPLICA
+		shard, err = GetUserShard(dbID)
+		if err != nil {
+			return "", helpers.NewError(err, helpers.ErrorAuthUnexpected)
+		}
+		r := shard.GetReplica()
+		if r == nil {
+			return "", helpers.NewError(errorNoShardFound, helpers.ErrorAuthUnexpected)
+		}
+		tableName = usersShardPrefix + strconv.Itoa(shard.ID())
+		db = r.Conn()
+	}
 	var userName string
-	userRows, err := database.Query("Select " + usersColumnName + " FROM " + tableUsers + " WHERE " + usersColumnID + "=" + strconv.Itoa(dbID) + " LIMIT 1;")
-	if err != nil {
+	userRows, usrErr := db.Query("Select " + usersColumnName + " FROM " + tableName + " WHERE " + usersColumnID + "=" + strconv.Itoa(dbID) + " LIMIT 1;")
+	if usrErr != nil {
 		return "", helpers.NewError(errorInvalidAutoLog, helpers.ErrorDatabaseInvalidAutolog)
 	}
 	//

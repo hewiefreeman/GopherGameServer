@@ -7,17 +7,17 @@ import (
 
 func TestHashNumber(t *testing.T) {
 
-	amount := 40
+	amount := 5
 	lst := make([]int, amount, amount)
 
-	for i := 0; i < 1000000; i++ {
+	for i := 0; i < 50000; i++ {
 		str, err := GenerateSecureString(3)
 		if err != nil {
 			fmt.Println(err)
 			return
 		}
 
-		numb := HashNumber(str, amount)
+		numb := UserHashNumber(str)%amount
 		lst[numb]++
 	}
 

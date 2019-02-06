@@ -298,8 +298,8 @@ func (c *connections) subtract() {
 	c.connsMux.Unlock()
 }
 
-// ClientsConnected gets the number of clients connected to the server. Includes connections
-// not logged in as a User.
+// ClientsConnected returns the number of clients connected to the server. Includes connections
+// not logged in as a User. To get the number of Users logged in, use the users.UserCount() function.
 func ClientsConnected() int {
 	conns.connsMux.Lock()
 	defer conns.connsMux.Unlock()

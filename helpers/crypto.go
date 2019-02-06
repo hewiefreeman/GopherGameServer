@@ -39,8 +39,8 @@ func CompareEncryptedData(str string, hash []byte) bool {
 	return err == nil
 }
 
-func HashNumber(s string, amount int) int {
+func UserHashNumber(s string) int {
 	h := fnv.New32a()
 	h.Write([]byte(s))
-	return int(h.Sum32())%amount
+	return int(h.Sum32())
 }

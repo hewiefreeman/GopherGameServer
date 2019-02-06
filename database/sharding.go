@@ -10,13 +10,13 @@ import (
 
 var (
 	shardingInit bool
-	partitionSplit int = 500 // Each database shard will split into tables of this size for easy further sharding later on
-	shardTargetLoad int = 30000 // The maximum load a database shard should take in your system. This does not control the connection, merely triggers a warning for admins
+	shardTargetEntries int = 30000 // The maximum entries a database table shard should hold in your system. This does not control the max entry count
+	shardPercentWarning int = 80 //
 
 	// Table name prefixes
-	usersPrefix string = "users_"
-	friendsPrefix string = "friends_"
-	autologPrefix string = "autologs_"
+	usersShardPrefix string = "users_"
+	friendsShardPrefix string = "friends_"
+	autologShardPrefix string = "autologs_"
 
 	// Database shards
 	userShardsMux sync.Mutex
@@ -32,6 +32,8 @@ var (
 type DBShard struct {
 	master *DBReplica
 
+	id int
+
 	mux       sync.Mutex
 	replicaOn int
 	replicas  []*DBReplica
@@ -39,6 +41,8 @@ type DBShard struct {
 
 type DBReplica struct {
 	conn *sql.DB
+
+	id int
 
 	ip       string
 	port     int
@@ -54,17 +58,26 @@ type DBReplica struct {
 //////   INIT   /////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////
 
+func ShardingInited() bool {
+	return shardingInit
+}
+
 func setShardingDefaults(ip string, port int, protocol string, userName string, password string) error {
 	// Set default shard if no shards are set
 	if len(userShards) == 0 {
-		// Make connection to default shard
-		defShard, shardErr := NewDBShard(ip, port, protocol, userName, password, false)
-		if shardErr {
-			return shardErr
+		// Make connection to default partitions
+		var defaultDBs []*DBShard = make([]*DBShard, 3, 3)
+		for i := 0; i < 3; i++ {
+			defShard, shardErr := NewDBShard(ip, port, protocol, userName, password, false)
+			if shardErr {
+				return shardErr
+			}
+			defaultDBs[i] = defShard
 		}
+
 		// Append default shard to user shards
 		userShardsMux.Lock()
-		appendShards(&userShards, defShard)
+		appendShards(&userShards, defaultDBs)
 		userShardsMux.Unlock()
 	}
 
@@ -75,6 +88,20 @@ func setShardingDefaults(ip string, port int, protocol string, userName string, 
 /////////////////////////////////////////////////////////////////////////////////////////
 //////   SET-UP   ///////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////
+
+func SetShardingTargetEntries(maxEntries int) {
+	if inited {
+		return
+	}
+	shardTargetEntries = maxEntries
+}
+
+func SetEntriesWarningPercent(percent int) {
+	if inited {
+		return
+	}
+	shardPercentWarning = percent
+}
 
 func AddUserShards(shards *DBShard...) {
 	// REQUIRES GLOBAL PAUSE (Which only master server can do)
@@ -114,32 +141,24 @@ func AddAutologShards(shards *DBShard...) {
 
 func appendShards(dest *map[int]*DBShard, shards *DBShard...) {
 	for s := range shards {
+		(*s).id = len(*dest)
 		(*dest)[len(*dest)] = s
 	}
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////
-//////   Sharding Utilities   ///////////////////////////////////////////////////////////
+//////   Shard Getters   ////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////
 
-func GetUserShard(userName string) (*DBShard, error) {
+func GetUserShard(hashNumber int) (*DBShard, error) {
 	userShardsMux.Lock()
-	userDBNumb := helpers.HashNumber(userName, len(userShards))
-	var ok bool
-	var s *DBShard
-	if s, ok = userShards[userDBNumb]; !ok {
+	if len(userShards) == 0 {
 		userShardsMux.Unlock()
-		return nil, errors.New("Cannot find shard")
+		return nil, errors.New("No shards exist")
 	}
-	userShardsMux.Unlock()
-	return s, nil
-}
-
-func GetUserShardByNumber(hashNumber int) (*DBShard, error) {
-	userShardsMux.Lock()
 	var ok bool
 	var s *DBShard
-	if s, ok = userShards[hashNumber]; !ok {
+	if s, ok = userShards[hashNumber%len(userShards)]; !ok {
 		userShardsMux.Unlock()
 		return nil, errors.New("Cannot find shard")
 	}
@@ -151,11 +170,11 @@ func GetFriendsShard(hashNumber int) (*DBShard, error) {
 	friendsShardsMux.Lock()
 	if len(friendsShards) == 0 {
 		friendsShardsMux.Unlock()
-		return getUserShardByNumber(hashNumber)
+		return GetUserShard(hashNumber)
 	}
 	var ok bool
 	var s *DBShard
-	if s, ok = friendsShards[hashNumber]; !ok {
+	if s, ok = friendsShards[hashNumber%len(friendsShards)]; !ok {
 		friendsShardsMux.Unlock()
 		return nil, errors.New("Cannot find shard")
 	}
@@ -167,11 +186,11 @@ func GetAutoLogShard(hashNumber int) (*DBShard, error) {
 	autologShardsMux.Lock()
 	if len(autologShards) == 0 {
 		autologShardsMux.Unlock()
-		return getUserShardByNumber(hashNumber)
+		return GetUserShard(hashNumber)
 	}
 	var ok bool
 	var s *DBShard
-	if s, ok = autologShards[hashNumber]; !ok {
+	if s, ok = autologShards[hashNumber%len(autologShards)]; !ok {
 		autologShardsMux.Unlock()
 		return nil, errors.New("Cannot find shard")
 	}
@@ -183,7 +202,7 @@ func GetAutoLogShard(hashNumber int) (*DBShard, error) {
 //////   DBShard   //////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////
 
-func NewDBShard(ip string, port int, protocol string, userName string, password string, master bool) (*DBShard, error) {
+func NewDBShard(ip string, port int, protocol string, userName string, password string, master bool, shardID int) (*DBShard, error) {
 	replica, replicaErr := NewDBReplica(ip, port, protocol, userName, password)
 	if replicaErr != nil {
 		return nil, replicaErr
@@ -208,6 +227,7 @@ func (s *DBShard) AddReplica(r *DBReplica) {
 	// REQUIRES GLOBAL PAUSE (Which only master server can do)
 
 	s.mux.Lock()
+	(*r).id = len(s.replicas)
 	s.replicas = append(s.replicas, r)
 	s.mux.Unlock()
 
@@ -215,11 +235,21 @@ func (s *DBShard) AddReplica(r *DBReplica) {
 }
 
 func (s *DBShard) Master() *DBReplica {
+	if s.master == nil {
+		return s.GetReplica()
+	}
 	return s.master
 }
 
 func (s *DBShard) GetReplica() *DBReplica {
 	s.mux.Lock()
+	if len(s.replicas) == 0 {
+		if s.master == nil {
+			s.mux.Unlock()
+			return nil
+		}
+		return s.master
+	}
 	// GET NEXT HEALTHY REPLICA
 	for i := 0; i < len(s.replicas); i++ {
 		s.replicaOn++
@@ -236,11 +266,15 @@ func (s *DBShard) GetReplica() *DBReplica {
 	return nil
 }
 
+func (s *DBShard) ID() int {
+	return s.id
+}
+
 /////////////////////////////////////////////////////////////////////////////////////////
 //////   DBReplica   ////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////
 
-func NewDBReplica(ip string, port int, protocol string, userName string, password string) (*DBReplica, error) {
+func NewDBReplica(ip string, port int, protocol string, userName string, password string, replicaID int) (*DBReplica, error) {
 	db, err := sql.Open("mysql", userName+":"+password+"@"+protocol+"("+ip+":"+strconv.Itoa(port)+")/"+databaseName)
 	if err != nil {
 		return nil, err
@@ -257,6 +291,10 @@ func NewDBReplica(ip string, port int, protocol string, userName string, passwor
 
 func (r *DBReplica) Conn() *sql.DB {
 	return r.conn
+}
+
+func (r *DBReplica) ID() int {
+	return r.id
 }
 
 func (r *DBReplica) IP() string {
@@ -293,26 +331,26 @@ func (r *DBReplica) SetHealthy(h bool) {
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////
-//////   TABE PREFIX SETTERS   //////////////////////////////////////////////////////////
+//////   TABLE PREFIX SETTERS   /////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////
 
 func SetUsersTablePrefix(prefix string) {
 	if inited {
 		return
 	}
-	usersPrefix = prefix
+	usersShardPrefix = prefix
 }
 
 func SetFriendsTablePrefix(prefix string) {
 	if inited {
 		return
 	}
-	friendsPrefix = prefix
+	friendsShardPrefix = prefix
 }
 
 func SetAutologTablePrefix(prefix string) {
 	if inited {
 		return
 	}
-	autologPrefix = prefix
+	autologShardPrefix = prefix
 }
