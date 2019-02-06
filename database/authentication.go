@@ -4,6 +4,7 @@ import (
 	"errors"
 	"github.com/hewiefreeman/GopherGameServer/helpers"
 	"strconv"
+	"database/sql"
 )
 
 var (
@@ -436,7 +437,7 @@ func AutoLoginClient(tag string, pass string, newPass string, dbID int) (string,
 		// SET DB TO SHARD REPLICA
 		shard, err = GetAutologShard(dbID)
 		if err != nil {
-			return "", helpers.NewError(err, helpers.ErrorAuthUnexpected)
+			return "", helpers.NewError(err.Error(), helpers.ErrorAuthUnexpected)
 		}
 		r := shard.GetReplica()
 		if r == nil {
@@ -486,7 +487,7 @@ func AutoLoginClient(tag string, pass string, newPass string, dbID int) (string,
 		// SET DB TO SHARD REPLICA
 		shard, err = GetUserShard(dbID)
 		if err != nil {
-			return "", helpers.NewError(err, helpers.ErrorAuthUnexpected)
+			return "", helpers.NewError(err.Error(), helpers.ErrorAuthUnexpected)
 		}
 		r := shard.GetReplica()
 		if r == nil {

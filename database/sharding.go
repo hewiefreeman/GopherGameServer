@@ -1,7 +1,7 @@
 package database
 
 import (
-	"github.com/hewiefreeman/GopherGameServer/helpers"
+	//"github.com/hewiefreeman/GopherGameServer/helpers"
 	"database/sql"
 	"errors"
 	"strconv"
@@ -68,8 +68,8 @@ func setShardingDefaults(ip string, port int, protocol string, userName string, 
 		// Make connection to default partitions
 		var defaultDBs []*DBShard = make([]*DBShard, 3, 3)
 		for i := 0; i < 3; i++ {
-			defShard, shardErr := NewDBShard(ip, port, protocol, userName, password, false)
-			if shardErr {
+			defShard, shardErr := NewDBShard(ip, port, protocol, userName, password, false, i)
+			if shardErr != nil {
 				return shardErr
 			}
 			defaultDBs[i] = defShard
@@ -103,7 +103,7 @@ func SetEntriesWarningPercent(percent int) {
 	shardPercentWarning = percent
 }
 
-func AddUserShards(shards *DBShard...) {
+func AddUserShards(shards []*DBShard) {
 	// REQUIRES GLOBAL PAUSE (Which only master server can do)
 
 	userShardsMux.Lock()
@@ -115,7 +115,7 @@ func AddUserShards(shards *DBShard...) {
 	// THEN SEND COMMAND TO REST OF GAME SERVERS
 }
 
-func AddFriendsShards(shards *DBShard...) {
+func AddFriendsShards(shards []*DBShard) {
 	// REQUIRES GLOBAL PAUSE (Which only master server can do)
 
 	friendsShardsMux.Lock()
@@ -127,7 +127,7 @@ func AddFriendsShards(shards *DBShard...) {
 	// THEN SEND COMMAND TO REST OF GAME SERVERS
 }
 
-func AddAutologShards(shards *DBShard...) {
+func AddAutologShards(shards []*DBShard) {
 	// REQUIRES GLOBAL PAUSE (Which only master server can do)
 
 	autologShardsMux.Lock()
@@ -139,10 +139,10 @@ func AddAutologShards(shards *DBShard...) {
 	// THEN SEND COMMAND TO REST OF GAME SERVERS
 }
 
-func appendShards(dest *map[int]*DBShard, shards *DBShard...) {
-	for s := range shards {
-		(*s).id = len(*dest)
-		(*dest)[len(*dest)] = s
+func appendShards(dest *map[int]*DBShard, shards []*DBShard) {
+	for i := 0; i < len(shards); i++ {
+		(*shards[i]).id = len(*dest)
+		(*dest)[len(*dest)] = shards[i]
 	}
 }
 
@@ -182,7 +182,7 @@ func GetFriendsShard(hashNumber int) (*DBShard, error) {
 	return s, nil
 }
 
-func GetAutoLogShard(hashNumber int) (*DBShard, error) {
+func GetAutologShard(hashNumber int) (*DBShard, error) {
 	autologShardsMux.Lock()
 	if len(autologShards) == 0 {
 		autologShardsMux.Unlock()
@@ -203,7 +203,7 @@ func GetAutoLogShard(hashNumber int) (*DBShard, error) {
 /////////////////////////////////////////////////////////////////////////////////////////
 
 func NewDBShard(ip string, port int, protocol string, userName string, password string, master bool, shardID int) (*DBShard, error) {
-	replica, replicaErr := NewDBReplica(ip, port, protocol, userName, password)
+	replica, replicaErr := NewDBReplica(ip, port, protocol, userName, password, 0)
 	if replicaErr != nil {
 		return nil, replicaErr
 	}
