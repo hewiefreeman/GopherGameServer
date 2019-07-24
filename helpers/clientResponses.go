@@ -53,17 +53,24 @@ const (
 
 // MakeClientResponse is used for Gopher Game Server inner mechanics only.
 func MakeClientResponse(action string, responseVal interface{}, err GopherError) map[string]map[string]interface{} {
-	var response map[string]map[string]interface{} = make(map[string]map[string]interface{})
+	var response map[string]map[string]interface{}
 	if err.ID != 0 {
-		response[ServerActionClientActionResponse] = make(map[string]interface{})
-		response[ServerActionClientActionResponse]["a"] = action
-		response[ServerActionClientActionResponse]["e"] = make(map[string]interface{})
-		response[ServerActionClientActionResponse]["e"].(map[string]interface{})["m"] = err.Message
-		response[ServerActionClientActionResponse]["e"].(map[string]interface{})["id"] = err.ID
+		response = map[string]map[string]interface{}{
+			ServerActionClientActionResponse: map[string]interface{}{
+				"a": action,
+				"e": map[string]interface{}{
+					"m": err.Message,
+					"is": err.ID,
+				},
+			},
+		}
 	} else {
-		response[ServerActionClientActionResponse] = make(map[string]interface{})
-		response[ServerActionClientActionResponse]["a"] = action
-		response[ServerActionClientActionResponse]["r"] = responseVal
+		response = map[string]map[string]interface{}{
+			ServerActionClientActionResponse: map[string]interface{}{
+				"a": action,
+				"r": responseVal,
+			},
+		}
 	}
 
 	//

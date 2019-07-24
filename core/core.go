@@ -1,3 +1,22 @@
+// Package core contains all the tools to make and work with Users and Rooms.
+//
+// A User is a client who has successfully logged into the server. You can think of clients who are not attached to a User
+// as, for instance, someone in the login screen, but are still connected to the server. A client doesn't
+// have to be a User to be able to call your CustomClientActions, so keep that in mind when making them (Refer to the Usage for CustomClientActions).
+//
+// Users have their own variables which can be accessed and changed anytime. A User variable can
+// be anything compatible with interface{}, so pretty much anything.
+//
+// A Room represents a place on the server where a User can join other Users. Rooms can either be public or private. Private Rooms must be assigned an "owner", which is the name of a User, or the ServerName
+// from ServerSettings. The server's name that will be used for ownership of private Rooms can be set with the ServerSettings
+// option ServerName when starting the server. Though keep in mind, setting the ServerName in ServerSettings will prevent a User who wants to go by that name
+// from logging in. Public Rooms will accept a join request from any User, and private Rooms will only
+// accept a join request from someone who is on it's invite list. Only the owner of the Room or the server itself can invite
+// Users to a private Room. But remember, just because a User owns a private room doesn't mean the server cannot also invite
+// to the room via *Room.AddInvite() function.
+//
+// Rooms have their own variables which can be accessed and changed anytime. Like User variables, a Room variable can
+// be anything compatible with interface{}.
 package core
 
 import (
@@ -93,11 +112,10 @@ func Resume() {
 
 // GetState is only for internal Gopher Game Server mechanics.
 func GetState() map[string]map[string]interface{} {
-	state := make(map[string]map[string]interface{})
+	state := map[string]map[string]interface{}{room.name: map[string]interface{}{}}
 	roomsMux.Lock()
 	for _, room := range rooms {
 		room.mux.Lock()
-		state[room.name] = make(map[string]interface{})
 		state[room.name]["t"] = room.rType
 		state[room.name]["p"] = room.private
 		state[room.name]["o"] = room.owner

@@ -21,21 +21,26 @@ func (u *User) SetVariable(key string, value interface{}, connID string) {
 	} else if !multiConnect {
 		connID = "1"
 	}
-	//MAKE CLIENT MESSAGE
-	resp := make(map[string]interface{})
-	resp["k"] = key
-	resp["v"] = value
 
+	// Set the variable
 	u.mux.Lock()
 	if _, ok := u.conns[connID]; !ok {
 		u.mux.Unlock()
 		return
 	}
 	(*u.conns[connID]).vars[key] = value
-	//SEND RESPONSE TO CLIENT
-	clientResp := helpers.MakeClientResponse(helpers.ClientActionSetVariable, resp, helpers.NoError())
-	(*u.conns[connID]).socket.WriteJSON(clientResp)
+	socket := (*u.conns[connID]).socket
 	u.mux.Unlock()
+
+	//MAKE CLIENT MESSAGE
+	resp := map[string]interface{}{
+		"k": key,
+		"v": value,
+	}
+	clientResp := helpers.MakeClientResponse(helpers.ClientActionSetVariable, resp, helpers.NoError())
+
+	//SEND RESPONSE TO CLIENT
+	socket.WriteJSON(clientResp)
 }
 
 // SetVariables sets all the specified User variables at once. The client API of the User will also receive these changes. If you are using MultiConnect in ServerSettings, the connID
@@ -50,6 +55,8 @@ func (u *User) SetVariables(values map[string]interface{}, connID string) {
 	} else if !multiConnect {
 		connID = "1"
 	}
+
+	// Set the variables
 	u.mux.Lock()
 	if _, ok := u.conns[connID]; !ok {
 		u.mux.Unlock()
@@ -58,10 +65,13 @@ func (u *User) SetVariables(values map[string]interface{}, connID string) {
 	for key, val := range values {
 		(*u.conns[connID]).vars[key] = val
 	}
+	socket := (*u.conns[connID]).socket
+	u.mux.Unlock()
+
 	//SEND RESPONSE TO CLIENT
 	clientResp := helpers.MakeClientResponse(helpers.ClientActionSetVariables, values, helpers.NoError())
-	(*u.conns[connID]).socket.WriteJSON(clientResp)
-	u.mux.Unlock()
+	socket.WriteJSON(clientResp)
+
 }
 
 // GetVariable gets one of the User's variables by it's key. If you are using MultiConnect in ServerSettings, the connID
@@ -72,6 +82,7 @@ func (u *User) GetVariable(key string, connID string) interface{} {
 	if len(key) == 0 {
 		return nil
 	}
+
 	u.mux.Lock()
 	val := (*u.conns[connID]).vars[key]
 	u.mux.Unlock()

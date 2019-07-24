@@ -50,9 +50,11 @@ func (u *User) FriendRequest(friendName string) error {
 
 	//SEND A FRIEND REQUEST TO THE USER IF THEY ARE ONLINE
 	if friendOnline {
-		message := make(map[string]map[string]interface{})
-		message[helpers.ServerActionFriendRequest] = make(map[string]interface{})
-		message[helpers.ServerActionFriendRequest]["n"] = u.name
+		message := map[string]map[string]interface{}{
+			helpers.ServerActionFriendRequest: map[string]interface{}{
+				"n": u.name,
+			},
+		}
 		friend.mux.Lock()
 		for _, conn := range friend.conns {
 			(*conn).socket.WriteJSON(message)
@@ -114,27 +116,30 @@ func (u *User) AcceptFriendRequest(friendName string) error {
 		return errors.New("Unexpected friend error")
 	}
 
-	//SEND A FRIEND REQUEST TO THE USER IF THEY ARE ONLINE
-	var status int = StatusOffline
+	//SEND ACCEPT MESSAGE TO THE USER IF THEY ARE ONLINE
+	var fStatus int = StatusOffline
 	if friendOnline {
-		message := make(map[string]map[string]interface{})
-		message[helpers.ServerActionFriendAccept] = make(map[string]interface{})
-		message[helpers.ServerActionFriendAccept]["n"] = u.name
-		message[helpers.ServerActionFriendAccept]["s"] = u.status
+		message := map[string]map[string]interface{}{
+			helpers.ServerActionFriendAccept: map[string]interface{}{
+				"n": u.name,
+				"s": u.status,
+			},
+		}
 		friend.mux.Lock()
 		for _, conn := range friend.conns {
 			(*conn).socket.WriteJSON(message)
 		}
-		status = friend.status
+		fStatus = friend.status
 		friend.mux.Unlock()
 	}
 
 	//MAKE RESPONSE
-	responseMap := make(map[string]interface{})
-	responseMap["n"] = friendName
-	responseMap["s"] = status
+	responseMap := map[string]interface{}{
+		"n": friendName,
+		"s": fStatus,
+	}
 
-	//SEND RESPONSE TO CLIENT
+	//SEND RESPONSE TO ALL CLIENT CONNECTIONS
 	clientResp := helpers.MakeClientResponse(helpers.ClientActionAcceptFriend, responseMap, helpers.NoError())
 	u.mux.Lock()
 	for _, conn := range u.conns {
@@ -191,9 +196,11 @@ func (u *User) DeclineFriendRequest(friendName string) error {
 
 	//SEND A FRIEND REQUEST TO THE USER IF THEY ARE ONLINE
 	if friendOnline {
-		message := make(map[string]map[string]interface{})
-		message[helpers.ServerActionFriendRemove] = make(map[string]interface{})
-		message[helpers.ServerActionFriendRemove]["n"] = u.name
+		message := map[string]map[string]interface{}{
+			helpers.ServerActionFriendRemove: map[string]interface{}{
+				"n": u.name,
+			},
+		}
 		friend.mux.Lock()
 		for _, conn := range friend.conns {
 			(*conn).socket.WriteJSON(message)
@@ -258,9 +265,11 @@ func (u *User) RemoveFriend(friendName string) error {
 
 	//SEND A FRIEND REQUEST TO THE USER IF THEY ARE ONLINE
 	if friendOnline {
-		message := make(map[string]map[string]interface{})
-		message[helpers.ServerActionFriendRemove] = make(map[string]interface{})
-		message[helpers.ServerActionFriendRemove]["n"] = u.name
+		message := map[string]map[string]interface{}{
+			helpers.ServerActionFriendRemove: map[string]interface{}{
+				"n": u.name,
+			},
+		}
 		friend.mux.Lock()
 		for _, conn := range friend.conns {
 			(*conn).socket.WriteJSON(message)

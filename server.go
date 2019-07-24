@@ -372,13 +372,9 @@ func saveState() {
 }
 
 func getState() map[string]interface{} {
-	state := make(map[string]interface{})
-
-	//GET CORE STATE
-	state["rooms"] = core.GetState()
-
-	//
-	return state
+	return map[string]interface{}{
+		"rooms": core.GetState(),
+	}
 }
 
 func recoverState() {

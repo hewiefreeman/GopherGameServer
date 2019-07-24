@@ -31,11 +31,13 @@ func (u *User) PrivateMessage(userName string, message interface{}) {
 	}
 
 	//CONSTRUCT MESSAGE
-	theMessage := make(map[string]map[string]interface{})
-	theMessage[helpers.ServerActionPrivateMessage] = make(map[string]interface{})
-	theMessage[helpers.ServerActionPrivateMessage]["f"] = u.name    // from
-	theMessage[helpers.ServerActionPrivateMessage]["t"] = user.name // to
-	theMessage[helpers.ServerActionPrivateMessage]["m"] = message   // message
+	theMessage := map[string]map[string]interface{}{
+		helpers.ServerActionPrivateMessage: map[string]interface{}{
+			"f": u.name, // from
+			"t": user.name, // to
+			"m": message,
+		},
+	}
 
 	//SEND MESSAGES
 	user.mux.Lock()
@@ -55,8 +57,9 @@ func (u *User) PrivateMessage(userName string, message interface{}) {
 // DataMessage sends a data message directly to the User.
 func (u *User) DataMessage(data interface{}, connID string) {
 	//CONSTRUCT MESSAGE
-	message := make(map[string]interface{})
-	message[helpers.ServerActionDataMessage] = data
+	message := map[string]interface{}{
+		helpers.ServerActionDataMessage: data,
+	}
 
 	//SEND MESSAGE TO USER
 	u.mux.Lock()
@@ -108,8 +111,9 @@ func (r *Room) DataMessage(message interface{}, recipients []string) error {
 	}
 
 	//CONSTRUCT MESSAGE
-	theMessage := make(map[string]interface{})
-	theMessage[helpers.ServerActionDataMessage] = message
+	theMessage := map[string]interface{}{
+		helpers.ServerActionDataMessage: message,
+	}
 
 	//SEND MESSAGE TO USERS
 	if recipients == nil || len(recipients) == 0 {
@@ -144,15 +148,19 @@ func (r *Room) sendMessage(mt int, st int, rec []string, a string, m interface{}
 	}
 
 	//CONSTRUCT MESSAGE
-	message := make(map[string]map[string]interface{})
-	message[helpers.ServerActionRoomMessage] = make(map[string]interface{})
+	message := map[string]map[string]interface{}{
+		helpers.ServerActionRoomMessage: make(map[string]interface{}),
+	}
+	// Server messages come with a sub-type
 	if mt == MessageTypeServer {
 		message[helpers.ServerActionRoomMessage]["s"] = st
-	} // Server messages come with a sub-type
+	}
+	// Non-server messages have authors
 	if len(a) > 0 && mt != MessageTypeServer {
 		message[helpers.ServerActionRoomMessage]["a"] = a
-	} // Non-server messages have authors
-	message[helpers.ServerActionRoomMessage]["m"] = m // The message
+	}
+	// The message
+	message[helpers.ServerActionRoomMessage]["m"] = m
 
 	//SEND MESSAGE TO USERS
 	if rec == nil || len(rec) == 0 {
@@ -191,10 +199,12 @@ func (r *Room) VoiceStream(userName string, userSocket *websocket.Conn, stream i
 	}
 
 	//CONSTRUCT VOICE MESSAGE
-	theMessage := make(map[string]map[string]interface{})
-	theMessage[helpers.ServerActionVoiceStream] = make(map[string]interface{})
-	theMessage[helpers.ServerActionVoiceStream]["u"] = userName
-	theMessage[helpers.ServerActionVoiceStream]["d"] = stream
+	theMessage := map[string]map[string]interface{}{
+		helpers.ServerActionVoiceStream: map[string]interface{}{
+			"u": userName,
+			"d": stream,
+		},
+	}
 
 	//REMOVE SENDING USER FROM userMap
 	delete(userMap, userName) // COMMENT OUT FOR ECHO TESTS
@@ -207,8 +217,9 @@ func (r *Room) VoiceStream(userName string, userSocket *websocket.Conn, stream i
 	}
 
 	//CONSTRUCT PING MESSAGE
-	pingMessage := make(map[string]interface{})
-	pingMessage[helpers.ServerActionVoicePing] = nil
+	pingMessage := map[string]interface{}{
+		helpers.ServerActionVoicePing: nil,
+	}
 
 	//SEND PING MESSAGE TO SENDING USER
 	userSocket.WriteJSON(pingMessage)

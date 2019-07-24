@@ -207,17 +207,19 @@ func (c *Client) Respond(response interface{}, err ClientError) {
 	}
 	(*c).responded = true
 	//CONSTRUCT MESSAGE
-	r := make(map[string]map[string]interface{})
-	r[helpers.ServerActionCustomClientActionResponse] = make(map[string]interface{})
-	r[helpers.ServerActionCustomClientActionResponse]["a"] = (*c).action
+	r := map[string]map[string]interface{}{
+		helpers.ServerActionCustomClientActionResponse: map[string]interface{}{
+			"a": (*c).action,
+		},
+	}
 	if err.id != -1 {
-		r[helpers.ServerActionCustomClientActionResponse]["e"] = make(map[string]interface{})
-		r[helpers.ServerActionCustomClientActionResponse]["e"].(map[string]interface{})["m"] = err.message
-		r[helpers.ServerActionCustomClientActionResponse]["e"].(map[string]interface{})["id"] = err.id
+		r[helpers.ServerActionCustomClientActionResponse]["e"] = map[string]interface{}{
+			"m": err.message,
+			"id": err.id,
+		}
 	} else {
 		r[helpers.ServerActionCustomClientActionResponse]["r"] = response
 	}
-
 	//SEND MESSAGE TO CLIENT
 	(*c).socket.WriteJSON(r)
 }

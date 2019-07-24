@@ -84,8 +84,9 @@ func clientActionListener(conn *websocket.Conn) {
 		for {
 			if !sentTagRequest {
 				//SEND TAG RETRIEVAL MESSAGE
-				tagMessage := make(map[string]interface{})
-				tagMessage[helpers.ServerActionRequestDeviceTag] = nil
+				tagMessage := map[string]interface{}{
+					helpers.ServerActionRequestDeviceTag: nil,
+				}
 				writeErr := conn.WriteJSON(tagMessage)
 				if writeErr != nil {
 					conn.WriteControl(websocket.CloseMessage, []byte{}, time.Now().Add(time.Second*1))
@@ -112,8 +113,9 @@ func clientActionListener(conn *websocket.Conn) {
 					return
 				}
 				deviceTag = string(newDeviceTag)
-				tagMessage := make(map[string]interface{})
-				tagMessage[helpers.ServerActionSetDeviceTag] = deviceTag
+				tagMessage := map[string]interface{}{
+					helpers.ServerActionSetDeviceTag: deviceTag,
+				}
 				writeErr := conn.WriteJSON(tagMessage)
 				if writeErr != nil {
 					conn.WriteControl(websocket.CloseMessage, []byte{}, time.Now().Add(time.Second*1))
@@ -130,8 +132,9 @@ func clientActionListener(conn *websocket.Conn) {
 						return
 					}
 					//SEND AUTO-LOG NOT FILED MESSAGE
-					notFiledMessage := make(map[string]interface{})
-					notFiledMessage[helpers.ServerActionAutoLoginNotFiled] = nil
+					notFiledMessage := map[string]interface{}{
+						helpers.ServerActionAutoLoginNotFiled: nil,
+					}
 					writeErr := conn.WriteJSON(notFiledMessage)
 					if writeErr != nil {
 						conn.WriteControl(websocket.CloseMessage, []byte{}, time.Now().Add(time.Second*1))
@@ -185,8 +188,9 @@ func clientActionListener(conn *websocket.Conn) {
 					return
 				}
 				//CHANGE THE CLIENT'S PASS
-				newPassMessage := make(map[string]interface{})
-				newPassMessage[helpers.ServerActionSetAutoLoginPass] = devicePass
+				newPassMessage := map[string]interface{}{
+					helpers.ServerActionSetAutoLoginPass: devicePass,
+				}
 				writeErr := conn.WriteJSON(newPassMessage)
 				if writeErr != nil {
 					conn.WriteControl(websocket.CloseMessage, []byte{}, time.Now().Add(time.Second*1))
@@ -210,12 +214,15 @@ func clientActionListener(conn *websocket.Conn) {
 						conn.Close()
 						return
 					}
-					autologMessage := make(map[string]map[string]interface{})
-					autologMessage[helpers.ServerActionAutoLoginFailed] = make(map[string]interface{})
-					autologMessage[helpers.ServerActionAutoLoginFailed]["dt"] = newTag
-					autologMessage[helpers.ServerActionAutoLoginFailed]["e"] = make(map[string]interface{})
-					autologMessage[helpers.ServerActionAutoLoginFailed]["e"].(map[string]interface{})["m"] = gErr.Message
-					autologMessage[helpers.ServerActionAutoLoginFailed]["e"].(map[string]interface{})["id"] = gErr.ID
+					autologMessage := map[string]map[string]interface{}{
+						helpers.ServerActionAutoLoginFailed: map[string]interface{}{
+							"dt": newTag,
+							"e": map[string]interface{}{
+								"m": gErr.Message,
+								"id": gErr.ID,
+							},
+						},
+					}
 					writeErr := conn.WriteJSON(autologMessage)
 					if writeErr != nil {
 						conn.WriteControl(websocket.CloseMessage, []byte{}, time.Now().Add(time.Second*1))
