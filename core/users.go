@@ -40,8 +40,8 @@ type userConn struct {
 	socket *websocket.Conn
 
 	//MUST LOCK User's mux FIRST
-	room   *Room
-	vars   map[string]interface{}
+	room *Room
+	vars map[string]interface{}
 }
 
 var (
@@ -186,7 +186,7 @@ func Login(userName string, dbID int, autologPass string, isGuest bool, remMe bo
 		for _, val := range friendsMap {
 			frs := val.RequestStatus()
 			friendEntry := map[string]interface{}{
-				"n": val.Name(),
+				"n":  val.Name(),
 				"rs": frs,
 			}
 			if frs == database.FriendStatusAccepted {
@@ -210,7 +210,7 @@ func Login(userName string, dbID int, autologPass string, isGuest bool, remMe bo
 				for _, val := range friendsMap {
 					frs := val.RequestStatus()
 					friendEntry := map[string]interface{}{
-						"n": val.Name(),
+						"n":  val.Name(),
 						"rs": frs,
 					}
 					if frs == database.FriendStatusAccepted {

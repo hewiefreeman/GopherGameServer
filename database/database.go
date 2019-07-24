@@ -17,11 +17,11 @@ var (
 	database *sql.DB
 
 	//SERVER SETTINGS
-	serverStarted bool = false
-	serverPaused  bool = false
-	rememberMe    bool = false
+	serverStarted bool   = false
+	serverPaused  bool   = false
+	rememberMe    bool   = false
 	databaseName  string = "gopherDB"
-	inited        bool = false
+	inited        bool   = false
 )
 
 //TABLE & COLUMN NAMES

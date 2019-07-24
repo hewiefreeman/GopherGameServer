@@ -218,7 +218,7 @@ func clientActionListener(conn *websocket.Conn) {
 						helpers.ServerActionAutoLoginFailed: map[string]interface{}{
 							"dt": newTag,
 							"e": map[string]interface{}{
-								"m": gErr.Message,
+								"m":  gErr.Message,
 								"id": gErr.ID,
 							},
 						},

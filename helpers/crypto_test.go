@@ -1,8 +1,8 @@
 package helpers
 
 import (
-	"testing"
 	"fmt"
+	"testing"
 )
 
 /*func TestHashNumber(t *testing.T) {
@@ -47,28 +47,3 @@ import (
 	fmt.Println("Min:", fullMin)
 	fmt.Println("Max:", fullMax)
 }*/
-
-func TestSameID(t *testing.T) {
-	names := make(map[int]string)
-
-	fmt.Println(UserHashNumber("wBQl"))
-	fmt.Println(UserHashNumber("S3Sk"))
-
-	for i := 0; i < 50000; i++ {
-		str, err := GenerateSecureString(3)
-		if err != nil {
-			fmt.Println(err)
-			return
-		}
-
-		numb := UserHashNumber(str)
-
-		if name, ok := names[numb]; ok {
-			if str != name {
-				fmt.Println("fault: '"+str+"' and '"+name+"'")
-			}
-			continue
-		}
-		names[numb] = str
-	}
-}

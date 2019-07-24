@@ -4,8 +4,8 @@ package actions
 import (
 	"errors"
 	"github.com/gorilla/websocket"
-	"github.com/hewiefreeman/GopherGameServer/helpers"
 	"github.com/hewiefreeman/GopherGameServer/core"
+	"github.com/hewiefreeman/GopherGameServer/helpers"
 )
 
 // CustomClientAction is an action that you can handle on the server from
@@ -214,7 +214,7 @@ func (c *Client) Respond(response interface{}, err ClientError) {
 	}
 	if err.id != -1 {
 		r[helpers.ServerActionCustomClientActionResponse]["e"] = map[string]interface{}{
-			"m": err.message,
+			"m":  err.message,
 			"id": err.id,
 		}
 	} else {

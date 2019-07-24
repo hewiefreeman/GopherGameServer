@@ -15,8 +15,8 @@ type RoomType struct {
 	broadcastUserEnter bool
 	broadcastUserLeave bool
 
-	createCallback    func(*Room)         // roomCreated
-	deleteCallback    func(*Room)         // roomDeleted
+	createCallback    func(*Room)            // roomCreated
+	deleteCallback    func(*Room)            // roomDeleted
 	userEnterCallback func(*Room, *RoomUser) // roomFrom, user
 	userLeaveCallback func(*Room, *RoomUser) // roomFrom, user
 }

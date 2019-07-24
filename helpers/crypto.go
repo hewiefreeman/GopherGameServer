@@ -38,9 +38,3 @@ func CompareEncryptedData(str string, hash []byte) bool {
 	err := bcrypt.CompareHashAndPassword(hash, []byte(str))
 	return err == nil
 }
-
-func UserHashNumber(s string) int {
-	h := fnv.New32a()
-	h.Write([]byte(s))
-	return int(h.Sum32())
-}

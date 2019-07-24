@@ -156,8 +156,6 @@ func checkCustomRequirements(customCols map[string]interface{}, requirements map
 //   QUERY HELPERS   /////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
-
-
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 //   SIGN A USER UP   ////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -343,7 +341,7 @@ func LoginClient(userName string, password string, deviceTag string, remMe bool,
 		devicePass, devicePassErr = helpers.GenerateSecureString(32)
 		if devicePassErr == nil {
 			_, exErr := database.Exec("INSERT INTO " + tableAutologs + " (" + autologsColumnID + ", " + autologsColumnDeviceTag + ", " + autologsColumnDevicePass +
-						") VALUES (" + strconv.Itoa(*dbIndex) + ", \"" + deviceTag + "\", \"" + devicePass + "\");")
+				") VALUES (" + strconv.Itoa(*dbIndex) + ", \"" + deviceTag + "\", \"" + devicePass + "\");")
 			if exErr != nil {
 				////// LOG ERROR!!!!!!
 			}
@@ -476,7 +474,7 @@ func ChangePassword(userName string, password string, newPassword string, custom
 			vals = append(vals, new(interface{}))
 			valsList = append(valsList, []interface{}{val, customAccountInfo[key].dataType, key})
 		}
-	}else{
+	} else {
 		vals = make([]interface{}, 0, 2)
 		vals = append(vals, new(int), new([]byte))
 	}
@@ -575,7 +573,7 @@ func ChangeAccountInfo(userName string, password string, customCols map[string]i
 			vals = append(vals, new(interface{}))
 			valsList = append(valsList, []interface{}{val, customAccountInfo[key].dataType, key})
 		}
-	}else{
+	} else {
 		vals = make([]interface{}, 0, 2)
 		vals = append(vals, new(int), new([]byte))
 	}
@@ -677,7 +675,7 @@ func DeleteAccount(userName string, password string, customCols map[string]inter
 			//MAINTAIN THE ORDER IN WHICH THE COLUMNS WERE DECLARED VIA A SLICE
 			vals = append(vals, new(interface{}))
 		}
-	}else{
+	} else {
 		vals = make([]interface{}, 0, 2)
 		vals = append(vals, new(int), new([]byte))
 	}

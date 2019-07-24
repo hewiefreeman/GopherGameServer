@@ -33,7 +33,7 @@ func (u *User) PrivateMessage(userName string, message interface{}) {
 	//CONSTRUCT MESSAGE
 	theMessage := map[string]map[string]interface{}{
 		helpers.ServerActionPrivateMessage: map[string]interface{}{
-			"f": u.name, // from
+			"f": u.name,    // from
 			"t": user.name, // to
 			"m": message,
 		},

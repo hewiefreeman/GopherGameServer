@@ -25,6 +25,7 @@ type Room struct {
 	vars       map[string]interface{}
 }
 
+// RoomUser represents a User inside of a Room. Use the *RoomUser.User() function to get a *User from a *RoomUser
 type RoomUser struct {
 	user *User
 
@@ -377,7 +378,7 @@ func (r *Room) RemoveUser(user *User, connID string) error {
 // NOTE: Remember that private rooms are designed to have an "owner",
 // and only the owner should be able to send an invite and revoke an invitation for their Rooms. Also, *User.Invite()
 // will send an invite notification message to the invited User that the client API can easily receive. Though if you wish to make
-// your own implementations for sending and recieving these notifications, this function is safe to use.
+// your own implementations for sending and receiving these notifications, this function is safe to use.
 func (r *Room) AddInvite(userName string) error {
 	if !r.private {
 		return errors.New("Room is not private")

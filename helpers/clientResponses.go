@@ -59,7 +59,7 @@ func MakeClientResponse(action string, responseVal interface{}, err GopherError)
 			ServerActionClientActionResponse: map[string]interface{}{
 				"a": action,
 				"e": map[string]interface{}{
-					"m": err.Message,
+					"m":  err.Message,
 					"is": err.ID,
 				},
 			},
