@@ -3,10 +3,9 @@ package gopher
 import (
 	"github.com/gorilla/websocket"
 	"github.com/hewiefreeman/GopherGameServer/actions"
+	"github.com/hewiefreeman/GopherGameServer/core"
 	"github.com/hewiefreeman/GopherGameServer/database"
 	"github.com/hewiefreeman/GopherGameServer/helpers"
-	"github.com/hewiefreeman/GopherGameServer/rooms"
-	"github.com/hewiefreeman/GopherGameServer/users"
 	"sync"
 )
 
@@ -34,7 +33,7 @@ const (
 	errorIncorrectFormatVarKey       = "Incorrect data format for variable key"
 )
 
-func clientActionHandler(action clientAction, user **users.User, conn *websocket.Conn,
+func clientActionHandler(action clientAction, user **core.User, conn *websocket.Conn,
 	deviceTag *string, devicePass *string, deviceUserID *int, connID *string, clientMux *sync.Mutex) (interface{}, bool, helpers.GopherError) {
 	switch _action := action.A; _action {
 
@@ -119,7 +118,7 @@ func clientActionHandler(action clientAction, user **users.User, conn *websocket
 //   CUSTOM CLIENT ACTIONS   /////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
-func clientCustomAction(params interface{}, user **users.User, conn *websocket.Conn, connID string, clientMux *sync.Mutex) (interface{}, bool, helpers.GopherError) {
+func clientCustomAction(params interface{}, user **core.User, conn *websocket.Conn, connID string, clientMux *sync.Mutex) (interface{}, bool, helpers.GopherError) {
 	var ok bool
 	var pMap map[string]interface{}
 	var action string
@@ -140,7 +139,7 @@ func clientCustomAction(params interface{}, user **users.User, conn *websocket.C
 //   CHANGE USER STATUS   ////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
-func clientActionChangeStatus(params interface{}, user **users.User, clientMux *sync.Mutex) (interface{}, bool, helpers.GopherError) {
+func clientActionChangeStatus(params interface{}, user **core.User, clientMux *sync.Mutex) (interface{}, bool, helpers.GopherError) {
 	(*clientMux).Lock()
 	if *user == nil {
 		(*clientMux).Unlock()
@@ -165,7 +164,7 @@ func clientActionChangeStatus(params interface{}, user **users.User, clientMux *
 //   ACCOUNT/DATABASE ACTIONS   //////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
-func clientActionSignup(params interface{}, user **users.User, clientMux *sync.Mutex) (interface{}, bool, helpers.GopherError) {
+func clientActionSignup(params interface{}, user **core.User, clientMux *sync.Mutex) (interface{}, bool, helpers.GopherError) {
 	(*clientMux).Lock()
 	if *user != nil {
 		(*clientMux).Unlock()
@@ -205,7 +204,7 @@ func clientActionSignup(params interface{}, user **users.User, clientMux *sync.M
 	return nil, true, helpers.NoError()
 }
 
-func clientActionDeleteAccount(params interface{}, user **users.User, clientMux *sync.Mutex) (interface{}, bool, helpers.GopherError) {
+func clientActionDeleteAccount(params interface{}, user **core.User, clientMux *sync.Mutex) (interface{}, bool, helpers.GopherError) {
 	(*clientMux).Lock()
 	if *user != nil {
 		(*clientMux).Unlock()
@@ -237,7 +236,7 @@ func clientActionDeleteAccount(params interface{}, user **users.User, clientMux 
 	}
 
 	//CHECK IF USER IS ONLINE
-	_, err := users.Get(userName)
+	_, err := core.GetUser(userName)
 	if err == nil {
 		return nil, true, helpers.NewError(err.Error(), helpers.ErrorGopherLoggedIn)
 	}
@@ -251,7 +250,7 @@ func clientActionDeleteAccount(params interface{}, user **users.User, clientMux 
 	return nil, true, helpers.NoError()
 }
 
-func clientActionChangePassword(params interface{}, user **users.User, clientMux *sync.Mutex) (interface{}, bool, helpers.GopherError) {
+func clientActionChangePassword(params interface{}, user **core.User, clientMux *sync.Mutex) (interface{}, bool, helpers.GopherError) {
 	(*clientMux).Lock()
 	if *user == nil {
 		(*clientMux).Unlock()
@@ -292,7 +291,7 @@ func clientActionChangePassword(params interface{}, user **users.User, clientMux
 	return nil, true, helpers.NoError()
 }
 
-func clientActionChangeAccountInfo(params interface{}, user **users.User, clientMux *sync.Mutex) (interface{}, bool, helpers.GopherError) {
+func clientActionChangeAccountInfo(params interface{}, user **core.User, clientMux *sync.Mutex) (interface{}, bool, helpers.GopherError) {
 	(*clientMux).Lock()
 	if *user == nil {
 		(*clientMux).Unlock()
@@ -333,7 +332,7 @@ func clientActionChangeAccountInfo(params interface{}, user **users.User, client
 //   LOGIN+LOGOUT ACTIONS   //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
-func clientActionLogin(params interface{}, user **users.User, deviceTag *string, devicePass *string, deviceUserID *int, conn *websocket.Conn,
+func clientActionLogin(params interface{}, user **core.User, deviceTag *string, devicePass *string, deviceUserID *int, conn *websocket.Conn,
 	connID *string, clientMux *sync.Mutex) (interface{}, bool, helpers.GopherError) {
 	(*clientMux).Lock()
 	if *user != nil {
@@ -386,9 +385,9 @@ func clientActionLogin(params interface{}, user **users.User, deviceTag *string,
 		if err.ID != 0 {
 			return nil, true, err
 		}
-		cID, err = users.Login(uName, dbIndex, dPass, guest, remMe, conn, user, clientMux)
+		cID, err = core.Login(uName, dbIndex, dPass, guest, remMe, conn, user, clientMux)
 	} else {
-		cID, err = users.Login(name, -1, "", guest, false, conn, user, clientMux)
+		cID, err = core.Login(name, -1, "", guest, false, conn, user, clientMux)
 	}
 	if err.ID != 0 {
 		return nil, true, err
@@ -402,7 +401,7 @@ func clientActionLogin(params interface{}, user **users.User, deviceTag *string,
 	return nil, false, helpers.NoError()
 }
 
-func clientActionLogout(user **users.User, deviceTag *string, devicePass *string, deviceUserID *int, connID *string, clientMux *sync.Mutex) (interface{}, bool, helpers.GopherError) {
+func clientActionLogout(user **core.User, deviceTag *string, devicePass *string, deviceUserID *int, connID *string, clientMux *sync.Mutex) (interface{}, bool, helpers.GopherError) {
 	(*clientMux).Lock()
 	if *user == nil {
 		(*clientMux).Unlock()
@@ -429,7 +428,7 @@ func clientActionLogout(user **users.User, deviceTag *string, devicePass *string
 //   ROOM ACTIONS   //////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
-func clientActionJoinRoom(params interface{}, user **users.User, connID string, clientMux *sync.Mutex) (interface{}, bool, helpers.GopherError) {
+func clientActionJoinRoom(params interface{}, user **core.User, connID string, clientMux *sync.Mutex) (interface{}, bool, helpers.GopherError) {
 	(*clientMux).Lock()
 	if *user == nil {
 		(*clientMux).Unlock()
@@ -444,7 +443,7 @@ func clientActionJoinRoom(params interface{}, user **users.User, connID string, 
 		return nil, true, helpers.NewError(errorIncorrectFormat, helpers.ErrorGopherIncorrectFormat)
 	}
 	//GET ROOM
-	room, roomErr := rooms.Get(roomName)
+	room, roomErr := core.GetRoom(roomName)
 	if roomErr != nil {
 		return nil, true, helpers.NewError(roomErr.Error(), helpers.ErrorGopherJoin)
 	}
@@ -458,7 +457,7 @@ func clientActionJoinRoom(params interface{}, user **users.User, connID string, 
 	return nil, false, helpers.NoError()
 }
 
-func clientActionLeaveRoom(user **users.User, connID string, clientMux *sync.Mutex) (interface{}, bool, helpers.GopherError) {
+func clientActionLeaveRoom(user **core.User, connID string, clientMux *sync.Mutex) (interface{}, bool, helpers.GopherError) {
 	(*clientMux).Lock()
 	if *user == nil {
 		(*clientMux).Unlock()
@@ -476,7 +475,7 @@ func clientActionLeaveRoom(user **users.User, connID string, clientMux *sync.Mut
 	return nil, false, helpers.NoError()
 }
 
-func clientActionCreateRoom(params interface{}, user **users.User, connID string, clientMux *sync.Mutex) (interface{}, bool, helpers.GopherError) {
+func clientActionCreateRoom(params interface{}, user **core.User, connID string, clientMux *sync.Mutex) (interface{}, bool, helpers.GopherError) {
 	(*clientMux).Lock()
 	if *user == nil {
 		(*clientMux).Unlock()
@@ -511,7 +510,7 @@ func clientActionCreateRoom(params interface{}, user **users.User, connID string
 	}
 	maxUsers := int(maxUsersF)
 	//
-	if rType, ok := rooms.GetRoomTypes()[roomType]; !ok {
+	if rType, ok := core.GetRoomTypes()[roomType]; !ok {
 		return nil, true, helpers.NewError(errorRoomType, helpers.ErrorGopherMaxRoomFormat)
 	} else if rType.ServerOnly() {
 		return nil, true, helpers.NewError(errorServerRoom, helpers.ErrorGopherServerRoom)
@@ -522,7 +521,7 @@ func clientActionCreateRoom(params interface{}, user **users.User, connID string
 		return nil, true, errors.New("You must leave your current room to create a room")
 	}*/
 	//MAKE THE Room
-	room, roomErr := rooms.New(roomName, roomType, private, maxUsers, userRef.Name())
+	room, roomErr := core.NewRoom(roomName, roomType, private, maxUsers, userRef.Name())
 	if roomErr != nil {
 		return nil, true, helpers.NewError(roomErr.Error(), helpers.ErrorGopherCreateRoom)
 	}
@@ -536,7 +535,7 @@ func clientActionCreateRoom(params interface{}, user **users.User, connID string
 	return roomName, true, helpers.NoError()
 }
 
-func clientActionDeleteRoom(params interface{}, user **users.User, clientMux *sync.Mutex) (interface{}, bool, helpers.GopherError) {
+func clientActionDeleteRoom(params interface{}, user **core.User, clientMux *sync.Mutex) (interface{}, bool, helpers.GopherError) {
 	(*clientMux).Lock()
 	if *user == nil {
 		(*clientMux).Unlock()
@@ -554,14 +553,14 @@ func clientActionDeleteRoom(params interface{}, user **users.User, clientMux *sy
 		return nil, true, helpers.NewError(errorIncorrectFormat, helpers.ErrorGopherIncorrectFormat)
 	}
 	//GET ROOM
-	room, roomErr := rooms.Get(roomName)
+	room, roomErr := core.GetRoom(roomName)
 	if roomErr != nil {
 		return nil, true, helpers.NewError(roomErr.Error(), helpers.ErrorGopherDeleteRoom)
 	} else if room.Owner() != userRef.Name() {
 		return nil, true, helpers.NewError(errorNotOwner, helpers.ErrorGopherNotOwner)
 	}
 	//
-	rType := rooms.GetRoomTypes()[room.Type()]
+	rType := core.GetRoomTypes()[room.Type()]
 	if rType.ServerOnly() {
 		return nil, true, helpers.NewError(errorServerRoom, helpers.ErrorGopherServerRoom)
 	}
@@ -574,7 +573,7 @@ func clientActionDeleteRoom(params interface{}, user **users.User, clientMux *sy
 	return roomName, true, helpers.NoError()
 }
 
-func clientActionRoomInvite(params interface{}, user **users.User, connID string, clientMux *sync.Mutex) (interface{}, bool, helpers.GopherError) {
+func clientActionRoomInvite(params interface{}, user **core.User, connID string, clientMux *sync.Mutex) (interface{}, bool, helpers.GopherError) {
 	(*clientMux).Lock()
 	if *user == nil {
 		(*clientMux).Unlock()
@@ -592,7 +591,7 @@ func clientActionRoomInvite(params interface{}, user **users.User, connID string
 		return nil, true, helpers.NewError(errorIncorrectFormat, helpers.ErrorGopherIncorrectFormat)
 	}
 	//GET INVITED USER
-	invUser, invUserErr := users.Get(name)
+	invUser, invUserErr := core.GetUser(name)
 	if invUserErr != nil {
 		return nil, true, helpers.NewError(invUserErr.Error(), helpers.ErrorGopherInvite)
 	}
@@ -605,7 +604,7 @@ func clientActionRoomInvite(params interface{}, user **users.User, connID string
 	return nil, true, helpers.NoError()
 }
 
-func clientActionRevokeInvite(params interface{}, user **users.User, connID string, clientMux *sync.Mutex) (interface{}, bool, helpers.GopherError) {
+func clientActionRevokeInvite(params interface{}, user **core.User, connID string, clientMux *sync.Mutex) (interface{}, bool, helpers.GopherError) {
 	(*clientMux).Lock()
 	if *user == nil {
 		(*clientMux).Unlock()
@@ -635,7 +634,7 @@ func clientActionRevokeInvite(params interface{}, user **users.User, connID stri
 //   CHAT+VOICE ACTIONS   ////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
-func clientActionVoiceStream(params interface{}, user **users.User, conn *websocket.Conn, connID string, clientMux *sync.Mutex) (interface{}, bool, helpers.GopherError) {
+func clientActionVoiceStream(params interface{}, user **core.User, conn *websocket.Conn, connID string, clientMux *sync.Mutex) (interface{}, bool, helpers.GopherError) {
 	(*clientMux).Lock()
 	if *user == nil {
 		(*clientMux).Unlock()
@@ -649,7 +648,7 @@ func clientActionVoiceStream(params interface{}, user **users.User, conn *websoc
 		return nil, false, helpers.NoError()
 	}
 	//CHECK IF VOICE CHAT ROOM
-	rType := rooms.GetRoomTypes()[currRoom.Type()]
+	rType := core.GetRoomTypes()[currRoom.Type()]
 	if !rType.VoiceChatEnabled() {
 		return nil, false, helpers.NoError()
 	}
@@ -659,7 +658,7 @@ func clientActionVoiceStream(params interface{}, user **users.User, conn *websoc
 	return nil, false, helpers.NoError()
 }
 
-func clientActionChatMessage(params interface{}, user **users.User, connID string, clientMux *sync.Mutex) (interface{}, bool, helpers.GopherError) {
+func clientActionChatMessage(params interface{}, user **core.User, connID string, clientMux *sync.Mutex) (interface{}, bool, helpers.GopherError) {
 	(*clientMux).Lock()
 	if *user == nil {
 		(*clientMux).Unlock()
@@ -678,7 +677,7 @@ func clientActionChatMessage(params interface{}, user **users.User, connID strin
 	return nil, false, helpers.NoError()
 }
 
-func clientActionPrivateMessage(params interface{}, user **users.User, connID string, clientMux *sync.Mutex) (interface{}, bool, helpers.GopherError) {
+func clientActionPrivateMessage(params interface{}, user **core.User, connID string, clientMux *sync.Mutex) (interface{}, bool, helpers.GopherError) {
 	(*clientMux).Lock()
 	if *user == nil {
 		(*clientMux).Unlock()
@@ -711,7 +710,7 @@ func clientActionPrivateMessage(params interface{}, user **users.User, connID st
 //   USER VARIABLES   ////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
-func clientActionSetVariable(params interface{}, user **users.User, connID string, clientMux *sync.Mutex) (interface{}, bool, helpers.GopherError) {
+func clientActionSetVariable(params interface{}, user **core.User, connID string, clientMux *sync.Mutex) (interface{}, bool, helpers.GopherError) {
 	(*clientMux).Lock()
 	if *user == nil {
 		(*clientMux).Unlock()
@@ -737,7 +736,7 @@ func clientActionSetVariable(params interface{}, user **users.User, connID strin
 	return nil, false, helpers.NoError()
 }
 
-func clientActionSetVariables(params interface{}, user **users.User, connID string, clientMux *sync.Mutex) (interface{}, bool, helpers.GopherError) {
+func clientActionSetVariables(params interface{}, user **core.User, connID string, clientMux *sync.Mutex) (interface{}, bool, helpers.GopherError) {
 	(*clientMux).Lock()
 	if *user == nil {
 		(*clientMux).Unlock()
@@ -761,7 +760,7 @@ func clientActionSetVariables(params interface{}, user **users.User, connID stri
 //   FRIENDING ACTIONS   /////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
-func clientActionFriendRequest(params interface{}, user **users.User, clientMux *sync.Mutex) (interface{}, bool, helpers.GopherError) {
+func clientActionFriendRequest(params interface{}, user **core.User, clientMux *sync.Mutex) (interface{}, bool, helpers.GopherError) {
 	(*clientMux).Lock()
 	if *user == nil {
 		(*clientMux).Unlock()
@@ -789,7 +788,7 @@ func clientActionFriendRequest(params interface{}, user **users.User, clientMux 
 	return nil, false, helpers.NoError()
 }
 
-func clientActionAcceptFriend(params interface{}, user **users.User, clientMux *sync.Mutex) (interface{}, bool, helpers.GopherError) {
+func clientActionAcceptFriend(params interface{}, user **core.User, clientMux *sync.Mutex) (interface{}, bool, helpers.GopherError) {
 	(*clientMux).Lock()
 	if *user == nil {
 		(*clientMux).Unlock()
@@ -817,7 +816,7 @@ func clientActionAcceptFriend(params interface{}, user **users.User, clientMux *
 	return nil, false, helpers.NoError()
 }
 
-func clientActionDeclineFriend(params interface{}, user **users.User, clientMux *sync.Mutex) (interface{}, bool, helpers.GopherError) {
+func clientActionDeclineFriend(params interface{}, user **core.User, clientMux *sync.Mutex) (interface{}, bool, helpers.GopherError) {
 	(*clientMux).Lock()
 	if *user == nil {
 		(*clientMux).Unlock()
@@ -845,7 +844,7 @@ func clientActionDeclineFriend(params interface{}, user **users.User, clientMux 
 	return nil, false, helpers.NoError()
 }
 
-func clientActionRemoveFriend(params interface{}, user **users.User, clientMux *sync.Mutex) (interface{}, bool, helpers.GopherError) {
+func clientActionRemoveFriend(params interface{}, user **core.User, clientMux *sync.Mutex) (interface{}, bool, helpers.GopherError) {
 	(*clientMux).Lock()
 	if *user == nil {
 		(*clientMux).Unlock()

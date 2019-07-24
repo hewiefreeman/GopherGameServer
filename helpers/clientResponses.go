@@ -48,21 +48,22 @@ const (
 	ServerActionSetAutoLoginPass           = "ap"
 	ServerActionAutoLoginFailed            = "af"
 	ServerActionAutoLoginNotFiled          = "ai"
+	ServerActionWebRTCOffer                = "wo"
 )
 
 // MakeClientResponse is used for Gopher Game Server inner mechanics only.
-func MakeClientResponse(action string, responseVal interface{}, err GopherError) map[string]interface{} {
-	var response map[string]interface{} = make(map[string]interface{})
+func MakeClientResponse(action string, responseVal interface{}, err GopherError) map[string]map[string]interface{} {
+	var response map[string]map[string]interface{} = make(map[string]map[string]interface{})
 	if err.ID != 0 {
 		response[ServerActionClientActionResponse] = make(map[string]interface{})
-		response[ServerActionClientActionResponse].(map[string]interface{})["a"] = action
-		response[ServerActionClientActionResponse].(map[string]interface{})["e"] = make(map[string]interface{})
-		response[ServerActionClientActionResponse].(map[string]interface{})["e"].(map[string]interface{})["m"] = err.Message
-		response[ServerActionClientActionResponse].(map[string]interface{})["e"].(map[string]interface{})["id"] = err.ID
+		response[ServerActionClientActionResponse]["a"] = action
+		response[ServerActionClientActionResponse]["e"] = make(map[string]interface{})
+		response[ServerActionClientActionResponse]["e"].(map[string]interface{})["m"] = err.Message
+		response[ServerActionClientActionResponse]["e"].(map[string]interface{})["id"] = err.ID
 	} else {
 		response[ServerActionClientActionResponse] = make(map[string]interface{})
-		response[ServerActionClientActionResponse].(map[string]interface{})["a"] = action
-		response[ServerActionClientActionResponse].(map[string]interface{})["r"] = responseVal
+		response[ServerActionClientActionResponse]["a"] = action
+		response[ServerActionClientActionResponse]["r"] = responseVal
 	}
 
 	//

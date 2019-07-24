@@ -1,4 +1,4 @@
-package users
+package core
 
 import (
 	"errors"
@@ -16,7 +16,7 @@ func (u *User) FriendRequest(friendName string) error {
 		return errors.New("The user '" + friendName + "' cannot be requested as a friend")
 	}
 	//CHECK IF FRIEND IS ONLINE & GET DATABASE ID
-	friend, friendErr := Get(friendName)
+	friend, friendErr := GetUser(friendName)
 	var friendOnline bool = false
 	var friendID int
 	if friendErr != nil {
@@ -50,9 +50,9 @@ func (u *User) FriendRequest(friendName string) error {
 
 	//SEND A FRIEND REQUEST TO THE USER IF THEY ARE ONLINE
 	if friendOnline {
-		message := make(map[string]interface{})
+		message := make(map[string]map[string]interface{})
 		message[helpers.ServerActionFriendRequest] = make(map[string]interface{})
-		message[helpers.ServerActionFriendRequest].(map[string]interface{})["n"] = u.name
+		message[helpers.ServerActionFriendRequest]["n"] = u.name
 		friend.mux.Lock()
 		for _, conn := range friend.conns {
 			(*conn).socket.WriteJSON(message)
@@ -61,7 +61,7 @@ func (u *User) FriendRequest(friendName string) error {
 	}
 
 	//SEND RESPONSE TO CLIENT
-	clientResp := helpers.MakeClientResponse(helpers.ClientActionFriendRequest, friendName, helpers.NewError("", 0))
+	clientResp := helpers.MakeClientResponse(helpers.ClientActionFriendRequest, friendName, helpers.NoError())
 	u.mux.Lock()
 	for _, conn := range u.conns {
 		(*conn).socket.WriteJSON(clientResp)
@@ -84,7 +84,7 @@ func (u *User) AcceptFriendRequest(friendName string) error {
 		return errors.New("The user '" + friendName + "' cannot be accepted as a friend")
 	}
 	//CHECK IF FRIEND IS ONLINE & GET DATABASE ID
-	friend, friendErr := Get(friendName)
+	friend, friendErr := GetUser(friendName)
 	var friendOnline bool = false
 	var friendID int
 	if friendErr != nil {
@@ -117,10 +117,10 @@ func (u *User) AcceptFriendRequest(friendName string) error {
 	//SEND A FRIEND REQUEST TO THE USER IF THEY ARE ONLINE
 	var status int = StatusOffline
 	if friendOnline {
-		message := make(map[string]interface{})
+		message := make(map[string]map[string]interface{})
 		message[helpers.ServerActionFriendAccept] = make(map[string]interface{})
-		message[helpers.ServerActionFriendAccept].(map[string]interface{})["n"] = u.name
-		message[helpers.ServerActionFriendAccept].(map[string]interface{})["s"] = u.status
+		message[helpers.ServerActionFriendAccept]["n"] = u.name
+		message[helpers.ServerActionFriendAccept]["s"] = u.status
 		friend.mux.Lock()
 		for _, conn := range friend.conns {
 			(*conn).socket.WriteJSON(message)
@@ -135,7 +135,7 @@ func (u *User) AcceptFriendRequest(friendName string) error {
 	responseMap["s"] = status
 
 	//SEND RESPONSE TO CLIENT
-	clientResp := helpers.MakeClientResponse(helpers.ClientActionAcceptFriend, responseMap, helpers.NewError("", 0))
+	clientResp := helpers.MakeClientResponse(helpers.ClientActionAcceptFriend, responseMap, helpers.NoError())
 	u.mux.Lock()
 	for _, conn := range u.conns {
 		(*conn).socket.WriteJSON(clientResp)
@@ -158,7 +158,7 @@ func (u *User) DeclineFriendRequest(friendName string) error {
 		return errors.New("The user '" + friendName + "' cannot be declined as a friend")
 	}
 	//CHECK IF FRIEND IS ONLINE & GET DATABASE ID
-	friend, friendErr := Get(friendName)
+	friend, friendErr := GetUser(friendName)
 	var friendOnline bool = false
 	var friendID int
 	if friendErr != nil {
@@ -191,9 +191,9 @@ func (u *User) DeclineFriendRequest(friendName string) error {
 
 	//SEND A FRIEND REQUEST TO THE USER IF THEY ARE ONLINE
 	if friendOnline {
-		message := make(map[string]interface{})
+		message := make(map[string]map[string]interface{})
 		message[helpers.ServerActionFriendRemove] = make(map[string]interface{})
-		message[helpers.ServerActionFriendRemove].(map[string]interface{})["n"] = u.name
+		message[helpers.ServerActionFriendRemove]["n"] = u.name
 		friend.mux.Lock()
 		for _, conn := range friend.conns {
 			(*conn).socket.WriteJSON(message)
@@ -202,7 +202,7 @@ func (u *User) DeclineFriendRequest(friendName string) error {
 	}
 
 	//SEND RESPONSE TO CLIENT
-	clientResp := helpers.MakeClientResponse(helpers.ClientActionDeclineFriend, friendName, helpers.NewError("", 0))
+	clientResp := helpers.MakeClientResponse(helpers.ClientActionDeclineFriend, friendName, helpers.NoError())
 	u.mux.Lock()
 	for _, conn := range u.conns {
 		(*conn).socket.WriteJSON(clientResp)
@@ -225,7 +225,7 @@ func (u *User) RemoveFriend(friendName string) error {
 		return errors.New("The user '" + friendName + "' cannot be removed as a friend")
 	}
 	//CHECK IF FRIEND IS ONLINE & GET DATABASE ID
-	friend, friendErr := Get(friendName)
+	friend, friendErr := GetUser(friendName)
 	var friendOnline bool = false
 	var friendID int
 	if friendErr != nil {
@@ -258,9 +258,9 @@ func (u *User) RemoveFriend(friendName string) error {
 
 	//SEND A FRIEND REQUEST TO THE USER IF THEY ARE ONLINE
 	if friendOnline {
-		message := make(map[string]interface{})
+		message := make(map[string]map[string]interface{})
 		message[helpers.ServerActionFriendRemove] = make(map[string]interface{})
-		message[helpers.ServerActionFriendRemove].(map[string]interface{})["n"] = u.name
+		message[helpers.ServerActionFriendRemove]["n"] = u.name
 		friend.mux.Lock()
 		for _, conn := range friend.conns {
 			(*conn).socket.WriteJSON(message)
@@ -269,7 +269,7 @@ func (u *User) RemoveFriend(friendName string) error {
 	}
 
 	//SEND RESPONSE TO CLIENT
-	clientResp := helpers.MakeClientResponse(helpers.ClientActionRemoveFriend, friendName, helpers.NewError("", 0))
+	clientResp := helpers.MakeClientResponse(helpers.ClientActionRemoveFriend, friendName, helpers.NoError())
 	u.mux.Lock()
 	for _, conn := range u.conns {
 		(*conn).socket.WriteJSON(clientResp)

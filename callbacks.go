@@ -2,8 +2,8 @@ package gopher
 
 import (
 	"errors"
+	"github.com/hewiefreeman/GopherGameServer/core"
 	"github.com/hewiefreeman/GopherGameServer/database"
-	"github.com/hewiefreeman/GopherGameServer/users"
 	"net/http"
 )
 
@@ -126,7 +126,7 @@ func SetLoginCallback(cb interface{}) error {
 		if (*settings).EnableSqlFeatures {
 			database.LoginCallback = callback
 		} else {
-			users.LoginCallback = callback
+			core.LoginCallback = callback
 		}
 	} else {
 		return errors.New(ErrorIncorrectFunction)
@@ -146,7 +146,7 @@ func SetLogoutCallback(cb interface{}) error {
 	if serverStarted {
 		return errors.New(ErrorServerRunning)
 	} else if callback, ok := cb.(func(string, int)); ok {
-		users.LogoutCallback = callback
+		core.LogoutCallback = callback
 	} else {
 		return errors.New(ErrorIncorrectFunction)
 	}

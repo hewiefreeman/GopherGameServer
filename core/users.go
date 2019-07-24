@@ -1,15 +1,29 @@
-// Package users contains all the necessary tools to make and working with Users. A User is a client
-// who has successfully logged into the server. You can think of clients who are not attached to a User
+// Package core contains all the tools to make and work with Users and Rooms.
+//
+// A User is a client who has successfully logged into the server. You can think of clients who are not attached to a User
 // as, for instance, someone in the login screen, but are still connected to the server. A client doesn't
-// have to be a User to be able to call your CustomClientActions, so keep that in mind when making them!
-package users
+// have to be a User to be able to call your CustomClientActions, so keep that in mind when making them (Refer to the Usage for CustomClientActions).
+//
+// Users have their own variables which can be accessed and changed anytime. A User variable can
+// be anything compatible with interface{}, so pretty much anything.
+//
+// A Room represents a place on the server where a User can join other Users. Rooms can either be public or private. Private Rooms must be assigned an "owner", which is the name of a User, or the ServerName
+// from ServerSettings. The server's name that will be used for ownership of private Rooms can be set with the ServerSettings
+// option ServerName when starting the server. Though keep in mind, setting the ServerName in ServerSettings will prevent a User who wants to go by that name
+// from logging in. Public Rooms will accept a join request from any User, and private Rooms will only
+// accept a join request from someone who is on it's invite list. Only the owner of the Room or the server itself can invite
+// Users to a private Room. But remember, just because a User owns a private room doesn't mean the server cannot also invite
+// to the room via *Room.AddInvite() function.
+//
+// Rooms have their own variables which can be accessed and changed anytime. Like User variables, a Room variable can
+// be anything compatible with interface{}.
+package core
 
 import (
 	"errors"
 	"github.com/gorilla/websocket"
 	"github.com/hewiefreeman/GopherGameServer/database"
 	"github.com/hewiefreeman/GopherGameServer/helpers"
-	"github.com/hewiefreeman/GopherGameServer/rooms"
 	"sync"
 )
 
@@ -38,27 +52,20 @@ type User struct {
 }
 
 type userConn struct {
-	//MUST LOCK clientMux WHEN GETTING/SETTING *user
+	//MUST LOCK *clientMux WHEN GETTING/SETTING *user
 	clientMux *sync.Mutex
 	user      **User
 
 	socket *websocket.Conn
-	room   *rooms.Room
+
+	//MUST LOCK User's mux FIRST
+	room   *Room
 	vars   map[string]interface{}
 }
 
 var (
 	users    map[string]*User = make(map[string]*User)
 	usersMux sync.Mutex
-
-	serverStarted bool = false
-	serverPaused  bool = false
-
-	serverName   string
-	kickOnLogin  bool = false
-	sqlFeatures  bool = false
-	rememberMe   bool = false
-	multiConnect bool = false
 
 	// LoginCallback is only for internal Gopher Game Server mechanics.
 	LoginCallback func(string, int, map[string]interface{}, map[string]interface{}) bool
@@ -133,14 +140,14 @@ func Login(userName string, dbID int, autologPass string, isGuest bool, remMe bo
 				userRoom := (*conn).room
 				if userRoom != nil && userRoom.Name() != "" {
 					userOnline.mux.Unlock()
-					userRoom.RemoveUser(userOnline.name, connKey)
+					userRoom.RemoveUser(userOnline, connKey)
 					userOnline.mux.Lock()
 				}
 				(*(*conn).clientMux).Lock()
 				*((*conn).user) = nil
 				(*(*conn).clientMux).Unlock()
 				//SEND LOGOUT MESSAGE TO CLIENT
-				clientResp := helpers.MakeClientResponse(helpers.ClientActionLogout, nil, helpers.NewError("", 0))
+				clientResp := helpers.MakeClientResponse(helpers.ClientActionLogout, nil, helpers.NoError())
 				(*conn).socket.WriteJSON(clientResp)
 			}
 			userOnline.mux.Unlock()
@@ -246,13 +253,13 @@ func Login(userName string, dbID int, autologPass string, isGuest bool, remMe bo
 	usersMux.Unlock()
 
 	//SEND ONLINE MESSAGE TO FRIENDS
-	statusMessage := make(map[string]interface{})
+	statusMessage := make(map[string]map[string]interface{})
 	statusMessage[helpers.ServerActionFriendStatusChange] = make(map[string]interface{})
-	statusMessage[helpers.ServerActionFriendStatusChange].(map[string]interface{})["n"] = userName
-	statusMessage[helpers.ServerActionFriendStatusChange].(map[string]interface{})["s"] = 0
+	statusMessage[helpers.ServerActionFriendStatusChange]["n"] = userName
+	statusMessage[helpers.ServerActionFriendStatusChange]["s"] = 0
 	for key, val := range friendsMap {
 		if val.RequestStatus() == database.FriendStatusAccepted {
-			friend, friendErr := Get(key)
+			friend, friendErr := GetUser(key)
 			if friendErr == nil {
 				friend.mux.Lock()
 				for _, friendConn := range friend.conns {
@@ -271,11 +278,11 @@ func Login(userName string, dbID int, autologPass string, isGuest bool, remMe bo
 		responseVal["ai"] = dbID
 		responseVal["ap"] = autologPass
 	}
-	clientResp := helpers.MakeClientResponse(helpers.ClientActionLogin, responseVal, helpers.NewError("", 0))
+	clientResp := helpers.MakeClientResponse(helpers.ClientActionLogin, responseVal, helpers.NoError())
 	socket.WriteJSON(clientResp)
 
 	//
-	return connID, helpers.NewError("", 0)
+	return connID, helpers.NoError()
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -303,7 +310,7 @@ func AutoLogIn(tag string, pass string, newPass string, dbID int, conn *websocke
 		return "", userErr
 	}
 	//
-	return connID, helpers.NewError("", 0)
+	return connID, helpers.NoError()
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -329,19 +336,19 @@ func (u *User) Logout(connID string) {
 	currRoom := (*u.conns[connID]).room
 	if currRoom != nil && currRoom.Name() != "" {
 		u.mux.Unlock()
-		currRoom.RemoveUser(u.name, connID)
+		currRoom.RemoveUser(u, connID)
 		u.mux.Lock()
 	}
 
 	if len(u.conns) == 1 {
 		//SEND STATUS CHANGE TO FRIENDS
-		statusMessage := make(map[string]interface{})
+		statusMessage := make(map[string]map[string]interface{})
 		statusMessage[helpers.ServerActionFriendStatusChange] = make(map[string]interface{})
-		statusMessage[helpers.ServerActionFriendStatusChange].(map[string]interface{})["n"] = u.name
-		statusMessage[helpers.ServerActionFriendStatusChange].(map[string]interface{})["s"] = StatusOffline
+		statusMessage[helpers.ServerActionFriendStatusChange]["n"] = u.name
+		statusMessage[helpers.ServerActionFriendStatusChange]["s"] = StatusOffline
 		for key, val := range u.friends {
 			if val.RequestStatus() == database.FriendStatusAccepted {
-				friend, friendErr := Get(key)
+				friend, friendErr := GetUser(key)
 				if friendErr == nil {
 					friend.mux.Lock()
 					for _, friendConn := range friend.conns {
@@ -371,7 +378,7 @@ func (u *User) Logout(connID string) {
 	}
 
 	//SEND RESPONSE TO CLIENT
-	clientResp := helpers.MakeClientResponse(helpers.ClientActionLogout, nil, helpers.NewError("", 0))
+	clientResp := helpers.MakeClientResponse(helpers.ClientActionLogout, nil, helpers.NoError())
 	socket.WriteJSON(clientResp)
 
 	//RUN CALLBACK
@@ -385,13 +392,13 @@ func (u *User) Kick() {
 	u.mux.Lock()
 
 	//SEND STATUS CHANGE TO FRIENDS
-	statusMessage := make(map[string]interface{})
+	statusMessage := make(map[string]map[string]interface{})
 	statusMessage[helpers.ServerActionFriendStatusChange] = make(map[string]interface{})
-	statusMessage[helpers.ServerActionFriendStatusChange].(map[string]interface{})["n"] = u.name
-	statusMessage[helpers.ServerActionFriendStatusChange].(map[string]interface{})["s"] = StatusOffline
+	statusMessage[helpers.ServerActionFriendStatusChange]["n"] = u.name
+	statusMessage[helpers.ServerActionFriendStatusChange]["s"] = StatusOffline
 	for key, val := range u.friends {
 		if val.RequestStatus() == database.FriendStatusAccepted {
-			friend, friendErr := Get(key)
+			friend, friendErr := GetUser(key)
 			if friendErr == nil {
 				friend.mux.Lock()
 				for _, friendConn := range friend.conns {
@@ -403,7 +410,7 @@ func (u *User) Kick() {
 	}
 
 	//MAKE CLIENT RESPONSE
-	clientResp := helpers.MakeClientResponse(helpers.ClientActionLogout, nil, helpers.NewError("", 0))
+	clientResp := helpers.MakeClientResponse(helpers.ClientActionLogout, nil, helpers.NoError())
 
 	//LOOP THROUGH CONNECTIONS
 	for connID, conn := range u.conns {
@@ -411,7 +418,7 @@ func (u *User) Kick() {
 		currRoom := (*conn).room
 		if currRoom != nil && currRoom.Name() != "" {
 			u.mux.Unlock()
-			currRoom.RemoveUser(u.name, connID)
+			currRoom.RemoveUser(u, connID)
 			u.mux.Lock()
 		}
 
@@ -443,8 +450,8 @@ func (u *User) Kick() {
 //   GET A USER   ////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// Get finds a logged in User by their name. Returns an error if the User is not online.
-func Get(userName string) (*User, error) {
+// GetUser finds a logged in User by their name. Returns an error if the User is not online.
+func GetUser(userName string) (*User, error) {
 	//REJECT INCORRECT INPUT
 	if len(userName) == 0 {
 		return &User{}, errors.New("users.Get() requires a user name")
@@ -473,7 +480,7 @@ func Get(userName string) (*User, error) {
 // Join makes a User join a Room. If you are using MultiConnect in ServerSettings, the connID
 // parameter is the connection ID associated with one of the connections attached to that User. This must
 // be provided when making a User join a Room with MultiConnect enabled. Otherwise, an empty string can be used.
-func (u *User) Join(r *rooms.Room, connID string) error {
+func (u *User) Join(r *Room, connID string) error {
 	if multiConnect && len(connID) == 0 {
 		return errors.New("Must provide a connID when MultiConnect is enabled")
 	} else if !multiConnect {
@@ -494,14 +501,10 @@ func (u *User) Join(r *rooms.Room, connID string) error {
 		u.Leave(connID)
 		u.mux.Lock()
 	}
-	roomPointer := &((*u.conns[connID]).room)
-	varsPointer := &((*u.conns[connID]).vars)
-	socketPointer := ((*u.conns[connID]).socket)
-	statusPointer := &u.status
 	u.mux.Unlock()
 
 	//ADD USER TO DESIGNATED ROOM
-	addErr := r.AddUser(u.name, u.databaseID, u.isGuest, socketPointer, roomPointer, varsPointer, statusPointer, &u.mux, connID)
+	addErr := r.AddUser(u, connID)
 	if addErr != nil {
 		return addErr
 	}
@@ -528,7 +531,7 @@ func (u *User) Leave(connID string) error {
 	currRoom := (*u.conns[connID]).room
 	u.mux.Unlock()
 	if currRoom != nil && currRoom.Name() != "" {
-		removeErr := currRoom.RemoveUser(u.name, connID)
+		removeErr := currRoom.RemoveUser(u, connID)
 		if removeErr != nil {
 			return removeErr
 		}
@@ -553,13 +556,13 @@ func (u *User) SetStatus(status int) {
 	u.mux.Unlock()
 
 	//SEND STATUS CHANGE MESSAGE TO User's FRIENDS WHOM ARE "ACCEPTED"
-	message := make(map[string]interface{})
+	message := make(map[string]map[string]interface{})
 	message[helpers.ServerActionFriendStatusChange] = make(map[string]interface{})
-	message[helpers.ServerActionFriendStatusChange].(map[string]interface{})["n"] = u.name
-	message[helpers.ServerActionFriendStatusChange].(map[string]interface{})["s"] = status
+	message[helpers.ServerActionFriendStatusChange]["n"] = u.name
+	message[helpers.ServerActionFriendStatusChange]["s"] = status
 	for key, val := range friends {
 		if val.RequestStatus() == database.FriendStatusAccepted {
-			friend, friendErr := Get(key)
+			friend, friendErr := GetUser(key)
 			if friendErr == nil {
 				friend.mux.Lock()
 				for _, conn := range friend.conns {
@@ -593,7 +596,7 @@ func (u *User) Invite(invUser *User, connID string) error {
 	}
 	currRoom := (*u.conns[connID]).room
 	u.mux.Unlock()
-	rType := rooms.GetRoomTypes()[currRoom.Type()]
+	rType := GetRoomTypes()[currRoom.Type()]
 	if currRoom == nil || currRoom.Name() == "" {
 		return errors.New("The user '" + u.name + "' is not in a room")
 	} else if !currRoom.IsPrivate() {
@@ -611,10 +614,10 @@ func (u *User) Invite(invUser *User, connID string) error {
 	}
 
 	//MAKE INVITE MESSAGE
-	invMessage := make(map[string]interface{})
+	invMessage := make(map[string]map[string]interface{})
 	invMessage[helpers.ServerActionRoomInvite] = make(map[string]interface{})
-	invMessage[helpers.ServerActionRoomInvite].(map[string]interface{})["u"] = u.name
-	invMessage[helpers.ServerActionRoomInvite].(map[string]interface{})["r"] = currRoom.Name()
+	invMessage[helpers.ServerActionRoomInvite]["u"] = u.name
+	invMessage[helpers.ServerActionRoomInvite]["r"] = currRoom.Name()
 
 	//SEND MESSAGE
 	invUser.mux.Lock()
@@ -649,7 +652,7 @@ func (u *User) RevokeInvite(revokeUser string, connID string) error {
 	}
 	currRoom := (*u.conns[connID]).room
 	u.mux.Unlock()
-	rType := rooms.GetRoomTypes()[currRoom.Type()]
+	rType := GetRoomTypes()[currRoom.Type()]
 	if currRoom == nil || currRoom.Name() == "" {
 		return errors.New("The user '" + u.name + "' is not in a room")
 	} else if !currRoom.IsPrivate() {
@@ -707,7 +710,7 @@ func (u *User) Friends() map[string]database.Friend {
 // RoomIn gets the Room that the User is currently in. A nil Room pointer means the User is not in a Room. If you are using MultiConnect in ServerSettings, the connID
 // parameter is the connection ID associated with one of the connections attached to that User. This must
 // be provided when getting a User's Room with MultiConnect enabled. Otherwise, an empty string can be used.
-func (u *User) RoomIn(connID string) *rooms.Room {
+func (u *User) RoomIn(connID string) *Room {
 	if multiConnect && len(connID) == 0 {
 		return nil
 	} else if !multiConnect {
@@ -760,76 +763,9 @@ func (u *User) ConnectionIDs() []string {
 	return ids
 }
 
-//////////////////////////////////////////////////////////////////////////////////////////////////////
-//   SERVER STARTUP FUNCTIONS   //////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////////////////////////////////
-
-// SetServerStarted is for Gopher Game Server internal mechanics only.
-func SetServerStarted(val bool) {
-	if !serverStarted {
-		serverStarted = val
-	}
-}
-
-// SettingsSet is for Gopher Game Server internal mechanics only.
-func SettingsSet(kickDups bool, name string, deleteOnLeave bool, sqlFeat bool, remMe bool, multiConn bool) {
-	if !serverStarted {
-		kickOnLogin = kickDups
-		serverName = name
-		sqlFeatures = sqlFeat
-		rememberMe = remMe
-		multiConnect = multiConn
-		rooms.SettingsSet(name, deleteOnLeave, multiConn)
-	}
-}
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////
-//   SERVER PAUSE AND RESUME   ///////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////////////////////////////////
-
-// Pause is only for internal Gopher Game Server mechanics.
-func Pause() {
-	if !serverPaused {
-		serverPaused = true
-
-		//
-		clientResp := helpers.MakeClientResponse(helpers.ClientActionLogout, nil, helpers.NewError("", 0))
-		usersMux.Lock()
-		for _, user := range users {
-			(*user).mux.Lock()
-			for connID, conn := range (*user).conns {
-				//REMOVE CONNECTION FROM THEIR ROOM
-				currRoom := (*conn).room
-				if currRoom != nil && currRoom.Name() != "" {
-					(*user).mux.Unlock()
-					currRoom.RemoveUser((*user).name, connID)
-					(*user).mux.Lock()
-				}
-
-				//LOG CONNECTION OUT
-				(*conn).clientMux.Lock()
-				if *((*conn).user) != nil {
-					*((*conn).user) = nil
-				}
-				(*conn).clientMux.Unlock()
-
-				//SEND LOG OUT MESSAGE
-				(*conn).socket.WriteJSON(clientResp)
-			}
-			(*user).mux.Unlock()
-		}
-		users = make(map[string]*User)
-		usersMux.Unlock()
-
-		//
-		serverStarted = false
-	}
-}
-
-// Resume is only for internal Gopher Game Server mechanics.
-func Resume() {
-	if serverPaused {
-		serverStarted = true
-		serverPaused = false
-	}
+func (u *User) getConn(connID string) *userConn {
+	u.mux.Lock()
+	conn := u.conns[connID]
+	u.mux.Unlock()
+	return conn
 }

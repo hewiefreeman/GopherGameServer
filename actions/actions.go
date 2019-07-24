@@ -5,7 +5,7 @@ import (
 	"errors"
 	"github.com/gorilla/websocket"
 	"github.com/hewiefreeman/GopherGameServer/helpers"
-	"github.com/hewiefreeman/GopherGameServer/users"
+	"github.com/hewiefreeman/GopherGameServer/core"
 )
 
 // CustomClientAction is an action that you can handle on the server from
@@ -24,7 +24,7 @@ type CustomClientAction struct {
 type Client struct {
 	action string
 
-	user   *users.User
+	user   *core.User
 	connID string
 	socket *websocket.Conn
 
@@ -116,7 +116,7 @@ func NoError() ClientError {
 //
 // WARNING: This is only meant for internal Gopher Game Server mechanics. Your CustomClientAction callbacks are called
 // from this function. This could spawn errors and/or memory leaks.
-func HandleCustomClientAction(action string, data interface{}, user *users.User, conn *websocket.Conn, connID string) {
+func HandleCustomClientAction(action string, data interface{}, user *core.User, conn *websocket.Conn, connID string) {
 	client := Client{user: user, action: action, socket: conn, connID: connID, responded: false}
 	// CHECK IF ACTION EXISTS
 	if customAction, ok := customClientActions[action]; ok {
@@ -198,7 +198,7 @@ func typesMatch(data interface{}, theType int) bool {
 // is needed.
 //
 // NOTE: A response can only be sent once to a Client. Any more calls to Respond() on the same Client will not send a response,
-// nor do anything at all. If you want to send a stream of messages to the Client, first get their User object with users.Get() using
+// nor do anything at all. If you want to send a stream of messages to the Client, first get their User object with core.GetUser() using
 // the Client's Name(). Then you can send Data messages directly to the User with the *User.DataMessage() function.
 func (c *Client) Respond(response interface{}, err ClientError) {
 	//YOU CAN ONLY RESPOND ONCE
@@ -207,15 +207,15 @@ func (c *Client) Respond(response interface{}, err ClientError) {
 	}
 	(*c).responded = true
 	//CONSTRUCT MESSAGE
-	r := make(map[string]interface{})
+	r := make(map[string]map[string]interface{})
 	r[helpers.ServerActionCustomClientActionResponse] = make(map[string]interface{})
-	r[helpers.ServerActionCustomClientActionResponse].(map[string]interface{})["a"] = (*c).action
+	r[helpers.ServerActionCustomClientActionResponse]["a"] = (*c).action
 	if err.id != -1 {
-		r[helpers.ServerActionCustomClientActionResponse].(map[string]interface{})["e"] = make(map[string]interface{})
-		r[helpers.ServerActionCustomClientActionResponse].(map[string]interface{})["e"].(map[string]interface{})["m"] = err.message
-		r[helpers.ServerActionCustomClientActionResponse].(map[string]interface{})["e"].(map[string]interface{})["id"] = err.id
+		r[helpers.ServerActionCustomClientActionResponse]["e"] = make(map[string]interface{})
+		r[helpers.ServerActionCustomClientActionResponse]["e"].(map[string]interface{})["m"] = err.message
+		r[helpers.ServerActionCustomClientActionResponse]["e"].(map[string]interface{})["id"] = err.id
 	} else {
-		r[helpers.ServerActionCustomClientActionResponse].(map[string]interface{})["r"] = response
+		r[helpers.ServerActionCustomClientActionResponse]["r"] = response
 	}
 
 	//SEND MESSAGE TO CLIENT
@@ -227,7 +227,7 @@ func (c *Client) Respond(response interface{}, err ClientError) {
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // User gets the *User of the Client.
-func (c *Client) User() *users.User {
+func (c *Client) User() *core.User {
 	return c.user
 }
 
@@ -262,14 +262,12 @@ func SetServerStarted(val bool) {
 func Pause() {
 	if !serverPaused {
 		serverPaused = true
-		serverStarted = false
 	}
 }
 
 // Resume is only for internal Gopher Game Server mechanics.
 func Resume() {
 	if serverPaused {
-		serverStarted = true
 		serverPaused = false
 	}
 }

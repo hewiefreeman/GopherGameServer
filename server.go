@@ -9,10 +9,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/hewiefreeman/GopherGameServer/actions"
+	"github.com/hewiefreeman/GopherGameServer/core"
 	"github.com/hewiefreeman/GopherGameServer/database"
 	"github.com/hewiefreeman/GopherGameServer/helpers"
-	"github.com/hewiefreeman/GopherGameServer/rooms"
-	"github.com/hewiefreeman/GopherGameServer/users"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -20,8 +19,9 @@ import (
 )
 
 /////////// TO DOs:
-///////////    - Database sharding by every 20,000 IDs for friends tables
-///////////    - Database sharding for Users tables
+///////////    - Implement WebRTC option for voice chat
+///////////    - Make relay for failed P2P connections
+///////////    - Switch-out MySQL authentication with GopherGameDB
 ///////////	- Admin tools
 ///////////    - More useful command-line macros
 
@@ -58,15 +58,12 @@ type ServerSettings struct {
 	EncryptionCost    int    // The amount of encryption iterations the server will run when storing and checking passwords. The higher the number, the longer encryptions take, but are more secure. Default is 4, range is 4-31.
 	CustomLoginColumn string // The custom AccountInfoColumn you wish to use for logging in instead of the default name column.
 	RememberMe        bool   // Enables the "Remember Me" login feature. You can read more about this in project's wiki.
-	Sharding          bool   // Enables the built-in database sharding mechanism.
 
 	EnableRecovery   bool   // Enables the recovery of all Rooms, their settings, and their variables on start-up after terminating the server.
 	RecoveryLocation string // The folder location (starting from system's root folder) where you would like to store the recovery data. (Required for recovery)
 
-	EnableAdminTools   bool   // Enables the use of the Admin Tools
-	EnableRemoteAdmin  bool   // Enabled administration (only) from outside the origin server. When enabled, will override OriginOnly's functionality, but only for administrator connections.
-	AdminToolsLogin    string // The login name for the Admin Tools (Required for Admin Tools)
-	AdminToolsPassword string // The password for the Admin Tools (Required for Admin Tools)
+	AdminLogin    string // The login name for the Admin Tools (Required for Admin Tools)
+	AdminPassword string // The password for the Admin Tools (Required for Admin Tools)
 }
 
 var (
@@ -86,7 +83,7 @@ var (
 	clientConnectCallback func(*http.ResponseWriter, *http.Request) bool
 
 	//SERVER VERSION NUMBER
-	version string = "1.0-ALPHA.3"
+	version string = "1.0-ALPHA.4"
 )
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -146,10 +143,9 @@ func Start(s *ServerSettings) {
 			}
 			os.Remove(settings.RecoveryLocation + "/test.txt")
 
-		} else if settings.EnableAdminTools == true && (settings.AdminToolsLogin == "" || settings.AdminToolsPassword == "") {
-			fmt.Println("AdminToolsLogin and AdminToolsPassword in ServerSettings are required for Administrator Tools. Shutting down...")
+		} else if settings.AdminLogin == "" || settings.AdminPassword == "" {
+			fmt.Println("AdminLogin and AdminPassword in ServerSettings are required. Shutting down...")
 			return
-
 		}
 	} else {
 		//DEFAULT localhost SETTINGS
@@ -185,26 +181,22 @@ func Start(s *ServerSettings) {
 			EncryptionCost:    4,
 			CustomLoginColumn: "",
 			RememberMe:        false,
-			Sharding:          false,
 
 			EnableRecovery:   false,
 			RecoveryLocation: "C:/",
 
-			EnableAdminTools:   true,
-			EnableRemoteAdmin:  false,
-			AdminToolsLogin:    "admin",
-			AdminToolsPassword: "password"}
+			AdminLogin:    "admin",
+			AdminPassword: "password"}
 	}
 
 	//UPDATE SETTINGS IN users PACKAGE, THEN users WILL UPDATE SETTINGS FOR rooms PACKAGE
-	users.SettingsSet((*settings).KickDupOnLogin, (*settings).ServerName, (*settings).RoomDeleteOnLeave, (*settings).EnableSqlFeatures,
+	core.SettingsSet((*settings).KickDupOnLogin, (*settings).ServerName, (*settings).RoomDeleteOnLeave, (*settings).EnableSqlFeatures,
 		(*settings).RememberMe, (*settings).MultiConnect)
 
 	//NOTIFY PACKAGES OF SERVER START
-	users.SetServerStarted(true)
-	rooms.SetServerStarted(true)
+	core.SetServerStarted(true)
 	actions.SetServerStarted(true)
-	database.SetServerStarted(true, (*settings).Sharding)
+	database.SetServerStarted(true)
 
 	//START UP DATABASE
 	if (*settings).EnableSqlFeatures {
@@ -252,8 +244,7 @@ func Start(s *ServerSettings) {
 			fmt.Println("Disconnecting users...")
 
 			//PAUSE SERVER
-			users.Pause()
-			rooms.Pause()
+			core.Pause()
 			actions.Pause()
 			database.Pause()
 
@@ -302,8 +293,7 @@ func Pause() {
 
 		fmt.Println("Pausing server...")
 
-		users.Pause()
-		rooms.Pause()
+		core.Pause()
 		actions.Pause()
 		database.Pause()
 
@@ -325,8 +315,7 @@ func Resume() {
 		serverStarted = true
 
 		fmt.Println("Resuming server...")
-		users.Resume()
-		rooms.Resume()
+		core.Resume()
 		actions.Resume()
 		database.Resume()
 
@@ -348,8 +337,7 @@ func ShutDown() error {
 		fmt.Println("Disconnecting users...")
 
 		//PAUSE SERVER
-		users.Pause()
-		rooms.Pause()
+		core.Pause()
 		actions.Pause()
 		database.Pause()
 
@@ -386,8 +374,8 @@ func saveState() {
 func getState() map[string]interface{} {
 	state := make(map[string]interface{})
 
-	//GET ROOM STATES
-	state["rooms"] = rooms.GetState()
+	//GET CORE STATE
+	state["rooms"] = core.GetState()
 
 	//
 	return state
@@ -469,7 +457,7 @@ func recoverState() {
 				fmt.Println("Error recovering room '" + name + "': Incorrect owner format")
 				continue
 			}
-			room, roomErr := rooms.New(name, rType, isPrivate, int(maxUsers), owner)
+			room, roomErr := core.NewRoom(name, rType, isPrivate, int(maxUsers), owner)
 			if roomErr != nil {
 				fmt.Println("Error recovering room '"+name+"':", roomErr)
 				continue

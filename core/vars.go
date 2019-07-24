@@ -1,7 +1,8 @@
-package users
+package core
 
 import (
 	"github.com/hewiefreeman/GopherGameServer/helpers"
+	"errors"
 )
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -32,7 +33,7 @@ func (u *User) SetVariable(key string, value interface{}, connID string) {
 	}
 	(*u.conns[connID]).vars[key] = value
 	//SEND RESPONSE TO CLIENT
-	clientResp := helpers.MakeClientResponse(helpers.ClientActionSetVariable, resp, helpers.NewError("", 0))
+	clientResp := helpers.MakeClientResponse(helpers.ClientActionSetVariable, resp, helpers.NoError())
 	(*u.conns[connID]).socket.WriteJSON(clientResp)
 	u.mux.Unlock()
 }
@@ -58,7 +59,7 @@ func (u *User) SetVariables(values map[string]interface{}, connID string) {
 		(*u.conns[connID]).vars[key] = val
 	}
 	//SEND RESPONSE TO CLIENT
-	clientResp := helpers.MakeClientResponse(helpers.ClientActionSetVariables, values, helpers.NewError("", 0))
+	clientResp := helpers.MakeClientResponse(helpers.ClientActionSetVariables, values, helpers.NoError())
 	(*u.conns[connID]).socket.WriteJSON(clientResp)
 	u.mux.Unlock()
 }
@@ -98,4 +99,83 @@ func (u *User) GetVariables(keys []string, connID string) map[string]interface{}
 
 	//
 	return value
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//   ROOM VARIABLES   /////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// SetVariable sets a Room variable.
+func (r *Room) SetVariable(key string, value interface{}) {
+	//REJECT INCORRECT INPUT
+	if len(key) == 0 {
+		return
+	}
+
+	r.mux.Lock()
+	if r.usersMap == nil {
+		r.mux.Unlock()
+		return
+	}
+	r.vars[key] = value
+	r.mux.Unlock()
+
+	//
+	return
+}
+
+// SetVariables sets all the specified Room variables at once.
+func (r *Room) SetVariables(values map[string]interface{}) {
+	r.mux.Lock()
+	if r.usersMap == nil {
+		r.mux.Unlock()
+		return
+	}
+	for key, val := range values {
+		r.vars[key] = val
+	}
+	r.mux.Unlock()
+
+	//
+	return
+}
+
+// GetVariable gets one of the Room's variables.
+func (r *Room) GetVariable(key string) (interface{}, error) {
+	//REJECT INCORRECT INPUT
+	if len(key) == 0 {
+		return nil, errors.New("*Room.GetVariable() requires a key")
+	}
+
+	r.mux.Lock()
+	if r.usersMap == nil {
+		r.mux.Unlock()
+		return nil, errors.New("Room '" + r.name + "' does not exist")
+	}
+	value := r.vars[key]
+	r.mux.Unlock()
+
+	//
+	return value, nil
+}
+
+// GetVariables gets all the specified (or all if not) Room variables as a map[string]interface{}.
+func (r *Room) GetVariables(keys []string) (map[string]interface{}, error) {
+	var value map[string]interface{} = make(map[string]interface{})
+	r.mux.Lock()
+	if r.usersMap == nil {
+		r.mux.Unlock()
+		return nil, errors.New("Room '" + r.name + "' does not exist")
+	}
+	if keys == nil || len(keys) == 0 {
+		value = r.vars
+	} else {
+		for i := 0; i < len(keys); i++ {
+			value[keys[i]] = r.vars[keys[i]]
+		}
+	}
+	r.mux.Unlock()
+
+	//
+	return value, nil
 }

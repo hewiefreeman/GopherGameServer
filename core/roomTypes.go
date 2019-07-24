@@ -1,4 +1,4 @@
-package rooms
+package core
 
 var (
 	roomTypes = make(map[string]*RoomType)
@@ -17,8 +17,8 @@ type RoomType struct {
 
 	createCallback    func(*Room)         // roomCreated
 	deleteCallback    func(*Room)         // roomDeleted
-	userEnterCallback func(*Room, string) // roomFrom, userName
-	userLeaveCallback func(*Room, string) // roomFrom, userName
+	userEnterCallback func(*Room, *RoomUser) // roomFrom, user
+	userLeaveCallback func(*Room, *RoomUser) // roomFrom, user
 }
 
 // NewRoomType Adds a RoomType to the server. A RoomType is used in conjunction with it's corresponding callbacks
@@ -129,7 +129,7 @@ func (r *RoomType) SetDeleteCallback(callback func(*Room)) *RoomType {
 // and the string is the name of the User that entered.
 //
 // Note: You must call this BEFORE starting the server in order for it to take effect.
-func (r *RoomType) SetUserEnterCallback(callback func(*Room, string)) *RoomType {
+func (r *RoomType) SetUserEnterCallback(callback func(*Room, *RoomUser)) *RoomType {
 	if serverStarted {
 		return r
 	}
@@ -142,7 +142,7 @@ func (r *RoomType) SetUserEnterCallback(callback func(*Room, string)) *RoomType 
 // and the string is the name of the User that left.
 //
 // Note: You must call this BEFORE starting the server in order for it to take effect.
-func (r *RoomType) SetUserLeaveCallback(callback func(*Room, string)) *RoomType {
+func (r *RoomType) SetUserLeaveCallback(callback func(*Room, *RoomUser)) *RoomType {
 	if serverStarted {
 		return r
 	}
@@ -195,7 +195,7 @@ func (r *RoomType) HasDeleteCallback() bool {
 }
 
 // UserEnterCallback returns the function that this RoomType calls when a User enters a Room of this RoomType.
-func (r *RoomType) UserEnterCallback() func(*Room, string) {
+func (r *RoomType) UserEnterCallback() func(*Room, *RoomUser) {
 	return r.userEnterCallback
 }
 
@@ -205,7 +205,7 @@ func (r *RoomType) HasUserEnterCallback() bool {
 }
 
 // UserLeaveCallback returns the function that this RoomType calls when a User leaves a Room of this RoomType.
-func (r *RoomType) UserLeaveCallback() func(*Room, string) {
+func (r *RoomType) UserLeaveCallback() func(*Room, *RoomUser) {
 	return r.userLeaveCallback
 }
 

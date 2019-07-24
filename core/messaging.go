@@ -1,0 +1,218 @@
+package core
+
+import (
+	"errors"
+	"github.com/gorilla/websocket"
+	"github.com/hewiefreeman/GopherGameServer/helpers"
+)
+
+// These represent the types of room messages the server sends.
+const (
+	MessageTypeChat = iota
+	MessageTypeServer
+)
+
+// These are the sub-types that a MessageTypeServer will come with. Ordered by their visible priority for your UI.
+const (
+	ServerMessageGame = iota
+	ServerMessageNotice
+	ServerMessageImportant
+)
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+//   Messaging Users   ///////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// PrivateMessage sends a private message to another User by name.
+func (u *User) PrivateMessage(userName string, message interface{}) {
+	user, userErr := GetUser(userName)
+	if userErr != nil {
+		return
+	}
+
+	//CONSTRUCT MESSAGE
+	theMessage := make(map[string]map[string]interface{})
+	theMessage[helpers.ServerActionPrivateMessage] = make(map[string]interface{})
+	theMessage[helpers.ServerActionPrivateMessage]["f"] = u.name    // from
+	theMessage[helpers.ServerActionPrivateMessage]["t"] = user.name // to
+	theMessage[helpers.ServerActionPrivateMessage]["m"] = message   // message
+
+	//SEND MESSAGES
+	user.mux.Lock()
+	for _, conn := range user.conns {
+		(*conn).socket.WriteJSON(theMessage)
+	}
+	user.mux.Unlock()
+	u.mux.Lock()
+	for _, conn := range u.conns {
+		(*conn).socket.WriteJSON(theMessage)
+	}
+	u.mux.Unlock()
+
+	return
+}
+
+// DataMessage sends a data message directly to the User.
+func (u *User) DataMessage(data interface{}, connID string) {
+	//CONSTRUCT MESSAGE
+	message := make(map[string]interface{})
+	message[helpers.ServerActionDataMessage] = data
+
+	//SEND MESSAGE TO USER
+	u.mux.Lock()
+	if connID == "" {
+		for _, conn := range u.conns {
+			(*conn).socket.WriteJSON(message)
+		}
+	} else {
+		if conn, ok := u.conns[connID]; ok {
+			(*conn).socket.WriteJSON(message)
+		}
+	}
+	u.mux.Unlock()
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+//   Messaging Rooms   ///////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// ServerMessage sends a server message to the specified recipients in the Room. The parameter recipients can be nil or an empty slice
+// of string. In which case, the server message will be sent to all Users in the Room.
+func (r *Room) ServerMessage(message interface{}, messageType int, recipients []string) error {
+	if message == nil {
+		return errors.New("*Room.ServerMessage() requires a message")
+	}
+
+	return r.sendMessage(MessageTypeServer, messageType, recipients, "", message)
+}
+
+// ChatMessage sends a chat message to all Users in the Room.
+func (r *Room) ChatMessage(author string, message interface{}) error {
+	//REJECT INCORRECT INPUT
+	if len(author) == 0 {
+		return errors.New("*Room.ChatMessage() requires an author")
+	} else if message == nil {
+		return errors.New("*Room.ChatMessage() requires a message")
+	}
+
+	return r.sendMessage(MessageTypeChat, 0, nil, author, message)
+}
+
+// DataMessage sends a data message to the specified recipients in the Room. The parameter recipients can be nil or an empty slice
+// of string. In which case, the data message will be sent to all Users in the Room.
+func (r *Room) DataMessage(message interface{}, recipients []string) error {
+	//GET USER MAP
+	userMap, err := r.GetUserMap()
+	if err != nil {
+		return err
+	}
+
+	//CONSTRUCT MESSAGE
+	theMessage := make(map[string]interface{})
+	theMessage[helpers.ServerActionDataMessage] = message
+
+	//SEND MESSAGE TO USERS
+	if recipients == nil || len(recipients) == 0 {
+		for _, u := range userMap {
+			u.mux.Lock()
+			for _, conn := range u.conns {
+				conn.socket.WriteJSON(theMessage)
+			}
+			u.mux.Unlock()
+		}
+	} else {
+		for i := 0; i < len(recipients); i++ {
+			if u, ok := userMap[recipients[i]]; ok {
+				u.mux.Lock()
+				for _, conn := range u.conns {
+					conn.socket.WriteJSON(theMessage)
+				}
+				u.mux.Unlock()
+			}
+		}
+	}
+
+	//
+	return nil
+}
+
+func (r *Room) sendMessage(mt int, st int, rec []string, a string, m interface{}) error {
+	//GET USER MAP
+	userMap, err := r.GetUserMap()
+	if err != nil {
+		return err
+	}
+
+	//CONSTRUCT MESSAGE
+	message := make(map[string]map[string]interface{})
+	message[helpers.ServerActionRoomMessage] = make(map[string]interface{})
+	if mt == MessageTypeServer {
+		message[helpers.ServerActionRoomMessage]["s"] = st
+	} // Server messages come with a sub-type
+	if len(a) > 0 && mt != MessageTypeServer {
+		message[helpers.ServerActionRoomMessage]["a"] = a
+	} // Non-server messages have authors
+	message[helpers.ServerActionRoomMessage]["m"] = m // The message
+
+	//SEND MESSAGE TO USERS
+	if rec == nil || len(rec) == 0 {
+		for _, u := range userMap {
+			u.mux.Lock()
+			for _, conn := range u.conns {
+				conn.socket.WriteJSON(message)
+			}
+			u.mux.Unlock()
+		}
+	} else {
+		for i := 0; i < len(rec); i++ {
+			if u, ok := userMap[rec[i]]; ok {
+				u.mux.Lock()
+				for _, conn := range u.conns {
+					conn.socket.WriteJSON(message)
+				}
+				u.mux.Unlock()
+			}
+		}
+	}
+
+	return nil
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//   VOICE STREAMS   //////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// VoiceStream sends a voice stream from the client API to all the users in the room besides the user who is speaking.
+func (r *Room) VoiceStream(userName string, userSocket *websocket.Conn, stream interface{}) {
+	//GET USER MAP
+	userMap, err := r.GetUserMap()
+	if err != nil {
+		return
+	}
+
+	//CONSTRUCT VOICE MESSAGE
+	theMessage := make(map[string]map[string]interface{})
+	theMessage[helpers.ServerActionVoiceStream] = make(map[string]interface{})
+	theMessage[helpers.ServerActionVoiceStream]["u"] = userName
+	theMessage[helpers.ServerActionVoiceStream]["d"] = stream
+
+	//REMOVE SENDING USER FROM userMap
+	delete(userMap, userName) // COMMENT OUT FOR ECHO TESTS
+
+	//SEND MESSAGE TO USERS
+	for _, u := range userMap {
+		for _, conn := range u.conns {
+			(*conn).socket.WriteJSON(theMessage)
+		}
+	}
+
+	//CONSTRUCT PING MESSAGE
+	pingMessage := make(map[string]interface{})
+	pingMessage[helpers.ServerActionVoicePing] = nil
+
+	//SEND PING MESSAGE TO SENDING USER
+	userSocket.WriteJSON(pingMessage)
+
+	//
+	return
+}

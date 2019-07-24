@@ -2,8 +2,8 @@ package gopher
 
 import (
 	"github.com/gorilla/websocket"
+	"github.com/hewiefreeman/GopherGameServer/core"
 	"github.com/hewiefreeman/GopherGameServer/helpers"
-	"github.com/hewiefreeman/GopherGameServer/users"
 	"net/http"
 	"strconv"
 	"sync"
@@ -64,7 +64,7 @@ func clientActionListener(conn *websocket.Conn) {
 	var action clientAction
 
 	var clientMux sync.Mutex // LOCKS user AND connID
-	var user *users.User     // THE CLIENT'S User OBJECT
+	var user *core.User      // THE CLIENT'S User OBJECT
 	var connID string        // CLIENT SESSION ID
 
 	// THE CLIENT'S AUTOLOG INFO
@@ -201,7 +201,7 @@ func clientActionListener(conn *websocket.Conn) {
 					return
 				}
 				//AUTO-LOG THE CLIENT
-				connID, gErr = users.AutoLogIn(deviceTag, oldPass, devicePass, deviceUserID, conn, &user, &clientMux)
+				connID, gErr = core.AutoLogIn(deviceTag, oldPass, devicePass, deviceUserID, conn, &user, &clientMux)
 				if gErr.ID != 0 {
 					//ERROR AUTO-LOGGING - RUN AUTOLOGCOMPLETE AND DELETE KEYS FOR CLIENT, AND SILENTLY CHANGE DEVICE KEY
 					newTag, newTagErr := helpers.GenerateSecureString(32)
@@ -210,12 +210,12 @@ func clientActionListener(conn *websocket.Conn) {
 						conn.Close()
 						return
 					}
-					autologMessage := make(map[string]interface{})
+					autologMessage := make(map[string]map[string]interface{})
 					autologMessage[helpers.ServerActionAutoLoginFailed] = make(map[string]interface{})
-					autologMessage[helpers.ServerActionAutoLoginFailed].(map[string]interface{})["dt"] = newTag
-					autologMessage[helpers.ServerActionAutoLoginFailed].(map[string]interface{})["e"] = make(map[string]interface{})
-					autologMessage[helpers.ServerActionAutoLoginFailed].(map[string]interface{})["e"].(map[string]interface{})["m"] = gErr.Message
-					autologMessage[helpers.ServerActionAutoLoginFailed].(map[string]interface{})["e"].(map[string]interface{})["id"] = gErr.ID
+					autologMessage[helpers.ServerActionAutoLoginFailed]["dt"] = newTag
+					autologMessage[helpers.ServerActionAutoLoginFailed]["e"] = make(map[string]interface{})
+					autologMessage[helpers.ServerActionAutoLoginFailed]["e"].(map[string]interface{})["m"] = gErr.Message
+					autologMessage[helpers.ServerActionAutoLoginFailed]["e"].(map[string]interface{})["id"] = gErr.ID
 					writeErr := conn.WriteJSON(autologMessage)
 					if writeErr != nil {
 						conn.WriteControl(websocket.CloseMessage, []byte{}, time.Now().Add(time.Second*1))
@@ -268,7 +268,7 @@ func clientActionListener(conn *websocket.Conn) {
 	}
 }
 
-func sockedDropped(user *users.User, connID string, clientMux *sync.Mutex) {
+func sockedDropped(user *core.User, connID string, clientMux *sync.Mutex) {
 	if user != nil {
 		//CLIENT WAS LOGGED IN. LOG THEM OUT
 		(*clientMux).Unlock()
@@ -299,7 +299,7 @@ func (c *connections) subtract() {
 }
 
 // ClientsConnected returns the number of clients connected to the server. Includes connections
-// not logged in as a User. To get the number of Users logged in, use the users.UserCount() function.
+// not logged in as a User. To get the number of Users logged in, use the core.UserCount() function.
 func ClientsConnected() int {
 	conns.connsMux.Lock()
 	defer conns.connsMux.Unlock()

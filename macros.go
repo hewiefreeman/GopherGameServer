@@ -3,8 +3,7 @@ package gopher
 import (
 	"bufio"
 	"fmt"
-	"github.com/hewiefreeman/GopherGameServer/rooms"
-	"github.com/hewiefreeman/GopherGameServer/users"
+	"github.com/hewiefreeman/GopherGameServer/core"
 	"os"
 	"strconv"
 	"strings"
@@ -15,8 +14,8 @@ func macroListener() {
 		reader := bufio.NewReader(os.Stdin)
 		fmt.Print("[Gopher] Command: ")
 		text, _ := reader.ReadString('\n')
-		final := strings.TrimSpace(text)
-		stop := handleMacro(final)
+		text = strings.TrimSpace(text)
+		stop := handleMacro(text)
 		if stop {
 			return
 		}
@@ -32,9 +31,9 @@ func handleMacro(macro string) bool {
 		ShutDown()
 		return true
 	} else if macro == "roomcount" {
-		fmt.Println("Room count: ", rooms.RoomCount())
+		fmt.Println("Room count: ", core.RoomCount())
 	} else if macro == "usercount" {
-		fmt.Println("User count: ", users.UserCount())
+		fmt.Println("User count: ", core.UserCount())
 	} else if len(macro) >= 12 && macro[0:10] == "deleteroom" {
 		macroDeleteRoom(macro)
 	} else if len(macro) >= 9 && macro[0:7] == "newroom" {
@@ -51,7 +50,7 @@ func handleMacro(macro string) bool {
 
 func macroKick(macro string) {
 	userName := macro[5:]
-	user, userErr := users.Get(userName)
+	user, userErr := core.GetUser(userName)
 	if userErr != nil {
 		fmt.Println(userErr)
 		return
@@ -75,7 +74,7 @@ func macroNewRoom(macro string) {
 		fmt.Println("maxUsers must be an integer")
 		return
 	}
-	_, roomErr := rooms.New(s[1], s[2], isPrivate, maxUsers, "")
+	_, roomErr := core.NewRoom(s[1], s[2], isPrivate, maxUsers, "")
 	if roomErr != nil {
 		fmt.Println(roomErr)
 		return
@@ -89,7 +88,7 @@ func macroDeleteRoom(macro string) {
 		fmt.Println("deleteroom expects 1 parameter (name string)")
 		return
 	}
-	room, roomErr := rooms.Get(s[1])
+	room, roomErr := core.GetRoom(s[1])
 	if roomErr != nil {
 		fmt.Println(roomErr)
 		return
@@ -109,7 +108,7 @@ func macroGetUser(macro string) {
 		return
 	}
 
-	user, userErr := users.Get(s[1])
+	user, userErr := core.GetUser(s[1])
 	if userErr != nil {
 		fmt.Println(userErr)
 		return
@@ -134,7 +133,7 @@ func macroGetRoom(macro string) {
 		return
 	}
 
-	room, roomErr := rooms.Get(s[1])
+	room, roomErr := core.GetRoom(s[1])
 	if roomErr != nil {
 		fmt.Println(roomErr)
 		return

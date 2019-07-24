@@ -4,7 +4,6 @@ import (
 	"errors"
 	"github.com/hewiefreeman/GopherGameServer/helpers"
 	"strconv"
-	"database/sql"
 )
 
 var (
@@ -154,6 +153,12 @@ func checkCustomRequirements(customCols map[string]interface{}, requirements map
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////
+//   QUERY HELPERS   /////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////
 //   SIGN A USER UP   ////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -186,18 +191,7 @@ func SignUpClient(userName string, password string, customCols map[string]interf
 	var vals []interface{}
 
 	//CREATE PART 1 OF QUERY
-	var queryPart1 string
-	var shard *DBShard
-	var err error
-	if shardingInit {
-		shard, err = GetUserShard(helpers.UserHashNumber(userName))
-		if err != nil {
-			return helpers.NewError(err.Error(), helpers.ErrorAuthUnexpected)
-		}
-		queryPart1 = "INSERT INTO " + usersShardPrefix + strconv.Itoa(shard.ID()) + " (" + usersColumnName + ", " + usersColumnPassword + ", "
-	}else{
-		queryPart1 = "INSERT INTO " + tableUsers + " (" + usersColumnName + ", " + usersColumnPassword + ", "
-	}
+	queryPart1 := "INSERT INTO " + tableUsers + " (" + usersColumnName + ", " + usersColumnPassword + ", "
 
 	if customCols != nil {
 		vals = make([]interface{}, 0, len(customCols))
@@ -240,25 +234,14 @@ func SignUpClient(userName string, password string, customCols map[string]interf
 
 	queryPart2 = queryPart2[0:len(queryPart2)-2] + ");"
 
-	var insertErr error
-	if shardingInit {
-		// GET MASTER OR NEXT HEALTHY REPLICA
-		var r *DBReplica = shard.Master()
-		if r == nil {
-			return helpers.NewError(errorNoShardFound, helpers.ErrorAuthUnexpected)
-		}
-		//EXECUTE QUERY
-		_, insertErr = r.Conn().Exec(queryPart1 + queryPart2)
-	} else {
-		//EXECUTE QUERY
-		_, insertErr = database.Exec(queryPart1 + queryPart2)
-	}
+	//EXECUTE QUERY
+	_, insertErr := database.Exec(queryPart1 + queryPart2)
 	if insertErr != nil {
 		return helpers.NewError(insertErr.Error(), helpers.ErrorAuthQuery)
 	}
 
 	//
-	return helpers.NewError("", 0)
+	return helpers.NoError()
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -280,17 +263,6 @@ func LoginClient(userName string, password string, deviceTag string, remMe bool,
 		return "", 0, "", helpers.NewError(errorMaliciousChars, helpers.ErrorAuthMaliciousChars)
 	} else if !checkCustomRequirements(customCols, customLoginRequirements) {
 		return "", 0, "", helpers.NewError(errorIncorrectCols, helpers.ErrorAuthIncorrectCols)
-	}
-
-	// GET SHARD
-	var shard *DBShard
-	var err error
-	hashNum := helpers.UserHashNumber(userName)
-	if shardingInit {
-		shard, err = GetUserShard(hashNum)
-		if err != nil {
-			return "", 0, "", helpers.NewError(err.Error(), helpers.ErrorAuthUnexpected)
-		}
 	}
 
 	//FIRST THREE ARE id, password, name IN THAT ORDER
@@ -318,24 +290,11 @@ func LoginClient(userName string, password string, deviceTag string, remMe bool,
 	if len(customLoginColumn) > 0 {
 		loginCol = customLoginColumn
 	}
-	if shardingInit {
-		tableName = usersShardPrefix + strconv.Itoa(shard.ID())
-	}
 
 	selectQuery = selectQuery[0:len(selectQuery)-2] + " FROM " + tableName + " WHERE " + loginCol + "=\"" + userName + "\" LIMIT 1;"
 
 	//EXECUTE SELECT QUERY
-	var checkRows *sql.Rows
-	if shardingInit {
-		// GET REPLICA
-		var r *DBReplica = shard.GetReplica()
-		if r == nil {
-			return "", 0, "", helpers.NewError(errorNoShardFound, helpers.ErrorAuthUnexpected)
-		}
-		checkRows, err = r.Conn().Query(selectQuery)
-	} else {
-		checkRows, err = database.Query(selectQuery)
-	}
+	checkRows, err := database.Query(selectQuery)
 	if err != nil {
 		return "", 0, "", helpers.NewError(errorIncorrectLogin, helpers.ErrorAuthIncorrectLogin)
 	}
@@ -383,25 +342,8 @@ func LoginClient(userName string, password string, deviceTag string, remMe bool,
 		//MAKE AUTO-LOG ENTRY
 		devicePass, devicePassErr = helpers.GenerateSecureString(32)
 		if devicePassErr == nil {
-			var exErr error
-			if shardingInit {
-				// GET AUTOLOG SHARD/MASTER
-				shard, err = GetAutologShard(hashNum)
-				if err == nil {
-					var r *DBReplica = shard.Master()
-					if r != nil {
-						_, exErr = r.Conn().Exec("INSERT INTO " + autologShardPrefix + strconv.Itoa(shard.ID()) + " (" + autologsColumnID + ", " + autologsColumnDeviceTag + ", " + autologsColumnDevicePass +
-						") VALUES (" + strconv.Itoa(hashNum) + ", \"" + deviceTag + "\", \"" + devicePass + "\");")
-					} else {
-						///// LOG ERROR!!!!
-					}
-				} else {
-					////// LOG ERROR!!!!!!!
-				}
-			} else {
-				_, exErr = database.Exec("INSERT INTO " + tableAutologs + " (" + autologsColumnID + ", " + autologsColumnDeviceTag + ", " + autologsColumnDevicePass +
+			_, exErr := database.Exec("INSERT INTO " + tableAutologs + " (" + autologsColumnID + ", " + autologsColumnDeviceTag + ", " + autologsColumnDevicePass +
 						") VALUES (" + strconv.Itoa(*dbIndex) + ", \"" + deviceTag + "\", \"" + devicePass + "\");")
-			}
 			if exErr != nil {
 				////// LOG ERROR!!!!!!
 			}
@@ -411,7 +353,7 @@ func LoginClient(userName string, password string, deviceTag string, remMe bool,
 	}
 
 	//
-	return *uName, *dbIndex, devicePass, helpers.NewError("", 0)
+	return *uName, *dbIndex, devicePass, helpers.NoError()
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -429,23 +371,8 @@ func AutoLoginClient(tag string, pass string, newPass string, dbID int) (string,
 
 	//EXECUTE SELECT QUERY
 	var dPass string
-	var shard *DBShard
-	var err error
 	db := database
 	tableName := tableAutologs
-	if shardingInit {
-		// SET DB TO SHARD REPLICA
-		shard, err = GetAutologShard(dbID)
-		if err != nil {
-			return "", helpers.NewError(err.Error(), helpers.ErrorAuthUnexpected)
-		}
-		r := shard.GetReplica()
-		if r == nil {
-			return "", helpers.NewError(errorNoShardFound, helpers.ErrorAuthUnexpected)
-		}
-		tableName = autologShardPrefix + strconv.Itoa(shard.ID())
-		db = r.Conn()
-	}
 	checkRows, checkErr := db.Query("Select " + autologsColumnDevicePass + " FROM " + tableName + " WHERE " + autologsColumnID + "=" + strconv.Itoa(dbID) + " AND " +
 		autologsColumnDeviceTag + "=\"" + tag + "\" LIMIT 1;")
 	if checkErr != nil {
@@ -467,14 +394,6 @@ func AutoLoginClient(tag string, pass string, newPass string, dbID int) (string,
 	}
 
 	//UPDATE TO NEW PASS
-	if shardingInit {
-		// SWITCH TO MASTER
-		r := shard.Master()
-		if r == nil {
-			return "", helpers.NewError(errorNoShardFound, helpers.ErrorAuthUnexpected)
-		}
-		db = r.Conn()
-	}
 	_, updateErr := db.Exec("UPDATE " + tableName + " SET " + autologsColumnDevicePass + "=\"" + newPass + "\" WHERE " + autologsColumnID + "=" + strconv.Itoa(dbID) + " AND " +
 		autologsColumnDeviceTag + "=\"" + tag + "\" LIMIT 1;")
 	if updateErr != nil {
@@ -483,19 +402,6 @@ func AutoLoginClient(tag string, pass string, newPass string, dbID int) (string,
 
 	//EVERYTHING WENT WELL, GET THE User's NAME
 	tableName = tableUsers
-	if shardingInit {
-		// SET DB TO SHARD REPLICA
-		shard, err = GetUserShard(dbID)
-		if err != nil {
-			return "", helpers.NewError(err.Error(), helpers.ErrorAuthUnexpected)
-		}
-		r := shard.GetReplica()
-		if r == nil {
-			return "", helpers.NewError(errorNoShardFound, helpers.ErrorAuthUnexpected)
-		}
-		tableName = usersShardPrefix + strconv.Itoa(shard.ID())
-		db = r.Conn()
-	}
 	var userName string
 	userRows, usrErr := db.Query("Select " + usersColumnName + " FROM " + tableName + " WHERE " + usersColumnID + "=" + strconv.Itoa(dbID) + " LIMIT 1;")
 	if usrErr != nil {
@@ -515,7 +421,7 @@ func AutoLoginClient(tag string, pass string, newPass string, dbID int) (string,
 	}
 
 	//
-	return userName, helpers.NewError("", 0)
+	return userName, helpers.NoError()
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -629,7 +535,7 @@ func ChangePassword(userName string, password string, newPassword string, custom
 	}
 
 	//
-	return helpers.NewError("", 0)
+	return helpers.NoError()
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -736,7 +642,7 @@ func ChangeAccountInfo(userName string, password string, customCols map[string]i
 	}
 
 	//
-	return helpers.NewError("", 0)
+	return helpers.NoError()
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -827,5 +733,5 @@ func DeleteAccount(userName string, password string, customCols map[string]inter
 	}
 
 	//
-	return helpers.NewError("", 0)
+	return helpers.NoError()
 }
