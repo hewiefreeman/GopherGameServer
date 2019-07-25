@@ -19,11 +19,10 @@ Moreover, Gopher has a built-in, fully customizable SQL client authentication me
 
 ### Upcoming features
 
- - Customizable sharding mechanism for accounts, freinds, and auto-login databases
- - Support for master-slave and master-master replication (or MySQL Group Replication)
- - Distributed load balancer/monitor
+ - Distributed load balancer/server coordinator/monitor
  - Secure server cluster broadcasts with caching optimizations
- - Tools for administrating and monitoring servers
+ - GUI for administrating and monitoring servers
+ - Integration with [GopherDB](https://github.com/hewiefreeman/GopherDB)
 
 # Client APIs
 
