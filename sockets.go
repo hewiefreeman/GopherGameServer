@@ -231,7 +231,7 @@ func clientActionListener(conn *websocket.Conn) {
 						return
 					}
 					autologMessage := map[string]map[string]interface{}{
-						helpers.ServerActionAutoLoginFailed: map[string]interface{}{
+						helpers.ServerActionAutoLoginFailed: {
 							"dt": newTag,
 							"e": map[string]interface{}{
 								"m":  gErr.Message,

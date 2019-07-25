@@ -32,7 +32,7 @@ func (u *User) PrivateMessage(userName string, message interface{}) {
 
 	//CONSTRUCT MESSAGE
 	theMessage := map[string]map[string]interface{}{
-		helpers.ServerActionPrivateMessage: map[string]interface{}{
+		helpers.ServerActionPrivateMessage: {
 			"f": u.name,    // from
 			"t": user.name, // to
 			"m": message,
@@ -200,7 +200,7 @@ func (r *Room) VoiceStream(userName string, userSocket *websocket.Conn, stream i
 
 	//CONSTRUCT VOICE MESSAGE
 	theMessage := map[string]map[string]interface{}{
-		helpers.ServerActionVoiceStream: map[string]interface{}{
+		helpers.ServerActionVoiceStream: {
 			"u": userName,
 			"d": stream,
 		},

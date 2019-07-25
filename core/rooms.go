@@ -253,7 +253,7 @@ func (r *Room) AddUser(user *User, connID string) error {
 	if roomType.BroadcastUserEnter() {
 		//BROADCAST ENTER TO USERS IN ROOM
 		message := map[string]map[string]interface{}{
-			helpers.ServerActionUserEnter: map[string]interface{}{
+			helpers.ServerActionUserEnter: {
 				"u": userName,
 				"g": user.isGuest,
 			},
@@ -335,7 +335,7 @@ func (r *Room) RemoveUser(user *User, connID string) error {
 	} else if roomType.BroadcastUserLeave() {
 		//CONSTRUCT LEAVE MESSAGE
 		message := map[string]map[string]interface{}{
-			helpers.ServerActionUserLeave: map[string]interface{}{
+			helpers.ServerActionUserLeave: {
 				"u": userName,
 			},
 		}

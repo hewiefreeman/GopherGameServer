@@ -209,7 +209,7 @@ func (c *Client) Respond(response interface{}, err ClientError) {
 	(*c).responded = true
 	//CONSTRUCT MESSAGE
 	r := map[string]map[string]interface{}{
-		helpers.ServerActionCustomClientActionResponse: map[string]interface{}{
+		helpers.ServerActionCustomClientActionResponse: {
 			"a": (*c).action,
 		},
 	}

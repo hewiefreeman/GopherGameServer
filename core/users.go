@@ -240,7 +240,7 @@ func Login(userName string, dbID int, autologPass string, isGuest bool, remMe bo
 
 	//SEND ONLINE MESSAGE TO FRIENDS
 	statusMessage := map[string]map[string]interface{}{
-		helpers.ServerActionFriendStatusChange: map[string]interface{}{
+		helpers.ServerActionFriendStatusChange: {
 			"n": userName,
 			"s": 0,
 		},
@@ -332,7 +332,7 @@ func (u *User) Logout(connID string) {
 	if len(u.conns) == 1 {
 		//SEND STATUS CHANGE TO FRIENDS
 		statusMessage := map[string]map[string]interface{}{
-			helpers.ServerActionFriendStatusChange: map[string]interface{}{
+			helpers.ServerActionFriendStatusChange: {
 				"n": u.name,
 				"s": StatusOffline,
 			},
@@ -384,7 +384,7 @@ func (u *User) Kick() {
 
 	//SEND STATUS CHANGE TO FRIENDS
 	statusMessage := map[string]map[string]interface{}{
-		helpers.ServerActionFriendStatusChange: map[string]interface{}{
+		helpers.ServerActionFriendStatusChange: {
 			"n": u.name,
 			"s": StatusOffline,
 		},
@@ -550,7 +550,7 @@ func (u *User) SetStatus(status int) {
 
 	//SEND STATUS CHANGE MESSAGE TO User's FRIENDS WHOM ARE "ACCEPTED"
 	message := map[string]map[string]interface{}{
-		helpers.ServerActionFriendStatusChange: map[string]interface{}{
+		helpers.ServerActionFriendStatusChange: {
 			"n": u.name,
 			"s": status,
 		},
@@ -610,7 +610,7 @@ func (u *User) Invite(invUser *User, connID string) error {
 
 	//MAKE INVITE MESSAGE
 	invMessage := map[string]map[string]interface{}{
-		helpers.ServerActionRoomInvite: map[string]interface{}{
+		helpers.ServerActionRoomInvite: {
 			"u": u.name,
 			"r": currRoom.Name(),
 		},

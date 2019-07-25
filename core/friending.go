@@ -51,7 +51,7 @@ func (u *User) FriendRequest(friendName string) error {
 	//SEND A FRIEND REQUEST TO THE USER IF THEY ARE ONLINE
 	if friendOnline {
 		message := map[string]map[string]interface{}{
-			helpers.ServerActionFriendRequest: map[string]interface{}{
+			helpers.ServerActionFriendRequest: {
 				"n": u.name,
 			},
 		}
@@ -120,7 +120,7 @@ func (u *User) AcceptFriendRequest(friendName string) error {
 	var fStatus int = StatusOffline
 	if friendOnline {
 		message := map[string]map[string]interface{}{
-			helpers.ServerActionFriendAccept: map[string]interface{}{
+			helpers.ServerActionFriendAccept: {
 				"n": u.name,
 				"s": u.status,
 			},
@@ -197,7 +197,7 @@ func (u *User) DeclineFriendRequest(friendName string) error {
 	//SEND A FRIEND REQUEST TO THE USER IF THEY ARE ONLINE
 	if friendOnline {
 		message := map[string]map[string]interface{}{
-			helpers.ServerActionFriendRemove: map[string]interface{}{
+			helpers.ServerActionFriendRemove: {
 				"n": u.name,
 			},
 		}
@@ -266,7 +266,7 @@ func (u *User) RemoveFriend(friendName string) error {
 	//SEND A FRIEND REQUEST TO THE USER IF THEY ARE ONLINE
 	if friendOnline {
 		message := map[string]map[string]interface{}{
-			helpers.ServerActionFriendRemove: map[string]interface{}{
+			helpers.ServerActionFriendRemove: {
 				"n": u.name,
 			},
 		}
