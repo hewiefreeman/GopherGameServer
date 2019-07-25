@@ -19,11 +19,10 @@ Moreover, Gopher has a built-in, fully customizable SQL client authentication me
 
 ### Upcoming features
 
- - Customizable sharding mechanism for accounts, freinds, and auto-login databases
- - Support for master-slave and master-master replication (or MySQL Group Replication)
- - Distributed load balancer/monitor
+ - Distributed load balancer/server coordinator/monitor
  - Secure server cluster broadcasts with caching optimizations
- - Tools for administrating and monitoring servers
+ - GUI for administrating and monitoring servers
+ - Integration with [GopherDB](https://github.com/hewiefreeman/GopherDB)
 
 # Client APIs
 
@@ -85,9 +84,7 @@ Then install the server:
 
 [Package gopher](https://godoc.org/github.com/hewiefreeman/GopherGameServer) - Main server package for startup and settings
 
-[Package rooms](https://godoc.org/github.com/hewiefreeman/GopherGameServer/rooms) - Package for using the Room, RoomType, and RoomUser types
-
-[Package users](https://godoc.org/github.com/hewiefreeman/GopherGameServer/users) - Package for using the User type
+[Package core](https://godoc.org/github.com/hewiefreeman/GopherGameServer/core) - Package for all User and Room functionality
 
 [Package actions](https://godoc.org/github.com/hewiefreeman/GopherGameServer/actions) - Package for making custom client actions
 
