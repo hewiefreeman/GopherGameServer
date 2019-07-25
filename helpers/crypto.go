@@ -4,7 +4,6 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"golang.org/x/crypto/bcrypt"
-	"hash/fnv"
 )
 
 // GenerateRandomBytes uses the `crypto/rand` library to create a secure random `[]byte` at a given size `n`.

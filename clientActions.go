@@ -35,7 +35,7 @@ const (
 
 func clientActionHandler(action clientAction, user **core.User, conn *websocket.Conn,
 	deviceTag *string, devicePass *string, deviceUserID *int, connID *string, clientMux *sync.Mutex) (interface{}, bool, helpers.GopherError) {
-	switch _action := action.A; _action {
+	switch action.A {
 
 	// HIGH LOOK-UP PRIORITY ITEMS
 

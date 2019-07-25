@@ -94,7 +94,8 @@ func New(actionType string, dataType int, callback func(interface{}, *Client)) e
 	}
 	customClientActions[actionType] = CustomClientAction{
 		dataType: dataType,
-		callback: callback}
+		callback: callback,
+	}
 	return nil
 }
 

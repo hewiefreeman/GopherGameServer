@@ -6,7 +6,7 @@ import (
 	"sync"
 )
 
-// Room represents a room on the server that Users can join and leave. Use rooms.New() to make a new Room.
+// Room represents a room on the server that Users can join and leave. Use core.NewRoom() to make a new Room.
 //
 // WARNING: When you use a *Room object in your code, DO NOT dereference it. Instead, there are
 // many methods for *Room for maniupulating and retrieving any information about them you could possibly need.
@@ -57,7 +57,7 @@ var (
 func NewRoom(name string, rType string, isPrivate bool, maxUsers int, owner string) (*Room, error) {
 	//REJECT INCORRECT INPUT
 	if len(name) == 0 {
-		return &Room{}, errors.New("rooms.New() requires a name")
+		return &Room{}, errors.New("core.NewRoom() requires a name")
 	} else if maxUsers < 0 {
 		maxUsers = 0
 	} else if owner == "" {
@@ -148,7 +148,7 @@ func (r *Room) Delete() error {
 func GetRoom(roomName string) (*Room, error) {
 	//REJECT INCORRECT INPUT
 	if len(roomName) == 0 {
-		return &Room{}, errors.New("rooms.Get() requires a room name")
+		return &Room{}, errors.New("core.GetRoom() requires a room name")
 	}
 
 	var room *Room
@@ -445,53 +445,8 @@ func (r *Room) RemoveInvite(userName string) error {
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//   GET A ROOM's inviteList   ////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-// InviteList gets a private Room's invite list.
-func (r *Room) InviteList() ([]string, error) {
-	r.mux.Lock()
-	if r.usersMap == nil {
-		r.mux.Unlock()
-		return []string{}, errors.New("The room '" + r.name + "' does not exist")
-	}
-	list := r.inviteList
-	r.mux.Unlock()
-	//
-	return list, nil
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//   GET A Room's usersMap   //////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-// GetUserMap retrieves all the RoomUsers as a map[string]*RoomUser.
-func (r *Room) GetUserMap() (map[string]*RoomUser, error) {
-	var err error
-	var userMap map[string]*RoomUser
-
-	r.mux.Lock()
-	if r.usersMap == nil {
-		err = errors.New("The room '" + r.name + "' does not exist")
-	} else {
-		userMap = r.usersMap
-	}
-	r.mux.Unlock()
-
-	return userMap, err
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //   Room ATTRIBUTE READERS   /////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-// RoomCount returns the number of Rooms created on the server.
-func RoomCount() int {
-	roomsMux.Lock()
-	length := len(rooms)
-	roomsMux.Unlock()
-	return length
-}
 
 // Name gets the name of the Room.
 func (r *Room) Name() string {
@@ -525,6 +480,43 @@ func (r *Room) NumUsers() int {
 		return 0
 	}
 	return len(m)
+}
+
+// InviteList gets a private Room's invite list.
+func (r *Room) InviteList() ([]string, error) {
+	r.mux.Lock()
+	if r.usersMap == nil {
+		r.mux.Unlock()
+		return []string{}, errors.New("The room '" + r.name + "' does not exist")
+	}
+	list := r.inviteList
+	r.mux.Unlock()
+	//
+	return list, nil
+}
+
+// GetUserMap retrieves all the RoomUsers as a map[string]*RoomUser.
+func (r *Room) GetUserMap() (map[string]*RoomUser, error) {
+	var err error
+	var userMap map[string]*RoomUser
+
+	r.mux.Lock()
+	if r.usersMap == nil {
+		err = errors.New("The room '" + r.name + "' does not exist")
+	} else {
+		userMap = r.usersMap
+	}
+	r.mux.Unlock()
+
+	return userMap, err
+}
+
+// RoomCount returns the number of Rooms created on the server.
+func RoomCount() int {
+	roomsMux.Lock()
+	length := len(rooms)
+	roomsMux.Unlock()
+	return length
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////

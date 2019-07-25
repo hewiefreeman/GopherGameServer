@@ -78,7 +78,6 @@ func clientActionListener(conn *websocket.Conn) {
 		var ok bool
 		var err error
 		var gErr helpers.GopherError
-		var pMap map[string]interface{}
 		var oldPass string
 		//PING-PONG FOR TAGGING DEVICE - BREAKS WHEN THE DEVICE HAS BEEN PROPERLY TAGGED OR AUTHENTICATED.
 		for {
@@ -91,6 +90,7 @@ func clientActionListener(conn *websocket.Conn) {
 				if writeErr != nil {
 					conn.WriteControl(websocket.CloseMessage, []byte{}, time.Now().Add(time.Second*1))
 					conn.Close()
+					conns.subtract()
 					return
 				}
 				sentTagRequest = true
@@ -100,6 +100,7 @@ func clientActionListener(conn *websocket.Conn) {
 			if readErr != nil || action.A == "" {
 				conn.WriteControl(websocket.CloseMessage, []byte{}, time.Now().Add(time.Second*1))
 				conn.Close()
+				conns.subtract()
 				return
 			}
 
@@ -110,6 +111,7 @@ func clientActionListener(conn *websocket.Conn) {
 				if newDeviceTagErr != nil {
 					conn.WriteControl(websocket.CloseMessage, []byte{}, time.Now().Add(time.Second*1))
 					conn.Close()
+					conns.subtract()
 					return
 				}
 				deviceTag = string(newDeviceTag)
@@ -120,6 +122,7 @@ func clientActionListener(conn *websocket.Conn) {
 				if writeErr != nil {
 					conn.WriteControl(websocket.CloseMessage, []byte{}, time.Now().Add(time.Second*1))
 					conn.Close()
+					conns.subtract()
 					return
 				}
 			} else if action.A == "1" {
@@ -129,6 +132,7 @@ func clientActionListener(conn *websocket.Conn) {
 						//CLIENT DIDN'T USE THE PROVIDED DEVICE CODE FROM THE SERVER
 						conn.WriteControl(websocket.CloseMessage, []byte{}, time.Now().Add(time.Second*1))
 						conn.Close()
+						conns.subtract()
 						return
 					}
 					//SEND AUTO-LOG NOT FILED MESSAGE
@@ -139,11 +143,13 @@ func clientActionListener(conn *websocket.Conn) {
 					if writeErr != nil {
 						conn.WriteControl(websocket.CloseMessage, []byte{}, time.Now().Add(time.Second*1))
 						conn.Close()
+						conns.subtract()
 						return
 					}
 				} else {
 					conn.WriteControl(websocket.CloseMessage, []byte{}, time.Now().Add(time.Second*1))
 					conn.Close()
+					conns.subtract()
 					return
 				}
 
@@ -152,32 +158,38 @@ func clientActionListener(conn *websocket.Conn) {
 
 			} else if action.A == "2" {
 				//THE CLIENT HAS A LOGIN KEY PAIR - MAKE A NEW PASS FOR THEM
+				var pMap map[string]interface{}
 				devicePass, err = helpers.GenerateSecureString(32)
 				if err != nil {
 					conn.WriteControl(websocket.CloseMessage, []byte{}, time.Now().Add(time.Second*1))
 					conn.Close()
+					conns.subtract()
 					return
 				}
 				//GET PARAMS
 				if pMap, ok = action.P.(map[string]interface{}); !ok {
 					conn.WriteControl(websocket.CloseMessage, []byte{}, time.Now().Add(time.Second*1))
 					conn.Close()
+					conns.subtract()
 					return
 				}
 				if deviceTag, ok = pMap["dt"].(string); !ok {
 					conn.WriteControl(websocket.CloseMessage, []byte{}, time.Now().Add(time.Second*1))
 					conn.Close()
+					conns.subtract()
 					return
 				}
 				if oldPass, ok = pMap["da"].(string); !ok {
 					conn.WriteControl(websocket.CloseMessage, []byte{}, time.Now().Add(time.Second*1))
 					conn.Close()
+					conns.subtract()
 					return
 				}
 				var deviceUserIDStr string
 				if deviceUserIDStr, ok = pMap["di"].(string); !ok {
 					conn.WriteControl(websocket.CloseMessage, []byte{}, time.Now().Add(time.Second*1))
 					conn.Close()
+					conns.subtract()
 					return
 				}
 				//CONVERT di TO INT
@@ -185,6 +197,7 @@ func clientActionListener(conn *websocket.Conn) {
 				if err != nil {
 					conn.WriteControl(websocket.CloseMessage, []byte{}, time.Now().Add(time.Second*1))
 					conn.Close()
+					conns.subtract()
 					return
 				}
 				//CHANGE THE CLIENT'S PASS
@@ -195,6 +208,7 @@ func clientActionListener(conn *websocket.Conn) {
 				if writeErr != nil {
 					conn.WriteControl(websocket.CloseMessage, []byte{}, time.Now().Add(time.Second*1))
 					conn.Close()
+					conns.subtract()
 					return
 				}
 			} else if action.A == "3" {
@@ -202,6 +216,7 @@ func clientActionListener(conn *websocket.Conn) {
 					//IRRESPONSIBLE USAGE
 					conn.WriteControl(websocket.CloseMessage, []byte{}, time.Now().Add(time.Second*1))
 					conn.Close()
+					conns.subtract()
 					return
 				}
 				//AUTO-LOG THE CLIENT
@@ -212,6 +227,7 @@ func clientActionListener(conn *websocket.Conn) {
 					if newTagErr != nil {
 						conn.WriteControl(websocket.CloseMessage, []byte{}, time.Now().Add(time.Second*1))
 						conn.Close()
+						conns.subtract()
 						return
 					}
 					autologMessage := map[string]map[string]interface{}{
@@ -227,6 +243,7 @@ func clientActionListener(conn *websocket.Conn) {
 					if writeErr != nil {
 						conn.WriteControl(websocket.CloseMessage, []byte{}, time.Now().Add(time.Second*1))
 						conn.Close()
+						conns.subtract()
 						return
 					}
 					oldPass = ""

@@ -111,16 +111,18 @@ func Resume() {
 
 // GetState is only for internal Gopher Game Server mechanics.
 func GetState() map[string]map[string]interface{} {
-	state := map[string]map[string]interface{}{room.name: map[string]interface{}{}}
+	state := make(map[string]map[string]interface{})
 	roomsMux.Lock()
 	for _, room := range rooms {
 		room.mux.Lock()
-		state[room.name]["t"] = room.rType
-		state[room.name]["p"] = room.private
-		state[room.name]["o"] = room.owner
-		state[room.name]["m"] = room.maxUsers
-		state[room.name]["i"] = room.inviteList
-		state[room.name]["v"] = room.vars
+		state[room.name] = map[string]interface{}{
+			"t": room.rType,
+			"p": room.private,
+			"o": room.owner,
+			"m": room.maxUsers,
+			"i": room.inviteList,
+			"v": room.vars,
+		}
 		room.mux.Unlock()
 	}
 	roomsMux.Unlock()

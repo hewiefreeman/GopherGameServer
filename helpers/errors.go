@@ -60,7 +60,7 @@ const (
 	ErrorAuthConversion         // 1048. There was an error while converting data to be stored on the database
 
 	// Misc errors
-	ErrorActionDenied // 1049. The callback for this action denied it's completion
+	ErrorActionDenied // 1049. A callback has denied the server action
 	ErrorServerPaused // 1050. The server is paused
 )
 
@@ -71,5 +71,5 @@ func NewError(message string, id int) GopherError {
 
 // NoError creates a new GopherError that represents a state in which no error occurred.
 func NoError() GopherError {
-	return GopherError{Message: "", ID: 0}
+	return GopherError{}
 }
