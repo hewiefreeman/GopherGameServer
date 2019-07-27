@@ -76,21 +76,17 @@ func NewRoom(name string, rType string, isPrivate bool, maxUsers int, owner stri
 		roomsMux.Unlock()
 		return &Room{}, errors.New("A Room with the name '" + name + "' already exists")
 	}
-	userMap := make(map[string]*RoomUser)
-	roomVars := make(map[string]interface{})
-	invList := []string{}
-	theRoom := Room{name: name, private: isPrivate, inviteList: invList, usersMap: userMap, maxUsers: maxUsers, vars: roomVars,
-		owner: owner, rType: rType}
+	theRoom := Room{name: name, private: isPrivate, inviteList: []string{}, usersMap: make(map[string]*RoomUser), maxUsers: maxUsers,
+		vars: make(map[string]interface{}), owner: owner, rType: rType}
 	rooms[name] = &theRoom
-	room := rooms[name]
 	roomsMux.Unlock()
 
 	//CALLBACK
 	if roomType.HasCreateCallback() {
-		roomType.CreateCallback()(room)
+		roomType.CreateCallback()(&theRoom)
 	}
 
-	return room, nil
+	return &theRoom, nil
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////

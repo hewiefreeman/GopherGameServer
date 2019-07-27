@@ -99,30 +99,34 @@ func GetFriends(userIndex int) (map[string]*Friend, error) {
 	//EXECUTE SELECT QUERY
 	friendRows, friendRowsErr := database.Query("Select " + friendsColumnFriend + ", " + friendsColumnStatus + " FROM " + tableFriends + " WHERE " + friendsColumnUser + "=" + strconv.Itoa(userIndex) + ";")
 	if friendRowsErr != nil {
-		return friends, friendRowsErr
+		return nil, friendRowsErr
 	}
-	defer friendRows.Close()
 	//
 	for friendRows.Next() {
 		var friendName string
 		var friendID int
 		var friendStatus int
 		if scanErr := friendRows.Scan(&friendID, &friendStatus); scanErr != nil {
-			return friends, scanErr
+			friendRows.Close()
+			return nil, scanErr
 		}
 		//
 		friendInfoRows, friendInfoErr := database.Query("Select " + usersColumnName + " FROM " + tableUsers + " WHERE " + usersColumnID + "=" + strconv.Itoa(friendID) + " LIMIT 1;")
 		if friendInfoErr != nil {
-			return friends, friendInfoErr
+			friendRows.Close()
+			return nil, friendInfoErr
 		}
-		defer friendInfoRows.Close()
 		friendInfoRows.Next()
 		if scanErr := friendInfoRows.Scan(&friendName); scanErr != nil {
-			return friends, scanErr
+			friendRows.Close()
+			friendInfoRows.Close()
+			return nil, scanErr
 		}
+		friendInfoRows.Close()
 		aFriend := Friend{name: friendName, dbID: friendID, status: friendStatus}
 		friends[friendName] = &aFriend
 	}
+	friendRows.Close()
 	//
 	return friends, nil
 }

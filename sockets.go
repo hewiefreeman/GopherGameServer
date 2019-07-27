@@ -55,7 +55,7 @@ func socketInitializer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//
+	// START WEBSOCKET LOOP
 	go clientActionListener(conn)
 }
 
@@ -306,12 +306,13 @@ func sockedDropped(user *core.User, connID string, clientMux *sync.Mutex) {
 
 func (c *connections) add() bool {
 	c.connsMux.Lock()
-	defer c.connsMux.Unlock()
 	//
 	if (*settings).MaxConnections != 0 && c.conns == (*settings).MaxConnections {
+		c.connsMux.Unlock()
 		return false
 	}
 	c.conns++
+	c.connsMux.Unlock()
 	//
 	return true
 }
@@ -326,6 +327,7 @@ func (c *connections) subtract() {
 // not logged in as a User. To get the number of Users logged in, use the core.UserCount() function.
 func ClientsConnected() int {
 	conns.connsMux.Lock()
-	defer conns.connsMux.Unlock()
-	return conns.conns
+	c := conns.conns
+	conns.connsMux.Unlock()
+	return c
 }

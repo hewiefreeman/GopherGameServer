@@ -83,7 +83,7 @@ var (
 	clientConnectCallback func(*http.ResponseWriter, *http.Request) bool
 
 	//SERVER VERSION NUMBER
-	version string = "1.0-ALPHA.4"
+	version string = "1.0-ALPHA.5"
 )
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////

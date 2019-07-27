@@ -13,7 +13,7 @@ const (
 	errorInvalidAction               = "Invalid action"
 	errorLoggedIn                    = "You must be logged out"
 	errorNotLoggedIn                 = "You must be logged in"
-	errorFeatureDisabled             = "Server feature is disabled"
+	errorFeatureDisabled             = "Server feature not enabled"
 	errorRoomControl                 = "Clients cannot control rooms"
 	errorServerRoom                  = "Clients cannot control that room type"
 	errorNotOwner                    = "You are not the owner of the room"
@@ -336,7 +336,7 @@ func clientActionLogin(params interface{}, user **core.User, deviceTag *string, 
 	connID *string, clientMux *sync.Mutex) (interface{}, bool, helpers.GopherError) {
 	(*clientMux).Lock()
 	if *user != nil {
-		defer (*clientMux).Unlock()
+		(*clientMux).Unlock()
 		return nil, true, helpers.NewError(errorLoggedIn, helpers.ErrorGopherLoggedIn)
 	}
 	(*clientMux).Unlock()
