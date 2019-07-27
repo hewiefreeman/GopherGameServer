@@ -14,7 +14,7 @@ const (
 	ErrorGopherNotLoggedIn                         // 1004. The client must be logged in to take action
 	ErrorGopherLoggedIn                            // 1005. The client must be logged out to take action
 	ErrorGopherStatusChange                        // 1006. Error while changing User's status
-	ErrorGopherFeatureDisabled                     // 1007. The feature required for the action is disabled
+	ErrorGopherFeatureDisabled                     // 1007. A server feature must be explicitly enabled to take action
 	ErrorGopherColumnsFormat                       // 1008. The client's custom columns data is not a map/object
 	ErrorGopherNameFormat                          // 1009. The client's user name data is not a string
 	ErrorGopherPasswordFormat                      // 1010. The client's password data is not a string
