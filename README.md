@@ -46,6 +46,8 @@ Then install the server:
 
 # :books: Usage
 
+[:bookmark: Wiki Home](https://github.com/hewiefreeman/GopherGameServer/wiki)
+
 ### Table of Contents
 
 1) [**Getting Started**](https://github.com/hewiefreeman/GopherGameServer/wiki/Getting-Started)
