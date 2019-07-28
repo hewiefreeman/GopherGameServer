@@ -73,7 +73,17 @@ func clientActionListener(conn *websocket.Conn) {
 	var deviceUserID int
 
 	if (*settings).RememberMe {
-		var sentTagRequest bool = false
+		//SEND TAG RETRIEVAL MESSAGE
+		tagMessage := map[string]interface{}{
+			helpers.ServerActionRequestDeviceTag: nil,
+		}
+		writeErr := conn.WriteJSON(tagMessage)
+		if writeErr != nil {
+			conn.WriteControl(websocket.CloseMessage, []byte{}, time.Now().Add(time.Second*1))
+			conn.Close()
+			conns.subtract()
+			return
+		}
 		//PARAMS
 		var ok bool
 		var err error
@@ -81,20 +91,6 @@ func clientActionListener(conn *websocket.Conn) {
 		var oldPass string
 		//PING-PONG FOR TAGGING DEVICE - BREAKS WHEN THE DEVICE HAS BEEN PROPERLY TAGGED OR AUTHENTICATED.
 		for {
-			if !sentTagRequest {
-				//SEND TAG RETRIEVAL MESSAGE
-				tagMessage := map[string]interface{}{
-					helpers.ServerActionRequestDeviceTag: nil,
-				}
-				writeErr := conn.WriteJSON(tagMessage)
-				if writeErr != nil {
-					conn.WriteControl(websocket.CloseMessage, []byte{}, time.Now().Add(time.Second*1))
-					conn.Close()
-					conns.subtract()
-					return
-				}
-				sentTagRequest = true
-			}
 			//READ INPUT BUFFER
 			readErr := conn.ReadJSON(&action)
 			if readErr != nil || action.A == "" {
@@ -222,7 +218,7 @@ func clientActionListener(conn *websocket.Conn) {
 				//AUTO-LOG THE CLIENT
 				connID, gErr = core.AutoLogIn(deviceTag, oldPass, devicePass, deviceUserID, conn, &user, &clientMux)
 				if gErr.ID != 0 {
-					//ERROR AUTO-LOGGING - RUN AUTOLOGCOMPLETE AND DELETE KEYS FOR CLIENT, AND SILENTLY CHANGE DEVICE KEY
+					//ERROR AUTO-LOGGING - RUN AUTOLOGCOMPLETE AND DELETE KEYS FOR CLIENT, AND SILENTLY CHANGE DEVICE TAG
 					newTag, newTagErr := helpers.GenerateSecureString(32)
 					if newTagErr != nil {
 						conn.WriteControl(websocket.CloseMessage, []byte{}, time.Now().Add(time.Second*1))
@@ -246,7 +242,6 @@ func clientActionListener(conn *websocket.Conn) {
 						conns.subtract()
 						return
 					}
-					oldPass = ""
 					devicePass = ""
 					deviceUserID = 0
 					deviceTag = newTag
