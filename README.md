@@ -6,7 +6,7 @@ Gopher Game Server is designed to provide all necessary tools to greatly ease de
 
 Moreover, Gopher has a built-in, fully customizable SQL client authentication mechanism that creates and manages users' accounts for you. It even ties in a friending tool, so users can befriend and invite one another to groups, check each other's status, and more. All components are easily configurable and customizable for any specific project's needs.
 
-### Main features
+### :star: Main features
 
  - Super easy and flexible APIs for server, database, and client coding
  - Chat, private messaging, and voice chat
@@ -24,14 +24,14 @@ Moreover, Gopher has a built-in, fully customizable SQL client authentication me
  - GUI for administrating and monitoring servers
  - Integration with [GopherDB](https://github.com/hewiefreeman/GopherDB) when stable
 
-# Client APIs
+# :video_game: Client APIs
 
  - JavaScript: [GopherClientJS](https://github.com/hewiefreeman/GopherClientJS)
  - Java: [GopherClientJava](https://github.com/hewiefreeman/GopherClientJava) ( **In development** )
  
  > If you want to make a client API in an unsupported language and want to know where to start and/or have any questions, feel free to [email me](mailto:dominiquedebergue@gmail.com?subject=[GitHub]%20Gopher%20Game%20Server)!
 
-# Installing
+# :file_folder: Installing
 Gopher Game Server requires at least **Go v1.8+** (and **MySQL v5.7+** for the authentication and friending features).
 
 First, install the dependencies:
@@ -44,7 +44,7 @@ Then install the server:
 
     go get github.com/hewiefreeman/GopherGameServer
 
-# Usage
+# :books: Usage
 
 ### Table of Contents
 
@@ -80,7 +80,7 @@ Then install the server:
    - [Auto-Login (Remember Me)](https://github.com/hewiefreeman/GopherGameServer/wiki/SQL-Features#auto-login-remember-me)
    - [Friending](https://github.com/hewiefreeman/GopherGameServer/wiki/SQL-Features#friending)
 
-# Documentation
+# :scroll: Documentation
 
 [Package gopher](https://godoc.org/github.com/hewiefreeman/GopherGameServer) - Main server package for startup and settings
 
@@ -90,8 +90,8 @@ Then install the server:
 
 [Package database](https://godoc.org/github.com/hewiefreeman/GopherGameServer/database) - Package for customizing your database
 
-# Contributions
-Contributions are open and welcomed! Help is needed for everything from documentation, cleaning up code, performance enhancements, client APIs and more. Don't forget to show your support by starring or following the project!
+# :milky_way: Contributions
+Contributions are open and welcomed! Help is needed for everything from documentation, cleaning up code, performance enhancements, client APIs and more. Don't forget to show your support with a :star:!
 
 If you want to make a client API in an unsupported language and want to know where to start and/or have any questions, feel free to [email me](mailto:dominiquedebergue@gmail.com?subject=[GitHub]%20Gopher%20Game%20Server)!
 
