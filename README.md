@@ -17,10 +17,10 @@ Moreover, Gopher has a built-in, fully customizable SQL client authentication me
 
 > (**\***) A MySQL (or similar SQL) database is required for the authentication/friending feature, but is an optional (like most) feature that can be enabled or disabled to use your own implementations.
 
-### Upcoming features
+### :construction: Upcoming features
 
- - Distributed load balancer/server coordinator/monitor
- - Secure server cluster broadcasts with caching optimizations
+ - Distributed load balancer and server coordinator
+ - Distributed server broadcasts
  - GUI for administrating and monitoring servers
  - Integration with [GopherDB](https://github.com/hewiefreeman/GopherDB) when stable
 
