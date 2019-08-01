@@ -17,7 +17,7 @@ Moreover, Gopher has a built-in, fully customizable SQL client authentication me
 
 > (:one:) A MySQL (or similar SQL) database is required for the authentication/friending feature, but is an optional (like most) feature that can be enabled or disabled to use your own implementations.
 
-> (:two:) 
+> (:two:) When updating and restarting your server, you might need to be able to recover any rooms that were in the middle of a game. This enables you to do so with minimal effort.
 
 ### Upcoming features
 
