@@ -1,6 +1,8 @@
 <p align="center"><img src="https://raw.githubusercontent.com/hewiefreeman/GopherGameServer/master/docs/images/Gopher%20Title.png" width="50%" height="50%"></p>
 <p align="center"><a href="https://opensource.org/licenses/Apache-2.0"><img src="https://img.shields.io/badge/License-Apache%202.0-blue.svg"></a> <a href="https://godoc.org/github.com/hewiefreeman/GopherGameServer"><img src="https://godoc.org/github.com/hewiefreeman/GopherGameServer?status.svg"></a> <img src="https://img.shields.io/badge/version-v1.0--beta.1-blue.svg"> <a href="https://goreportcard.com/report/github.com/hewiefreeman/GopherGameServer"><img src="https://goreportcard.com/badge/github.com/hewiefreeman/GopherGameServer?f=v101"></a></p>
 
+<hr>
+
 Gopher Game Server provides a flexible and diverse set of tools that greatly ease developments of any type of online multiplayer game, or real-time application. GGS does all the heavy lifting for you, ensuring you never need to worry about synchronizing or data type conversions.
 
 Moreover, Gopher has a built-in, fully customizable SQL client authentication mechanism that creates and manages users' accounts for you. It even ties in a friending tool, so users can befriend and invite one another to groups, check each other's status, and more. All components are easily configurable and customizable for any specific project's needs.
@@ -9,14 +11,14 @@ Moreover, Gopher has a built-in, fully customizable SQL client authentication me
 
  - Super easy APIs for server, database, and client coding
  - Chat, private messaging, and voice chat
- - Customizable client authentication (\*1)
- - Built-in friending mechanism (\*1)
+ - Customizable client authentication (\***1**)
+ - Built-in friending mechanism (\***1**)
  - Supports multiple connections on the same User
- - Server saves state on shut-down and restores on reboot (\*2)
+ - Server saves state on shut-down and restores on reboot (\***2**)
 
-> (\*1) A MySQL (or similar SQL) database is required for the authentication/friending feature, but is an optional (like most) feature that can be enabled or disabled to use your own implementations.
+> (\***1**) A MySQL (or similar SQL) database is required for the authentication/friending feature, but is an optional (like most) feature that can be enabled or disabled to use your own implementations.
 
-> (\*2) When updating and restarting your server, you might need to be able to recover any rooms that were in the middle of a game. This enables you to do so with minimal effort.
+> (\***2**) When updating and restarting your server, you might need to be able to recover any rooms that were in the middle of a game. This enables you to do so with minimal effort.
 
 ### Upcoming features
 
