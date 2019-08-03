@@ -1,6 +1,8 @@
 <p align="center"><img src="https://raw.githubusercontent.com/hewiefreeman/GopherGameServer/master/docs/images/Gopher%20Title.png" width="50%" height="50%"></p>
 <p align="center"><a href="https://opensource.org/licenses/Apache-2.0"><img src="https://img.shields.io/badge/License-Apache%202.0-blue.svg"></a> <a href="https://godoc.org/github.com/hewiefreeman/GopherGameServer"><img src="https://godoc.org/github.com/hewiefreeman/GopherGameServer?status.svg"></a> <img src="https://img.shields.io/badge/version-v1.0--beta.1-blue.svg"> <a href="https://goreportcard.com/report/github.com/hewiefreeman/GopherGameServer"><img src="https://goreportcard.com/badge/github.com/hewiefreeman/GopherGameServer?f=v101"></a></p>
 
+<hr>
+
 Gopher Game Server provides a flexible and diverse set of tools that greatly ease developments of any type of online multiplayer game, or real-time application. GGS does all the heavy lifting for you, ensuring you never need to worry about synchronizing or data type conversions.
 
 Moreover, Gopher has a built-in, fully customizable SQL client authentication mechanism that creates and manages users' accounts for you. It even ties in a friending tool, so users can befriend and invite one another to groups, check each other's status, and more. All components are easily configurable and customizable for any specific project's needs.
