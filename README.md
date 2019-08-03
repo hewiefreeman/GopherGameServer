@@ -9,14 +9,14 @@ Moreover, Gopher has a built-in, fully customizable SQL client authentication me
 
  - Super easy APIs for server, database, and client coding
  - Chat, private messaging, and voice chat
- - Customizable client authentication (\*1)
- - Built-in friending mechanism (\*1)
+ - Customizable client authentication (\***1**)
+ - Built-in friending mechanism (\***1**)
  - Supports multiple connections on the same User
- - Server saves state on shut-down and restores on reboot (\*2)
+ - Server saves state on shut-down and restores on reboot (\***2**)
 
-> (\*1) A MySQL (or similar SQL) database is required for the authentication/friending feature, but is an optional (like most) feature that can be enabled or disabled to use your own implementations.
+> (\***1**) A MySQL (or similar SQL) database is required for the authentication/friending feature, but is an optional (like most) feature that can be enabled or disabled to use your own implementations.
 
-> (\*2) When updating and restarting your server, you might need to be able to recover any rooms that were in the middle of a game. This enables you to do so with minimal effort.
+> (\***2**) When updating and restarting your server, you might need to be able to recover any rooms that were in the middle of a game. This enables you to do so with minimal effort.
 
 ### Upcoming features
 
