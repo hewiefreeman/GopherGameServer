@@ -19,6 +19,7 @@
 
 		<!-- STYLE SHEETS -->
 		<link rel="stylesheet" href="css/shell.css" media="screen"/>
+		<link rel="stylesheet" href="css/nav.css" media="screen"/>
 
 		<!-- IMPORT FONTS -->
 		<link href="https://fonts.googleapis.com/css?family=Open+Sans:600,800|Russo+One" rel="stylesheet">
@@ -31,7 +32,9 @@
 			<center><div class="innerWrapper">
 				<div class="topBar">
 					<div class="logoHolder"></div>
-					<div class="titleHolder"><p><h1>Gopher</h1></p><p><h3>Game Server</h3></p><a href="http://github.com/hewiefreeman/GopherGameServer"><div class="titleGhub"><img src="images/GitHub_Light.png" width="50px" height="50px"></div><p><h5>Hewiefreeman</h5></p></a></div>
+					<div class="titleHolder"><p><h1>Gopher</h1></p><p><h3>Game Server</h3></p><div class="titleGhub"><a href="http://github.com/hewiefreeman/GopherGameServer"><img src="images/GitHub_Light.png" width="50px" height="50px"></a></div><p><h5><a href="http://github.com/hewiefreeman/GopherGameServer">Source on GitHub</a></h5></p></div>
+					<div class="nav"><div class="navButton">Home</div><div class="navButton">Projects</div><div class="navButton">GoDoc</div><div class="navButton" style="display:none;" id="downloadNav">Download</div></div>
+					<div class="downloadHolder" style="display:none;" id="downloadBtn"><div class="downloadButton"><a href="https://github.com/hewiefreeman/GopherGameServer/archive/master.zip"><div class="filler"></div></a></div><p><h5><a href="https://github.com/hewiefreeman/GopherGameServer/archive/master.zip">Download</a></h5></p></div>
 				</div>
 				<div class="content" id="content">
 
@@ -39,5 +42,7 @@
 			</div></center>
 		</div>
 		<div class="shadowWrapper"><center><div class="shadowObj"></div></center></div>
+		<script type="text/javascript" src="js/resize.js"></script>
+		<script type="text/javascript" src="js/init.js"></script>
 	</body>
 </html>

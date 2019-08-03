@@ -8,6 +8,8 @@ body {
 
 	margin: 0px;
 	padding: 0px;
+
+	overflow: scroll;
 }
 
 br {
@@ -30,11 +32,7 @@ a:link {
 }
 
 a:hover {
-	color: #000000;
-}
-
-a:visited {
-	color: #ffffff;
+	color: #dedede;
 }
 
 a:active {
@@ -101,8 +99,10 @@ h5 {
 }
 
 .wrapper {
-	display: flex;
-	position: relative;
+	display: block;
+	position: absolute;
+
+	text-align: center;
 
 	top: 0px;
 	left: 0px;
@@ -113,17 +113,14 @@ h5 {
 
 	background: rgba(255,255,255,0);
 
-	flex-direction: column;
-	flex-wrap: nowrap;
-	justify-content: flex-start;
-	align-items: stretch;
-
 	z-index: 2;
 }
 
 .shadowWrapper {
-	display: flex;
+	display: block;
 	position: fixed;
+
+	text-align: center;
 
 	top: 0px;
 	left: 0px;
@@ -133,19 +130,17 @@ h5 {
 
 	overflow: hidden;
 
-	flex-direction: column;
-	flex-wrap: nowrap;
-	justify-content: flex-start;
-	align-items: stretch;
-
 	z-index: 1;
 }
 
 .shadowObj {
 	display: block;
 
+	align-self: center;
+
+	width: 100%;
 	max-width: 1000px;
-	height: 1500;
+	height: 100%;
 
 	background: #ffffff;
 	background-color: #ffffff;
@@ -154,8 +149,11 @@ h5 {
 }
 
 .innerWrapper {
-	display: flex;
+	display: block;
 
+	align-self: center;
+
+	width: 100%;
 	max-width: 1000px;
 
 	flex-direction: column;
@@ -229,4 +227,41 @@ h5 {
 	height: 50px;
 
 	margin-top: 10px;
+}
+
+.downloadHolder {
+	display: block;
+	position: absolute;
+
+	text-align: center;
+	vertical-align: center;
+
+	bottom: 0px;
+	right: 0px;
+	left: 410px;
+
+	height: 145px;
+}
+
+.downloadButton {
+	display: block;
+	position: relative;
+
+	margin-left: auto;
+	margin-right: auto;
+
+	width: 100px;
+	height: 100px;
+
+	background-image: url('../images/zip_file.png');
+	background-repeat: no-repeat;
+	background-size: 100%;
+}
+
+.filler {
+	display: block;
+	position: relative;
+
+	width: 100%;
+	height: 100%;
 }
