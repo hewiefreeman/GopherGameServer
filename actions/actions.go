@@ -199,8 +199,8 @@ func typesMatch(data interface{}, theType int) bool {
 // is needed.
 //
 // NOTE: A response can only be sent once to a Client. Any more calls to Respond() on the same Client will not send a response,
-// nor do anything at all. If you want to send a stream of messages to the Client, first get their User object with core.GetUser() using
-// the Client's Name(). Then you can send Data messages directly to the User with the *User.DataMessage() function.
+// nor do anything at all. If you want to send a stream of messages to the Client, first get their User object with *Client.User(),
+// then you can send data messages directly to the User with the *User.DataMessage() function.
 func (c *Client) Respond(response interface{}, err ClientError) {
 	//YOU CAN ONLY RESPOND ONCE
 	if (*c).responded {

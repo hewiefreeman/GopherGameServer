@@ -228,31 +228,41 @@ h5 {
 	margin-top: 10px;
 }
 
-.downloadHolder {
+.headerBtnsHolder {
 	display: block;
 	position: absolute;
 
-	text-align: center;
 	vertical-align: center;
+	line-height: 155px;
 
 	bottom: 0px;
 	right: 0px;
 	left: 410px;
 
-	height: 145px;
+	height: 140px;
+
+	white-space: nowrap;
 }
 
-.downloadButton {
-	display: block;
+.headerBtn {
+	display: inline-block;
 	position: relative;
 
-	margin-left: auto;
-	margin-right: auto;
+	width: 100px;
+	height: 140px;
+
+	margin-right: 20px;
+
+	align-self: center;
+}
+
+.headerBtnImage {
+	display: block;
+	position: relative;
 
 	width: 100px;
 	height: 100px;
 
-	background-image: url('../images/zip_file.png');
 	background-repeat: no-repeat;
 	background-size: 100%;
 }

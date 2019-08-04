@@ -6,6 +6,9 @@
 	right: 0px;
 
 	height: 40px;
+	min-width: 320px;
+
+	text-align: right;
 
 	margin-right: 10px;
 

@@ -1,5 +1,7 @@
 var	download_btn_hidden = false,
 	download_btn_switch = 520,
+	wiki_btn_hidden = false,
+	wiki_btn_switch = 640,
 	logo_resize = false,
 	logo_switch = 350;
 
@@ -12,9 +14,22 @@ function resized(e) {
 		download_btn_hidden = true;
 	} else if (document.documentElement.clientWidth > download_btn_switch && download_btn_hidden) {
 		download_nav.style.display = "none";
-		download_btn.style.display = "block";
+		download_btn.style.display = "inline-block";
 
 		download_btn_hidden = false;
+	}
+
+	// Resize and replace wiki button
+	if (document.documentElement.clientWidth <= wiki_btn_switch && !wiki_btn_hidden) {
+		wiki_nav.style.display = "inline-block";
+		wiki_btn.style.display = "none";
+
+		wiki_btn_hidden = true;
+	} else if (document.documentElement.clientWidth > wiki_btn_switch && wiki_btn_hidden) {
+		wiki_nav.style.display = "none";
+		wiki_btn.style.display = "inline-block";
+
+		wiki_btn_hidden = false;
 	}
 
 	// Resize logo
@@ -32,6 +47,7 @@ function resized(e) {
 }
 
 function resize_init() {
+	// Resize and replace download button
 	if (document.documentElement.clientWidth <= download_btn_switch) {
 		download_nav.style.display = "inline-block";
 		download_btn.style.display = "none";
@@ -39,9 +55,22 @@ function resize_init() {
 		download_btn_hidden = true;
 	} else if (document.documentElement.clientWidth > download_btn_switch) {
 		download_nav.style.display = "none";
-		download_btn.style.display = "block";
+		download_btn.style.display = "inline-block";
 
 		download_btn_hidden = false;
+	}
+
+	// Resize and replace wiki button
+	if (document.documentElement.clientWidth <= wiki_btn_switch) {
+		wiki_nav.style.display = "inline-block";
+		wiki_btn.style.display = "none";
+
+		wiki_btn_hidden = true;
+	} else if (document.documentElement.clientWidth > wiki_btn_switch) {
+		wiki_nav.style.display = "none";
+		wiki_btn.style.display = "inline-block";
+
+		wiki_btn_hidden = false;
 	}
 
 	// Resize logo
