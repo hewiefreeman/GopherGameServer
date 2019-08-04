@@ -24,8 +24,8 @@ function resized(e) {
 		logo.style.height = (document.documentElement.clientWidth/2)+"px";
 		title.style.left = ((document.documentElement.clientWidth/2)-30)+"px";
 	} else if (document.documentElement.clientWidth > download_btn_switch && logo_resize) {
-		logo.style.width = "230px";
-		logo.style.height = "230px";
+		logo.style.width = "250px";
+		logo.style.height = "250px";
 		title.style.left = "220px";
 		logo_resize = false;
 	}
@@ -51,8 +51,8 @@ function resize_init() {
 		logo.style.height = (document.documentElement.clientWidth/2)+"px";
 		title.style.left = ((document.documentElement.clientWidth/2)-30)+"px";
 	} else if (document.documentElement.clientWidth > download_btn_switch) {
-		logo.style.width = "230px";
-		logo.style.height = "230px";
+		logo.style.width = "250px";
+		logo.style.height = "250px";
 		title.style.left = "220px";
 		logo_resize = false;
 	}
