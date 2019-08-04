@@ -43,4 +43,17 @@ function resize_init() {
 
 		download_btn_hidden = false;
 	}
+
+	// Resize logo
+	if (document.documentElement.clientWidth <= download_btn_switch) {
+		logo_resize = true;
+		logo.style.width = (document.documentElement.clientWidth/2)+"px";
+		logo.style.height = (document.documentElement.clientWidth/2)+"px";
+		title.style.left = ((document.documentElement.clientWidth/2)-30)+"px";
+	} else if (document.documentElement.clientWidth > download_btn_switch) {
+		logo.style.width = "230px";
+		logo.style.height = "230px";
+		title.style.left = "220px";
+		logo_resize = false;
+	}
 }
