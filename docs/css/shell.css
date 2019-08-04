@@ -29,14 +29,17 @@ a {
 
 a:link {
 	color: #ffffff;
+	text-decoration: none;
 }
 
 a:hover {
 	color: #dedede;
+	text-decoration: underline;
 }
 
 a:active {
 	color: #ffffff;
+	text-decoration: none;
 }
 
 h1 {
@@ -107,8 +110,7 @@ h5 {
 	top: 0px;
 	left: 0px;
 
-	min-width: 350px;
-
+	min-width: 310px;
 	width: 100%;
 
 	background: rgba(255,255,255,0);
@@ -136,8 +138,6 @@ h5 {
 .shadowObj {
 	display: block;
 
-	align-self: center;
-
 	width: 100%;
 	max-width: 1000px;
 	height: 100%;
@@ -150,8 +150,6 @@ h5 {
 
 .innerWrapper {
 	display: block;
-
-	align-self: center;
 
 	width: 100%;
 	max-width: 1000px;
@@ -171,6 +169,8 @@ h5 {
 
 	/*background-image: url("../images/bg.jpg");*/
 	background-color: #7a7a7a;
+
+	border-bottom: 3px solid #85d681;
 
 	z-index: 6;
 }
