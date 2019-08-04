@@ -83,7 +83,7 @@ var (
 	clientConnectCallback func(*http.ResponseWriter, *http.Request) bool
 
 	//SERVER VERSION NUMBER
-	version string = "1.0-ALPHA.5"
+	version string = "1.0-BETA.1"
 )
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -102,7 +102,7 @@ func Start(s *ServerSettings) {
 		return
 	}
 	serverStarted = true
-	fmt.Println(" _____             _               _____\n|  __ \\           | |             /  ___|\n| |  \\/ ___  _ __ | |__   ___ _ __\\ `--.  ___ _ ____   _____ _ __\n| | __ / _ \\| '_ \\| '_ \\ / _ \\ '__|`--. \\/ _ \\ '__\\ \\ / / _ \\ '__|\n| |_\\ \\ (_) | |_) | | | |  __/ |  /\\__/ /  __/ |   \\ V /  __/ |\n \\____/\\___/| .__/|_| |_|\\___|_|  \\____/ \\___|_|    \\_/ \\___|_|\n            | |\n            |_|                                      v" + version + "\n\n")
+	fmt.Println("  _______                __\n |   _   |.-----..-----.|  |--..-----..----.\n |.  |___||. _  ||. _  ||.    ||. -__||.  _|\n |.  |   ||:. . ||:. __||: |: ||:    ||: |\n |:  |   |'-----'|: |   '--'--''-----''--'\n |::.. . |       '--' - Game Server -\n '-------'\n\n")
 	fmt.Println("Starting server...")
 	//SET SERVER SETTINGS
 	if s != nil {

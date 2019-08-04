@@ -30,6 +30,8 @@ func handleMacro(macro string) bool {
 	} else if macro == "shutdown" {
 		ShutDown()
 		return true
+	} else if macro == "version" {
+		fmt.Println(version)
 	} else if macro == "roomcount" {
 		fmt.Println("Room count: ", core.RoomCount())
 	} else if macro == "usercount" {
