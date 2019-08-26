@@ -115,7 +115,7 @@ func Login(userName string, dbID int, autologPass string, isGuest bool, remMe bo
 	if userOnline, ok := users[userName]; ok {
 		userExists = true
 		if kickOnLogin {
-			//REMOVE USER FROM THEIR CURRENT ROOM IF ANY
+			// KICK USER AND REMOVE FROM THEIR CURRENT ROOM IF ANY
 			userOnline.mux.Lock()
 			for connKey, conn := range userOnline.conns {
 				userRoom := (*conn).room

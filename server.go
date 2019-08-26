@@ -11,11 +11,11 @@ import (
 	"github.com/hewiefreeman/GopherGameServer/actions"
 	"github.com/hewiefreeman/GopherGameServer/core"
 	"github.com/hewiefreeman/GopherGameServer/database"
-	"github.com/hewiefreeman/GopherGameServer/helpers"
 	"io/ioutil"
 	"net/http"
 	"os"
 	"strconv"
+	"time"
 )
 
 /////////// TO DOs:
@@ -42,8 +42,9 @@ type ServerSettings struct {
 
 	OriginOnly bool // When enabled, the server declines connections made from outside the origin server (Admin logins always check origin). IMPORTANT: Enable this for web apps and LAN servers.
 
-	MultiConnect   bool // Enables multiple connections under the same User. When enabled, will override KickDupOnLogin's functionality.
-	KickDupOnLogin bool // When enabled, a logged in User will be disconnected from service when another User logs in with the same name.
+	MultiConnect   bool  // Enables multiple connections under the same User. When enabled, will override KickDupOnLogin's functionality.
+	MaxUserConns   uint8 // Overrides the default (255) of maximum simultaneous connections on a single User
+	KickDupOnLogin bool  // When enabled, a logged in User will be disconnected from service when another User logs in with the same name.
 
 	UserRoomControl   bool // Enables Users to create Rooms, invite/uninvite(AKA revoke) other Users to their owned private rooms, and destroy their owned rooms.
 	RoomDeleteOnLeave bool // When enabled, Rooms created by a User will be deleted when the owner leaves. WARNING: If disabled, you must remember to at some point delete the rooms created by Users, or they will pile up endlessly!
@@ -66,6 +67,10 @@ type ServerSettings struct {
 	AdminPassword string // The password for the Admin Tools (Required for Admin Tools)
 }
 
+type serverRestore struct {
+	R map[string]core.RoomRecoveryState
+}
+
 var (
 	httpServer *http.Server
 
@@ -83,7 +88,7 @@ var (
 	clientConnectCallback func(*http.ResponseWriter, *http.Request) bool
 
 	//SERVER VERSION NUMBER
-	version string = "1.0-BETA.1"
+	version string = "1.0-BETA.2"
 )
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -102,7 +107,7 @@ func Start(s *ServerSettings) {
 		return
 	}
 	serverStarted = true
-	fmt.Println("  _______                __\n |   _   |.-----..-----.|  |--..-----..----.\n |.  |___||. _  ||. _  ||.    ||. -__||.  _|\n |.  |   ||:. . ||:. __||: |: ||:    ||: |\n |:  |   |'-----'|: |   '--'--''-----''--'\n |::.. . |       '--' - Game Server -\n '-------'\n\n")
+	fmt.Println("  _______                __\n |   _   |.-----..-----.|  |--..-----..----.\n |.  |___||. _  ||. _  ||.    ||. -__||.  _|\n |.  |   ||:. . ||:. __||: |: ||:    ||: |\n |:  |   |'-----'|: |   '--'--''-----''--'\n |::.. . |       '--' - Game Server -\n '-------'\n\n ")
 	fmt.Println("Starting server...")
 	//SET SERVER SETTINGS
 	if s != nil {
@@ -191,7 +196,7 @@ func Start(s *ServerSettings) {
 
 	//UPDATE SETTINGS IN users PACKAGE, THEN users WILL UPDATE SETTINGS FOR rooms PACKAGE
 	core.SettingsSet((*settings).KickDupOnLogin, (*settings).ServerName, (*settings).RoomDeleteOnLeave, (*settings).EnableSqlFeatures,
-		(*settings).RememberMe, (*settings).MultiConnect)
+		(*settings).RememberMe, (*settings).MultiConnect, (*settings).MaxUserConns)
 
 	//NOTIFY PACKAGES OF SERVER START
 	core.SetServerStarted(true)
@@ -363,7 +368,7 @@ func ShutDown() error {
 
 func saveState() {
 	fmt.Println("Saving server state...")
-	saveErr := helpers.SaveState(getState(), settings.RecoveryLocation)
+	saveErr := writeState(getState(), settings.RecoveryLocation)
 	if saveErr != nil {
 		fmt.Println("Error saving state:", saveErr)
 		return
@@ -371,9 +376,24 @@ func saveState() {
 	fmt.Println("Save state successful")
 }
 
-func getState() map[string]interface{} {
-	return map[string]interface{}{
-		"rooms": core.GetState(),
+func writeState(stateObj serverRestore, saveFolder string) error {
+	//WRITE THE STATE
+	state, err := json.Marshal(stateObj)
+	if err != nil {
+		return err
+	}
+	err = ioutil.WriteFile(saveFolder+"/Gopher Recovery - "+time.Now().Format("2006-01-02 15-04-05")+".grf", state, 0644)
+	if err != nil {
+		return err
+	}
+
+	//
+	return nil
+}
+
+func getState() serverRestore {
+	return serverRestore{
+		R: core.GetRoomsState(),
 	}
 }
 
@@ -412,67 +432,31 @@ func recoverState() {
 	}
 
 	//CONVERT JSON TO MAP
-	var recovery map[string]interface{}
+	var recovery serverRestore
 	if err = json.Unmarshal(r, &recovery); err != nil {
 		fmt.Println("Error recovering state:", err)
 		return
 	}
 
+	if recovery.R == nil || len(recovery.R) == 0 {
+		fmt.Println("No rooms to restore!")
+		return
+	}
+
 	//RECOVER ROOMS
-	var roomsMap map[string]interface{}
-	var ok bool
-	if roomsMap, ok = recovery["rooms"].(map[string]interface{}); ok {
-		for name, val := range roomsMap {
-			var m map[string]interface{}
-			if m, ok = val.(map[string]interface{}); !ok {
-				fmt.Println("Error recovering room '" + name + "': Incorrect room format")
-				continue
-			}
-			var rType string
-			var isPrivate bool
-			var maxUsers float64
-			var inviteList []interface{}
-			var owner string
-			if rType, ok = m["t"].(string); !ok {
-				fmt.Println("Error recovering room '" + name + "': Incorrect room type format")
-				continue
-			}
-			if isPrivate, ok = m["p"].(bool); !ok {
-				fmt.Println("Error recovering room '" + name + "': Incorrect private format")
-				continue
-			}
-			if maxUsers, ok = m["m"].(float64); !ok {
-				fmt.Println("Error recovering room '" + name + "': Incorrect maximum users format")
-				continue
-			}
-			if inviteList, ok = m["i"].([]interface{}); !ok {
-				fmt.Println("Error recovering room '" + name + "': Incorrect invite list format")
-				continue
-			}
-			if owner, ok = m["o"].(string); !ok {
-				fmt.Println("Error recovering room '" + name + "': Incorrect owner format")
-				continue
-			}
-			room, roomErr := core.NewRoom(name, rType, isPrivate, int(maxUsers), owner)
-			if roomErr != nil {
-				fmt.Println("Error recovering room '"+name+"':", roomErr)
-				continue
-			}
-			for i := 0; i < len(inviteList); i++ {
-				var userName string
-				if userName, ok = inviteList[i].(string); !ok {
-					fmt.Println("Error recovering room '" + name + "': Incorrect user name format in invite list")
-					continue
-				}
-				invErr := room.AddInvite(userName)
-				if invErr != nil {
-					fmt.Println("Error inviting '"+userName+"' to the room '"+name+"':", invErr)
-				}
+	for name, val := range recovery.R {
+		room, roomErr := core.NewRoom(name, val.T, val.P, val.M, val.O)
+		if roomErr != nil {
+			fmt.Println("Error recovering room '"+name+"':", roomErr)
+			continue
+		}
+		for _, userName := range val.I {
+			invErr := room.AddInvite(userName)
+			if invErr != nil {
+				fmt.Println("Error inviting '"+userName+"' to the room '"+name+"':", invErr)
 			}
 		}
-	} else {
-		fmt.Println("Error recovering state: Error interpreting JSON in recovery file")
-		return
+		room.SetVariables(val.V)
 	}
 
 	//

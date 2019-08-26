@@ -288,7 +288,7 @@ func (r *Room) RemoveUser(user *User, connID string) error {
 	userName := user.Name()
 	//REJECT INCORRECT INPUT
 	if user == nil || len(userName) == 0 {
-		return errors.New("*Room.RemoveUser() requires a valid user")
+		return errors.New("*Room.RemoveUser() requires a valid *User")
 	} else if multiConnect && len(connID) == 0 {
 		return errors.New("Must provide a connID when MultiConnect is enabled")
 	} else if !multiConnect {
@@ -300,19 +300,21 @@ func (r *Room) RemoveUser(user *User, connID string) error {
 		r.mux.Unlock()
 		return errors.New("The room '" + r.name + "' does not exist")
 	}
-	if _, ok := r.usersMap[userName]; !ok {
+	var ok bool
+	var ru *RoomUser
+	if ru, ok = r.usersMap[userName]; !ok {
 		r.mux.Unlock()
 		return errors.New("User '" + userName + "' is not in room '" + r.name + "'")
 	}
-	ru := r.usersMap[userName]
 	ru.mux.Lock()
-	if _, ok := ru.conns[connID]; !ok {
+	var uConn *userConn
+	if uConn, ok = ru.conns[connID]; !ok {
 		r.mux.Unlock()
 		ru.mux.Unlock()
 		return errors.New("Invalid connID")
 	}
-	uConn := ru.conns[connID]
 	delete(ru.conns, connID)
+	// Remove user when no conns are left in room
 	if len(ru.conns) == 0 {
 		delete(r.usersMap, userName)
 	}

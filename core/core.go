@@ -24,16 +24,26 @@ import (
 )
 
 var (
-	serverStarted bool = false
-	serverPaused  bool = false
+	serverStarted bool
+	serverPaused  bool
 
 	serverName        string
-	kickOnLogin       bool = false
-	sqlFeatures       bool = false
-	rememberMe        bool = false
-	multiConnect      bool = false
+	kickOnLogin       bool
+	sqlFeatures       bool
+	rememberMe        bool
+	multiConnect      bool
+	maxUserConns      uint8
 	deleteRoomOnLeave bool = true
 )
+
+type RoomRecoveryState struct {
+	T string // rType
+	P bool // private
+	O string // owner
+	M int // maxUsers
+	I []string // inviteList
+	V map[string]interface{} // vars
+}
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 //   SERVER STARTUP FUNCTIONS   //////////////////////////////////////////////////////////////////////
@@ -47,13 +57,14 @@ func SetServerStarted(val bool) {
 }
 
 // SettingsSet is for Gopher Game Server internal mechanics only.
-func SettingsSet(kickDups bool, name string, deleteOnLeave bool, sqlFeat bool, remMe bool, multiConn bool) {
+func SettingsSet(kickDups bool, name string, deleteOnLeave bool, sqlFeat bool, remMe bool, multiConn bool, maxConns uint8) {
 	if !serverStarted {
 		kickOnLogin = kickDups
 		serverName = name
 		sqlFeatures = sqlFeat
 		rememberMe = remMe
 		multiConnect = multiConn
+		maxUserConns = maxConns
 		deleteRoomOnLeave = deleteOnLeave
 	}
 }
@@ -106,22 +117,22 @@ func Resume() {
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//   GET STATE FOR RECOVERY   /////////////////////////////////////////////////////////////////////////////////////
+//   GET STATES FOR GENERATING RECOVERY FILE   ////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // GetState is only for internal Gopher Game Server mechanics.
-func GetState() map[string]map[string]interface{} {
-	state := make(map[string]map[string]interface{})
+func GetRoomsState() map[string]RoomRecoveryState {
+	state := make(map[string]RoomRecoveryState)
 	roomsMux.Lock()
 	for _, room := range rooms {
 		room.mux.Lock()
-		state[room.name] = map[string]interface{}{
-			"t": room.rType,
-			"p": room.private,
-			"o": room.owner,
-			"m": room.maxUsers,
-			"i": room.inviteList,
-			"v": room.vars,
+		state[room.name] = RoomRecoveryState{
+			T: room.rType,
+			P: room.private,
+			O: room.owner,
+			M: room.maxUsers,
+			I: room.inviteList,
+			V: room.vars,
 		}
 		room.mux.Unlock()
 	}

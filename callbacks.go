@@ -97,10 +97,9 @@ func SetClientConnectCallback(cb interface{}) error {
 		return errors.New(ErrorServerRunning)
 	} else if callback, ok := cb.(func(*http.ResponseWriter, *http.Request) bool); ok {
 		clientConnectCallback = callback
-	} else {
-		return errors.New(ErrorIncorrectFunction)
+		return nil
 	}
-	return nil
+	return errors.New(ErrorIncorrectFunction)
 }
 
 // SetLoginCallback sets the callback that triggers when a client logs in as a User. The
@@ -128,10 +127,9 @@ func SetLoginCallback(cb interface{}) error {
 		} else {
 			core.LoginCallback = callback
 		}
-	} else {
-		return errors.New(ErrorIncorrectFunction)
+		return nil
 	}
-	return nil
+	return errors.New(ErrorIncorrectFunction)
 }
 
 // SetLogoutCallback sets the callback that triggers when a client logs out from a User. The
@@ -147,10 +145,9 @@ func SetLogoutCallback(cb interface{}) error {
 		return errors.New(ErrorServerRunning)
 	} else if callback, ok := cb.(func(string, int)); ok {
 		core.LogoutCallback = callback
-	} else {
-		return errors.New(ErrorIncorrectFunction)
+		return nil
 	}
-	return nil
+	return errors.New(ErrorIncorrectFunction)
 }
 
 // SetSignupCallback sets the callback that triggers when a client makes an account. The
@@ -170,10 +167,9 @@ func SetSignupCallback(cb interface{}) error {
 		return errors.New(ErrorServerRunning)
 	} else if callback, ok := cb.(func(string, map[string]interface{}) bool); ok {
 		database.SignUpCallback = callback
-	} else {
-		return errors.New(ErrorIncorrectFunction)
+		return nil
 	}
-	return nil
+	return errors.New(ErrorIncorrectFunction)
 }
 
 // SetDeleteAccountCallback sets the callback that triggers when a client deletes their account. The
@@ -197,10 +193,9 @@ func SetDeleteAccountCallback(cb interface{}) error {
 		return errors.New(ErrorServerRunning)
 	} else if callback, ok := cb.(func(string, int, map[string]interface{}, map[string]interface{}) bool); ok {
 		database.DeleteAccountCallback = callback
-	} else {
-		return errors.New(ErrorIncorrectFunction)
+		return nil
 	}
-	return nil
+	return errors.New(ErrorIncorrectFunction)
 }
 
 // SetAccountInfoChangeCallback sets the callback that triggers when a client changes an `AccountInfoColumn`. The
@@ -224,10 +219,9 @@ func SetAccountInfoChangeCallback(cb interface{}) error {
 		return errors.New(ErrorServerRunning)
 	} else if callback, ok := cb.(func(string, int, map[string]interface{}, map[string]interface{}) bool); ok {
 		database.AccountInfoChangeCallback = callback
-	} else {
-		return errors.New(ErrorIncorrectFunction)
+		return nil
 	}
-	return nil
+	return errors.New(ErrorIncorrectFunction)
 }
 
 // SetPasswordChangeCallback sets the callback that triggers when a client changes their password. The
@@ -251,8 +245,7 @@ func SetPasswordChangeCallback(cb interface{}) error {
 		return errors.New(ErrorServerRunning)
 	} else if callback, ok := cb.(func(string, int, map[string]interface{}, map[string]interface{}) bool); ok {
 		database.PasswordChangeCallback = callback
-	} else {
-		return errors.New(ErrorIncorrectFunction)
+		return nil
 	}
-	return nil
+	return errors.New(ErrorIncorrectFunction)
 }
