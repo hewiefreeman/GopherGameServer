@@ -27,6 +27,9 @@ Moreover, Gopher has a built-in, fully customizable SQL client authentication me
  - GUI for administrating and monitoring servers
  - Integration with [GopherDB](https://github.com/hewiefreeman/GopherDB) when stable
 
+### Change Log
+[CHANGE_LOG.md](https://github.com/hewiefreeman/GopherGameServer/blob/master/CHANGE_LOG.md)
+
 # :video_game: Client APIs
 
  - JavaScript: [GopherClientJS](https://github.com/hewiefreeman/GopherClientJS)
