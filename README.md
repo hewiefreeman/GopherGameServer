@@ -29,7 +29,7 @@ Moreover, Gopher has a built-in, fully customizable SQL client authentication me
 
 ### Change Log
 [CHANGE_LOG.md](https://github.com/hewiefreeman/GopherGameServer/blob/master/CHANGE_LOG.md)
-
+<br><br><br>
 # :video_game: Client APIs
 
  - JavaScript: [GopherClientJS](https://github.com/hewiefreeman/GopherClientJS)
