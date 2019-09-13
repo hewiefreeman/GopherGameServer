@@ -20,12 +20,12 @@ const (
 )
 
 var (
-	privateMessageCallback func(*User, *User, interface{})
+	privateMessageCallback    func(*User, *User, interface{})
 	privateMessageCallbackSet bool
-	chatMessageCallback func(string, *Room, interface{})
-	chatMessageCallbackSet bool
-	serverMessageCallback func(*Room, int, interface{})
-	serverMessageCallbackSet bool
+	chatMessageCallback       func(string, *Room, interface{})
+	chatMessageCallbackSet    bool
+	serverMessageCallback     func(*Room, int, interface{})
+	serverMessageCallbackSet  bool
 )
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////

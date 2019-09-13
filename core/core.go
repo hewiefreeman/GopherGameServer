@@ -36,12 +36,13 @@ var (
 	deleteRoomOnLeave bool = true
 )
 
+// RoomRecoveryState is used internally for persisting room states on shutdown.
 type RoomRecoveryState struct {
-	T string // rType
-	P bool // private
-	O string // owner
-	M int // maxUsers
-	I []string // inviteList
+	T string                 // rType
+	P bool                   // private
+	O string                 // owner
+	M int                    // maxUsers
+	I []string               // inviteList
 	V map[string]interface{} // vars
 }
 
@@ -120,7 +121,7 @@ func Resume() {
 //   GET STATES FOR GENERATING RECOVERY FILE   ////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-// GetState is only for internal Gopher Game Server mechanics.
+// GetRoomsState is only for internal Gopher Game Server mechanics.
 func GetRoomsState() map[string]RoomRecoveryState {
 	state := make(map[string]RoomRecoveryState)
 	roomsMux.Lock()
