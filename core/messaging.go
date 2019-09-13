@@ -19,6 +19,15 @@ const (
 	ServerMessageImportant
 )
 
+var (
+	privateMessageCallback func(*User, *User, interface{})
+	privateMessageCallbackSet bool
+	chatMessageCallback func(string, *Room, interface{})
+	chatMessageCallbackSet bool
+	serverMessageCallback func(*Room, int, interface{})
+	serverMessageCallbackSet bool
+)
+
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 //   Messaging Users   ///////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -50,6 +59,10 @@ func (u *User) PrivateMessage(userName string, message interface{}) {
 		(*conn).socket.WriteJSON(theMessage)
 	}
 	u.mux.Unlock()
+
+	if privateMessageCallbackSet {
+		privateMessageCallback(u, user, message)
+	}
 
 	return
 }
@@ -86,6 +99,10 @@ func (r *Room) ServerMessage(message interface{}, messageType int, recipients []
 		return errors.New("*Room.ServerMessage() requires a message")
 	}
 
+	if serverMessageCallbackSet {
+		serverMessageCallback(r, messageType, message)
+	}
+
 	return r.sendMessage(MessageTypeServer, messageType, recipients, "", message)
 }
 
@@ -96,6 +113,10 @@ func (r *Room) ChatMessage(author string, message interface{}) error {
 		return errors.New("*Room.ChatMessage() requires an author")
 	} else if message == nil {
 		return errors.New("*Room.ChatMessage() requires a message")
+	}
+
+	if chatMessageCallbackSet {
+		chatMessageCallback(author, r, message)
 	}
 
 	return r.sendMessage(MessageTypeChat, 0, nil, author, message)
@@ -226,4 +247,51 @@ func (r *Room) VoiceStream(userName string, userSocket *websocket.Conn, stream i
 
 	//
 	return
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//   Callback Setters   ///////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// SetPrivateMessageCallback sets the callback function for when a *User sends a private message to another *User.
+// The function passed must have the same parameter types as the following example:
+//
+//    func onPrivateMessage(from *core.User, to *core.User, message interface{}) {
+//	     //code...
+//	 }
+func SetPrivateMessageCallback(cb func(*User, *User, interface{})) {
+	if !serverStarted {
+		privateMessageCallback = cb
+		privateMessageCallbackSet = true
+	}
+
+}
+
+// SetChatMessageCallback sets the callback function for when a *User sends a chat message to a *Room.
+// The function passed must have the same parameter types as the following example:
+//
+//    func onChatMessage(userName string, room *core.Room, message interface{}) {
+//	     //code...
+//	 }
+func SetChatMessageCallback(cb func(string, *Room, interface{})) {
+	if !serverStarted {
+		chatMessageCallback = cb
+		chatMessageCallbackSet = true
+	}
+}
+
+// SetServerMessageCallback sets the callback function for when the server sends a message to a *Room.
+// The function passed must have the same parameter types as the following example:
+//
+//    func onServerMessage(room *core.Room, messageType int, message interface{}) {
+//	     //code...
+//	 }
+//
+// The messageType value can be one of: core.ServerMessageGame, core.ServerMessageNotice,
+// core.ServerMessageImportant, or a custom value you have set.
+func SetServerMessageCallback(cb func(*Room, int, interface{})) {
+	if !serverStarted {
+		serverMessageCallback = cb
+		serverMessageCallbackSet = true
+	}
 }
