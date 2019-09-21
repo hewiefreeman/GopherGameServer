@@ -1,5 +1,5 @@
 <p align="center"><img src="https://raw.githubusercontent.com/hewiefreeman/GopherGameServer/master/docs/images/Gopher%20Title.png" width="50%" height="50%"></p>
-<p align="center"><a href="https://opensource.org/licenses/Apache-2.0"><img src="https://img.shields.io/badge/License-Apache%202.0-blue.svg"></a> <a href="https://godoc.org/github.com/hewiefreeman/GopherGameServer"><img src="https://godoc.org/github.com/hewiefreeman/GopherGameServer?status.svg"></a> <img src="https://img.shields.io/badge/version-v1.0--beta.1-blue.svg"> <a href="https://goreportcard.com/report/github.com/hewiefreeman/GopherGameServer"><img src="https://goreportcard.com/badge/github.com/hewiefreeman/GopherGameServer?f=v101"></a></p>
+<p align="center"><a href="https://opensource.org/licenses/Apache-2.0"><img src="https://img.shields.io/badge/License-Apache%202.0-blue.svg"></a> <a href="https://godoc.org/github.com/hewiefreeman/GopherGameServer"><img src="https://godoc.org/github.com/hewiefreeman/GopherGameServer?status.svg"></a> <img src="https://img.shields.io/badge/version-v1.0--beta.2-blue.svg"> <a href="https://goreportcard.com/report/github.com/hewiefreeman/GopherGameServer"><img src="https://goreportcard.com/badge/github.com/hewiefreeman/GopherGameServer?f=v101"></a></p>
 
 <hr>
 
