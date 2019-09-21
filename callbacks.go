@@ -91,7 +91,7 @@ func SetShutDownCallback(cb interface{}) error {
 //	 }
 //
 // The function returns a boolean. If false is returned, the client will receive an HTTP error `http.StatusForbidden` and
-// will be rejected from the server. This can be used to, for instance, make a black/white list for your server.
+// will be rejected from the server. This can be used to, for instance, make a black/white list or implement client sessions.
 func SetClientConnectCallback(cb interface{}) error {
 	if serverStarted {
 		return errors.New(ErrorServerRunning)

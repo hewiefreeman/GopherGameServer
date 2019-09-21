@@ -375,9 +375,13 @@ func clientActionLogin(params interface{}, user **core.User, deviceTag *string, 
 		}
 	}
 	// Log socket in
-	if dbIndex, dPass, cID, lErr := loginClient(settings, guest, name, pass, *deviceTag, remMe, customCols, user,
-							conn, clientMux); lErr.ID != 0 {
-		return nil, false, lErr
+	var dbIndex int
+	var dPass string
+	var cID string
+	var err helpers.GopherError
+	if dbIndex, dPass, cID, err = loginClient(settings, guest, name, pass, *deviceTag, remMe, customCols, user,
+							conn, clientMux); err.ID != 0 {
+		return nil, false, err
 	}
 
 	// Update socket

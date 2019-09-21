@@ -23,7 +23,7 @@ func setUp() error {
 		}
 
 		if rememberMe {
-			//CHECK IF THE autologs TABLE HAS BEEN MADE
+			// Check if autologs table has been made
 			_, checkErr := database.Exec("SELECT " + autologsColumnID + " FROM " + tableAutologs + " WHERE " + autologsColumnID + "=1;")
 			if checkErr != nil {
 				fmt.Println("Making autologs table...")
@@ -87,12 +87,12 @@ func createUserTableSQL() error {
 	}
 
 	// Make friends table
-	_, friendsErr := database.Exec("CREATE TABLE " + tableFriends + " (" +
+	if _, friendsErr := database.Exec("CREATE TABLE " + tableFriends + " (" +
 		friendsColumnUser + " INTEGER NOT NULL, " +
 		friendsColumnFriend + " INTEGER NOT NULL, " +
 		friendsColumnStatus + " INTEGER NOT NULL" +
-		");")
-	if friendsErr != nil {
+		");"); friendsErr != nil {
+
 		return friendsErr
 	}
 
@@ -106,13 +106,13 @@ func createUserTableSQL() error {
 }
 
 func createAutologsTableSQL() error {
-	_, friendsErr = database.Exec("CREATE TABLE " + tableAutologs + " (" +
+	if _, aErr := database.Exec("CREATE TABLE " + tableAutologs + " (" +
 		autologsColumnID + " INTEGER NOT NULL, " +
 		autologsColumnDevicePass + " VARCHAR(255) NOT NULL, " +
 		autologsColumnDeviceTag + " VARCHAR(255) NOT NULL, " +
-		");")
-	if friendsErr != nil {
-		return friendsErr
+		");"); aErr != nil {
+
+		return aErr
 	}
 	return nil
 }
