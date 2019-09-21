@@ -19,9 +19,7 @@ import (
 )
 
 /////////// TO DOs:
-///////////    - Implement WebRTC option for voice chat
-///////////    - Make relay for failed P2P connections
-///////////    - Switch-out MySQL authentication with GopherGameDB
+///////////    - Make authentication for GopherDB
 ///////////	- Admin tools
 ///////////    - More useful command-line macros
 
@@ -111,47 +109,10 @@ func Start(s *ServerSettings) {
 	fmt.Println("Starting server...")
 	//SET SERVER SETTINGS
 	if s != nil {
-		settings = s
-		if settings.ServerName == "" {
-			fmt.Println("ServerName in ServerSettings is required. Shutting down...")
-			return
-
-		} else if settings.HostName == "" || settings.IP == "" || settings.Port < 1 {
-			fmt.Println("HostName, IP, and Port in ServerSettings are required. Shutting down...")
-			return
-
-		} else if settings.TLS == true && (settings.CertFile == "" || settings.PrivKeyFile == "") {
-			fmt.Println("CertFile and PrivKeyFile in ServerSettings are required for a TLS connection. Shutting down...")
-			return
-
-		} else if settings.EnableSqlFeatures == true && (settings.SqlIP == "" || settings.SqlPort < 1 || settings.SqlProtocol == "" ||
-			settings.SqlUser == "" || settings.SqlPassword == "" || settings.SqlDatabase == "") {
-			fmt.Println("SqlIP, SqlPort, SqlProtocol, SqlUser, SqlPassword, and SqlDatabase in ServerSettings are required for the SQL features. Shutting down...")
-			return
-
-		} else if settings.EnableRecovery == true && settings.RecoveryLocation == "" {
-			fmt.Println("RecoveryLocation in ServerSettings is required for server recovery. Shutting down...")
-			return
-
-		} else if settings.EnableRecovery {
-			//CHECK IF INVALID LOCATION
-			if _, err := os.Stat(settings.RecoveryLocation); err != nil {
-				fmt.Println("RecoveryLocation error:", err)
-				fmt.Println("Shutting down...")
-				return
-			}
-			var d []byte
-			if err := ioutil.WriteFile(settings.RecoveryLocation+"/test.txt", d, 0644); err != nil {
-				fmt.Println("RecoveryLocation error:", err)
-				fmt.Println("Shutting down...")
-				return
-			}
-			os.Remove(settings.RecoveryLocation + "/test.txt")
-
-		} else if settings.AdminLogin == "" || settings.AdminPassword == "" {
-			fmt.Println("AdminLogin and AdminPassword in ServerSettings are required. Shutting down...")
+		if !s.verify() {
 			return
 		}
+		settings = s
 	} else {
 		//DEFAULT localhost SETTINGS
 		fmt.Println("Using default settings...")
@@ -265,6 +226,51 @@ func Start(s *ServerSettings) {
 	if stopCallback != nil {
 		stopCallback()
 	}
+}
+
+func (settings *ServerSettings) verify() bool {
+	if settings.ServerName == "" {
+		fmt.Println("ServerName in ServerSettings is required. Shutting down...")
+		return false
+
+	} else if settings.HostName == "" || settings.IP == "" || settings.Port < 1 {
+		fmt.Println("HostName, IP, and Port in ServerSettings are required. Shutting down...")
+		return false
+
+	} else if settings.TLS == true && (settings.CertFile == "" || settings.PrivKeyFile == "") {
+		fmt.Println("CertFile and PrivKeyFile in ServerSettings are required for a TLS connection. Shutting down...")
+		return false
+
+	} else if settings.EnableSqlFeatures == true && (settings.SqlIP == "" || settings.SqlPort < 1 || settings.SqlProtocol == "" ||
+		settings.SqlUser == "" || settings.SqlPassword == "" || settings.SqlDatabase == "") {
+		fmt.Println("SqlIP, SqlPort, SqlProtocol, SqlUser, SqlPassword, and SqlDatabase in ServerSettings are required for the SQL features. Shutting down...")
+		return false
+
+	} else if settings.EnableRecovery == true && settings.RecoveryLocation == "" {
+		fmt.Println("RecoveryLocation in ServerSettings is required for server recovery. Shutting down...")
+		return false
+
+	} else if settings.EnableRecovery {
+		//CHECK IF INVALID LOCATION
+		if _, err := os.Stat(settings.RecoveryLocation); err != nil {
+			fmt.Println("RecoveryLocation error:", err)
+			fmt.Println("Shutting down...")
+			return false
+		}
+		var d []byte
+		if err := ioutil.WriteFile(settings.RecoveryLocation+"/test.txt", d, 0644); err != nil {
+			fmt.Println("RecoveryLocation error:", err)
+			fmt.Println("Shutting down...")
+			return false
+		}
+		os.Remove(settings.RecoveryLocation + "/test.txt")
+
+	} else if settings.AdminLogin == "" || settings.AdminPassword == "" {
+		fmt.Println("AdminLogin and AdminPassword in ServerSettings are required. Shutting down...")
+		return false
+	}
+
+	return true
 }
 
 func makeServer(handleDir string, tls bool) *http.Server {

@@ -37,40 +37,40 @@ func clientActionHandler(action clientAction, user **core.User, conn *websocket.
 	deviceTag *string, devicePass *string, deviceUserID *int, connID *string, clientMux *sync.Mutex) (interface{}, bool, helpers.GopherError) {
 	switch action.A {
 
-	// HIGH LOOK-UP PRIORITY ITEMS
+	// Custom actions and voice streams
 
 	case helpers.ClientActionCustomAction:
 		return clientCustomAction(action.P, user, conn, *connID, clientMux)
 	case helpers.ClientActionVoiceStream:
 		return clientActionVoiceStream(action.P, user, conn, *connID, clientMux)
 
-	// USER VARIABLES
+	// User variables
 
 	case helpers.ClientActionSetVariable:
 		return clientActionSetVariable(action.P, user, *connID, clientMux)
 	case helpers.ClientActionSetVariables:
 		return clientActionSetVariables(action.P, user, *connID, clientMux)
 
-	// CHAT
+	// Chat
 
 	case helpers.ClientActionChatMessage:
 		return clientActionChatMessage(action.P, user, *connID, clientMux)
 	case helpers.ClientActionPrivateMessage:
 		return clientActionPrivateMessage(action.P, user, *connID, clientMux)
 
-	// CHANGE STATUS
+	// Change user status
 
 	case helpers.ClientActionChangeStatus:
 		return clientActionChangeStatus(action.P, user, clientMux)
 
-	// LOGIN/LOGOUT
+	// Log in/out
 
 	case helpers.ClientActionLogin:
 		return clientActionLogin(action.P, user, deviceTag, devicePass, deviceUserID, conn, connID, clientMux)
 	case helpers.ClientActionLogout:
 		return clientActionLogout(user, deviceTag, devicePass, deviceUserID, connID, clientMux)
 
-	// ROOM ACTIONS
+	// Room actions
 
 	case helpers.ClientActionJoinRoom:
 		return clientActionJoinRoom(action.P, user, *connID, clientMux)
@@ -85,7 +85,7 @@ func clientActionHandler(action clientAction, user **core.User, conn *websocket.
 	case helpers.ClientActionRevokeInvite:
 		return clientActionRevokeInvite(action.P, user, *connID, clientMux)
 
-	// FRIENDING
+	// Friending
 
 	case helpers.ClientActionFriendRequest:
 		return clientActionFriendRequest(action.P, user, clientMux)
@@ -96,7 +96,7 @@ func clientActionHandler(action clientAction, user **core.User, conn *websocket.
 	case helpers.ClientActionRemoveFriend:
 		return clientActionRemoveFriend(action.P, user, clientMux)
 
-	// DATABASE
+	// Database
 
 	case helpers.ClientActionSignup:
 		return clientActionSignup(action.P, user, clientMux)
@@ -107,7 +107,7 @@ func clientActionHandler(action clientAction, user **core.User, conn *websocket.
 	case helpers.ClientActionChangeAccountInfo:
 		return clientActionChangeAccountInfo(action.P, user, clientMux)
 
-	// INVALID CLIENT ACTION
+	// Invalid client action
 
 	default:
 		return nil, true, helpers.NewError(errorInvalidAction, helpers.ErrorGopherInvalidAction)
@@ -147,7 +147,7 @@ func clientActionChangeStatus(params interface{}, user **core.User, clientMux *s
 	}
 	userRef := *user
 	(*clientMux).Unlock()
-	//GET PARAMS
+	// Get param map and extract values
 	var ok bool
 	var statusF float64
 	if statusF, ok = params.(float64); !ok {
@@ -174,7 +174,7 @@ func clientActionSignup(params interface{}, user **core.User, clientMux *sync.Mu
 		return nil, true, helpers.NewError(errorFeatureDisabled, helpers.ErrorGopherFeatureDisabled)
 	}
 	(*clientMux).Unlock()
-	//GET ITEMS FROM PARAMS
+	// Get param map and extract values
 	var ok bool
 	var pMap map[string]interface{}
 	var customCols map[string]interface{}
@@ -194,7 +194,7 @@ func clientActionSignup(params interface{}, user **core.User, clientMux *sync.Mu
 	if pass, ok = pMap["p"].(string); !ok {
 		return nil, true, helpers.NewError(errorIncorrectFormatPass, helpers.ErrorGopherPasswordFormat)
 	}
-	//SIGN CLIENT UP
+	// Sign client up
 	signupErr := database.SignUpClient(userName, pass, customCols)
 	if signupErr.ID != 0 {
 		return nil, true, signupErr
@@ -214,7 +214,7 @@ func clientActionDeleteAccount(params interface{}, user **core.User, clientMux *
 		return nil, true, helpers.NewError(errorFeatureDisabled, helpers.ErrorGopherFeatureDisabled)
 	}
 	(*clientMux).Unlock()
-	//GET ITEMS FROM PARAMS
+	// Get param map and extract values
 	var ok bool
 	var pMap map[string]interface{}
 	var customCols map[string]interface{}
@@ -235,13 +235,13 @@ func clientActionDeleteAccount(params interface{}, user **core.User, clientMux *
 		return nil, true, helpers.NewError(errorIncorrectFormatPass, helpers.ErrorGopherPasswordFormat)
 	}
 
-	//CHECK IF USER IS ONLINE
+	// Check if online
 	_, err := core.GetUser(userName)
 	if err == nil {
 		return nil, true, helpers.NewError(err.Error(), helpers.ErrorGopherLoggedIn)
 	}
 
-	//DELETE ACCOUNT
+	// Delete account
 	deleteErr := database.DeleteAccount(userName, pass, customCols)
 	if deleteErr.ID != 0 {
 		return nil, true, deleteErr
@@ -261,7 +261,7 @@ func clientActionChangePassword(params interface{}, user **core.User, clientMux 
 	}
 	userRef := *user
 	(*clientMux).Unlock()
-	//GET ITEMS FROM PARAMS
+	// Get param map and extract values
 	var ok bool
 	var pMap map[string]interface{}
 	var customCols map[string]interface{}
@@ -281,7 +281,7 @@ func clientActionChangePassword(params interface{}, user **core.User, clientMux 
 	if newPass, ok = pMap["n"].(string); !ok {
 		return nil, true, helpers.NewError(errorIncorrectFormatNewPass, helpers.ErrorGopherNewPasswordFormat)
 	}
-	//CHANGE PASSWORD
+	// Change password
 	changeErr := database.ChangePassword(userRef.Name(), pass, newPass, customCols)
 	if changeErr.ID != 0 {
 		return nil, true, changeErr
@@ -302,7 +302,7 @@ func clientActionChangeAccountInfo(params interface{}, user **core.User, clientM
 	}
 	userRef := *user
 	(*clientMux).Unlock()
-	//GET ITEMS FROM PARAMS
+	// Get param map and extract values
 	var ok bool
 	var pMap map[string]interface{}
 	var customCols map[string]interface{}
@@ -318,7 +318,7 @@ func clientActionChangeAccountInfo(params interface{}, user **core.User, clientM
 	if pass, ok = pMap["p"].(string); !ok {
 		return nil, true, helpers.NewError(errorIncorrectFormatPass, helpers.ErrorGopherPasswordFormat)
 	}
-	//CHANGE ACCOUNT INFO
+	// Change account info
 	changeErr := database.ChangeAccountInfo(userRef.Name(), pass, customCols)
 	if changeErr.ID != 0 {
 		return nil, true, changeErr
@@ -340,7 +340,7 @@ func clientActionLogin(params interface{}, user **core.User, deviceTag *string, 
 		return nil, true, helpers.NewError(errorLoggedIn, helpers.ErrorGopherLoggedIn)
 	}
 	(*clientMux).Unlock()
-	//MAKE A MAP FROM PARAMS
+	// Get param map and extract values
 	var ok bool
 	var pMap map[string]interface{}
 	var name string
@@ -354,11 +354,11 @@ func clientActionLogin(params interface{}, user **core.User, deviceTag *string, 
 	if name, ok = pMap["n"].(string); !ok {
 		return nil, true, helpers.NewError(errorIncorrectFormatName, helpers.ErrorGopherNameFormat)
 	}
-	if (*settings).EnableSqlFeatures {
+	if settings.EnableSqlFeatures {
 		if pass, ok = pMap["p"].(string); !ok {
 			return nil, true, helpers.NewError(errorIncorrectFormatPass, helpers.ErrorGopherPasswordFormat)
 		}
-		if (*settings).RememberMe {
+		if settings.RememberMe {
 			if remMe, ok = pMap["r"].(bool); !ok {
 				return nil, true, helpers.NewError(errorIncorrectFormatRemember, helpers.ErrorGopherRememberFormat)
 			}
@@ -374,31 +374,39 @@ func clientActionLogin(params interface{}, user **core.User, deviceTag *string, 
 			return nil, true, helpers.NewError(errorIncorrectFormatCols, helpers.ErrorGopherColumnsFormat)
 		}
 	}
-	//LOG IN
-	var dbIndex int
-	var uName string
-	var dPass string
-	var cID string
-	var err helpers.GopherError
-	if (*settings).EnableSqlFeatures && !guest {
-		uName, dbIndex, dPass, err = database.LoginClient(name, pass, *deviceTag, remMe, customCols)
-		if err.ID != 0 {
-			return nil, true, err
-		}
-		cID, err = core.Login(uName, dbIndex, dPass, guest, remMe, conn, user, clientMux)
-	} else {
-		cID, err = core.Login(name, -1, "", guest, false, conn, user, clientMux)
+	// Log socket in
+	if dbIndex, dPass, cID, lErr := loginClient(settings, guest, name, pass, *deviceTag, remMe, customCols, user,
+							conn, clientMux); lErr.ID != 0 {
+		return nil, false, lErr
 	}
-	if err.ID != 0 {
-		return nil, true, err
-	}
-	//CHANGE SOCKET'S userName
+
+	// Update socket
 	*devicePass = dPass
 	*deviceUserID = dbIndex
 	*connID = cID
 
 	//
 	return nil, false, helpers.NoError()
+}
+
+func loginClient(s *ServerSettings, guest bool, name string, pass string, deviceTag string, remMe bool,
+		customCols map[string]interface{}, user **core.User, conn *websocket.Conn, clientMux *sync.Mutex) (int, string, string, helpers.GopherError) {
+	var dbIndex int
+	var dPass string
+	var cID string
+	var err helpers.GopherError
+	if s.EnableSqlFeatures && !guest {
+		var uName string
+		uName, dbIndex, dPass, err = database.LoginClient(name, pass, deviceTag, remMe, customCols)
+		if err.ID != 0 {
+			return 0, "", "", err
+		}
+		cID, err = core.Login(uName, dbIndex, dPass, guest, remMe, conn, user, clientMux)
+	} else {
+		cID, err = core.Login(name, -1, "", guest, false, conn, user, clientMux)
+	}
+
+	return dbIndex, dPass, cID, err
 }
 
 func clientActionLogout(user **core.User, deviceTag *string, devicePass *string, deviceUserID *int, connID *string, clientMux *sync.Mutex) (interface{}, bool, helpers.GopherError) {
@@ -409,13 +417,13 @@ func clientActionLogout(user **core.User, deviceTag *string, devicePass *string,
 	}
 	userRef := *user
 	(*clientMux).Unlock()
-	//LOG User OUT AND RESET
+	// Log user out
 	userRef.Logout(*connID)
-	//REMOVE AUTO-LOG IF ANY
+	// Remove any auto-logins for this device tag
 	if (*settings).EnableSqlFeatures && (*settings).RememberMe {
 		database.RemoveAutoLog(*deviceUserID, *deviceTag)
 	}
-	//
+	// Update socket
 	*devicePass = ""
 	*deviceUserID = 0
 	*connID = ""
@@ -436,18 +444,18 @@ func clientActionJoinRoom(params interface{}, user **core.User, connID string, c
 	}
 	userRef := *user
 	(*clientMux).Unlock()
-	//GET ROOM NAME FROM PARAMS
+	// Get room name from params
 	var ok bool
 	var roomName string
 	if roomName, ok = params.(string); !ok {
 		return nil, true, helpers.NewError(errorIncorrectFormat, helpers.ErrorGopherIncorrectFormat)
 	}
-	//GET ROOM
+	// Get room
 	room, roomErr := core.GetRoom(roomName)
 	if roomErr != nil {
 		return nil, true, helpers.NewError(roomErr.Error(), helpers.ErrorGopherJoin)
 	}
-	//MAKE User JOIN THE Room
+	// Make user join the room
 	joinErr := userRef.Join(room, connID)
 	if joinErr != nil {
 		return nil, true, helpers.NewError(joinErr.Error(), helpers.ErrorGopherJoin)
@@ -465,7 +473,7 @@ func clientActionLeaveRoom(user **core.User, connID string, clientMux *sync.Mute
 	}
 	userRef := *user
 	(*clientMux).Unlock()
-	//MAKE USER LEAVE ROOM
+	// Make user leave room
 	leaveErr := userRef.Leave(connID)
 	if leaveErr != nil {
 		return nil, true, helpers.NewError(leaveErr.Error(), helpers.ErrorGopherLeave)
@@ -486,7 +494,7 @@ func clientActionCreateRoom(params interface{}, user **core.User, connID string,
 	}
 	userRef := *user
 	(*clientMux).Unlock()
-	//GET PARAMS
+	// Get param map and extract values
 	var ok bool
 	var pMap map[string]interface{}
 	var roomName string
@@ -509,23 +517,18 @@ func clientActionCreateRoom(params interface{}, user **core.User, connID string,
 		return nil, true, helpers.NewError(errorIncorrectFormatMaxRoomUsers, helpers.ErrorGopherMaxRoomFormat)
 	}
 	maxUsers := int(maxUsersF)
-	//
+	// Verify type
 	if rType, ok := core.GetRoomTypes()[roomType]; !ok {
 		return nil, true, helpers.NewError(errorRoomType, helpers.ErrorGopherMaxRoomFormat)
 	} else if rType.ServerOnly() {
 		return nil, true, helpers.NewError(errorServerRoom, helpers.ErrorGopherServerRoom)
 	}
-	//CHECK IF USER IS IN A ROOM
-	/*currRoom := user.RoomIn()
-	if currRoom != nil && currRoom.Name() != "" {
-		return nil, true, errors.New("You must leave your current room to create a room")
-	}*/
-	//MAKE THE Room
+	// Make the room
 	room, roomErr := core.NewRoom(roomName, roomType, private, maxUsers, userRef.Name())
 	if roomErr != nil {
 		return nil, true, helpers.NewError(roomErr.Error(), helpers.ErrorGopherCreateRoom)
 	}
-	//ADD THE User TO THE ROOM
+	// Add user to the new room
 	joinErr := userRef.Join(room, connID)
 	if joinErr != nil {
 		return nil, true, helpers.NewError(joinErr.Error(), helpers.ErrorGopherJoin)
@@ -546,13 +549,13 @@ func clientActionDeleteRoom(params interface{}, user **core.User, clientMux *syn
 	}
 	userRef := *user
 	(*clientMux).Unlock()
-	//GET PARAMS
+	// Get room name from params
 	var ok bool
 	var roomName string
 	if roomName, ok = params.(string); !ok {
 		return nil, true, helpers.NewError(errorIncorrectFormat, helpers.ErrorGopherIncorrectFormat)
 	}
-	//GET ROOM
+	// Get room
 	room, roomErr := core.GetRoom(roomName)
 	if roomErr != nil {
 		return nil, true, helpers.NewError(roomErr.Error(), helpers.ErrorGopherDeleteRoom)
@@ -564,7 +567,7 @@ func clientActionDeleteRoom(params interface{}, user **core.User, clientMux *syn
 	if rType.ServerOnly() {
 		return nil, true, helpers.NewError(errorServerRoom, helpers.ErrorGopherServerRoom)
 	}
-	//DELETE ROOM
+	// Delete the room
 	deleteErr := room.Delete()
 	if deleteErr != nil {
 		return nil, true, helpers.NewError(deleteErr.Error(), helpers.ErrorGopherDeleteRoom)
@@ -584,18 +587,18 @@ func clientActionRoomInvite(params interface{}, user **core.User, connID string,
 	}
 	userRef := *user
 	(*clientMux).Unlock()
-	//GET PARAMS
+	// Get name from params
 	var ok bool
 	var name string
 	if name, ok = params.(string); !ok {
 		return nil, true, helpers.NewError(errorIncorrectFormat, helpers.ErrorGopherIncorrectFormat)
 	}
-	//GET INVITED USER
+	// Get invited user
 	invUser, invUserErr := core.GetUser(name)
 	if invUserErr != nil {
 		return nil, true, helpers.NewError(invUserErr.Error(), helpers.ErrorGopherInvite)
 	}
-	//INVITE
+	// Invite user
 	invUserErr = userRef.Invite(invUser, connID)
 	if invUserErr != nil {
 		return nil, true, helpers.NewError(invUserErr.Error(), helpers.ErrorGopherInvite)
@@ -615,13 +618,13 @@ func clientActionRevokeInvite(params interface{}, user **core.User, connID strin
 	}
 	userRef := *user
 	(*clientMux).Unlock()
-	//GET PARAMS
+	// Get name from params
 	var ok bool
 	var name string
 	if name, ok = params.(string); !ok {
 		return nil, true, helpers.NewError(errorIncorrectFormat, helpers.ErrorGopherIncorrectFormat)
 	}
-	//REVOKE INVITE
+	// Revoke invite
 	revokeErr := userRef.RevokeInvite(name, connID)
 	if revokeErr != nil {
 		return nil, true, helpers.NewError(revokeErr.Error(), helpers.ErrorGopherRevokeInvite)
@@ -642,17 +645,17 @@ func clientActionVoiceStream(params interface{}, user **core.User, conn *websock
 	}
 	userRef := *user
 	(*clientMux).Unlock()
-	//GET CURRENT ROOM
+	// Get current room
 	currRoom := userRef.RoomIn(connID)
 	if currRoom == nil || currRoom.Name() == "" {
 		return nil, false, helpers.NoError()
 	}
-	//CHECK IF VOICE CHAT ROOM
+	// Check for voice chat
 	rType := core.GetRoomTypes()[currRoom.Type()]
 	if !rType.VoiceChatEnabled() {
 		return nil, false, helpers.NoError()
 	}
-	//SEND VOICE STREAM
+	// Send voice stream
 	currRoom.VoiceStream(userRef.Name(), conn, params)
 	//
 	return nil, false, helpers.NoError()
@@ -666,12 +669,12 @@ func clientActionChatMessage(params interface{}, user **core.User, connID string
 	}
 	userRef := *user
 	(*clientMux).Unlock()
-	//GET CURRENT ROOM
+	// Get current room
 	currRoom := userRef.RoomIn(connID)
 	if currRoom == nil || currRoom.Name() == "" {
 		return nil, false, helpers.NoError()
 	}
-	//SEND CHAT MESSAGE
+	// Send chat message
 	currRoom.ChatMessage(userRef.Name(), params)
 	//
 	return nil, false, helpers.NoError()
@@ -685,7 +688,7 @@ func clientActionPrivateMessage(params interface{}, user **core.User, connID str
 	}
 	userRef := *user
 	(*clientMux).Unlock()
-	//GET PARAMS
+	// Get param map and extract values
 	var ok bool
 	var pMap map[string]interface{}
 	var userName string
@@ -695,12 +698,12 @@ func clientActionPrivateMessage(params interface{}, user **core.User, connID str
 	if userName, ok = pMap["u"].(string); !ok {
 		return nil, false, helpers.NoError()
 	}
-	//GET CURRENT ROOM
+	// Get current room
 	currRoom := userRef.RoomIn(connID)
 	if currRoom == nil || currRoom.Name() == "" {
 		return nil, false, helpers.NoError()
 	}
-	//SEND CHAT MESSAGE
+	// Send chat message
 	userRef.PrivateMessage(userName, pMap["m"])
 	//
 	return nil, false, helpers.NoError()
@@ -718,7 +721,7 @@ func clientActionSetVariable(params interface{}, user **core.User, connID string
 	}
 	userRef := *user
 	(*clientMux).Unlock()
-	//GET PARAMS
+	// Get param map and extract values
 	var ok bool
 	var pMap map[string]interface{}
 	var varKey string
@@ -730,7 +733,7 @@ func clientActionSetVariable(params interface{}, user **core.User, connID string
 		return nil, false, helpers.NoError()
 	}
 	varVal = pMap["v"]
-	//SET THE VARIABLE
+	// Set the variable
 	userRef.SetVariable(varKey, varVal, connID)
 	//
 	return nil, false, helpers.NoError()
@@ -744,7 +747,7 @@ func clientActionSetVariables(params interface{}, user **core.User, connID strin
 	}
 	userRef := *user
 	(*clientMux).Unlock()
-	//GET PARAMS
+	// Get variables map from params
 	var ok bool
 	var pMap map[string]interface{}
 	if pMap, ok = params.(map[string]interface{}); !ok {
@@ -771,7 +774,7 @@ func clientActionFriendRequest(params interface{}, user **core.User, clientMux *
 	}
 	userRef := *user
 	(*clientMux).Unlock()
-	//GET PARAMS AS A MAP
+	// Get name from params
 	var ok bool
 	var friendName string
 
@@ -799,7 +802,7 @@ func clientActionAcceptFriend(params interface{}, user **core.User, clientMux *s
 	}
 	userRef := *user
 	(*clientMux).Unlock()
-	//GET PARAMS AS A MAP
+	// Get name from params
 	var ok bool
 	var friendName string
 
@@ -827,7 +830,7 @@ func clientActionDeclineFriend(params interface{}, user **core.User, clientMux *
 	}
 	userRef := *user
 	(*clientMux).Unlock()
-	//GET PARAMS AS A MAP
+	// Get name from params
 	var ok bool
 	var friendName string
 
@@ -855,7 +858,7 @@ func clientActionRemoveFriend(params interface{}, user **core.User, clientMux *s
 	}
 	userRef := *user
 	(*clientMux).Unlock()
-	//GET PARAMS AS A MAP
+	// Get name from params
 	var ok bool
 	var friendName string
 
