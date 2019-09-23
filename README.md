@@ -25,7 +25,9 @@ Moreover, Gopher has a built-in, fully customizable SQL client authentication me
  - Distributed load balancer and server coordinator
  - Distributed server broadcasts
  - GUI for administrating and monitoring servers
- - Integration with [GopherDB](https://github.com/hewiefreeman/GopherDB) when stable
+ - Integration with [GopherDB](https://github.com/hewiefreeman/GopherDB) when stable (\***1**)
+
+> (\***1**) MySQL isn't very scalable on it's own, and the SQL implementation for storing friend info is probably not the most efficient. Hence, it is recommended to put the friends table into a separate database cluster. GopherDB, on the other hand, is a very promising database project that should be able to greatly increase efficiency and outperform MySQL for authentication and friending. It has a built-in authentication table type, which means less round trips to the database for authentication. It also supports nested values, which are deep-validated through table schemas. You can follow, or get more info on the project with the link above!
 
 ### Change Log
 [CHANGE_LOG.md](https://github.com/hewiefreeman/GopherGameServer/blob/master/CHANGE_LOG.md)
