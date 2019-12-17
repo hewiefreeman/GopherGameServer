@@ -110,6 +110,8 @@ Please read the following articles before submitting any contributions or filing
  - [Contribution Guidlines](https://github.com/hewiefreeman/GopherGameServer/blob/master/CONTRIBUTING.md)
  - [Code of Conduct](https://github.com/hewiefreeman/GopherGameServer/blob/master/CODE_OF_CONDUCT.md)
 
+<hr>
+
 <h6>GopherDB and all of it's contents Copyright 2020 Dominique Debergue
 <h6>Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at:
 
