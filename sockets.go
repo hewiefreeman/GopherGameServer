@@ -48,7 +48,7 @@ func socketInitializer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//UPGRADE CONNECTION
+	//UPGRADE CONNECTION PING-PONG
 	conn, err := websocket.Upgrade(w, r, w.Header(), 1024, 1024)
 	if err != nil {
 		http.Error(w, "Could not establish a connection.", http.StatusForbidden)

@@ -208,22 +208,23 @@ func (r *Room) AddUser(user *User, connID string) error {
 
 	// CHECK IF USER IS ALREADY IN THE ROOM
 	var ru *RoomUser
-	if u, ok := r.usersMap[userName]; ok {
-		ru = u
+	var ok bool
+	if ru, ok = r.usersMap[userName]; ok {
 		if !multiConnect {
 			r.mux.Unlock()
 			return errors.New("User '" + userName + "' is already in room '" + r.name + "'")
 		}
-		u.mux.Lock()
-		if _, ok := u.conns[connID]; ok {
+		ru.mux.Lock()
+		if _, ok := ru.conns[connID]; ok {
 			r.mux.Unlock()
-			u.mux.Unlock()
+			ru.mux.Unlock()
 			return errors.New("User '" + userName + "' is already in room '" + r.name + "'")
 		}
-		u.mux.Unlock()
+		ru.mux.Unlock()
 	}
 	// ADD User TO ROOM
-	c := user.getConn(connID)
+	user.mux.Lock()
+	c := user.conns[connID]
 	if c == nil {
 		r.mux.Unlock()
 		return errors.New("Invalid connection ID")
@@ -239,11 +240,12 @@ func (r *Room) AddUser(user *User, connID string) error {
 		r.usersMap[userName] = &newUser
 		ru = r.usersMap[userName]
 	}
-	r.mux.Unlock()
 	// CHANGE USER'S ROOM
-	user.mux.Lock()
 	c.room = r
+
 	user.mux.Unlock()
+	r.mux.Unlock()
+
 	//
 	roomType := roomTypes[r.rType]
 	if roomType.BroadcastUserEnter() {
@@ -285,9 +287,8 @@ func (r *Room) AddUser(user *User, connID string) error {
 // parameter is the connection ID associated with one of the connections attached to that User. This must
 // be provided when removing a User from a Room with MultiConnect enabled. Otherwise, an empty string can be used.
 func (r *Room) RemoveUser(user *User, connID string) error {
-	userName := user.Name()
 	//REJECT INCORRECT INPUT
-	if user == nil || len(userName) == 0 {
+	if user == nil || len(user.name) == 0 {
 		return errors.New("*Room.RemoveUser() requires a valid *User")
 	} else if multiConnect && len(connID) == 0 {
 		return errors.New("Must provide a connID when MultiConnect is enabled")
@@ -302,9 +303,9 @@ func (r *Room) RemoveUser(user *User, connID string) error {
 	}
 	var ok bool
 	var ru *RoomUser
-	if ru, ok = r.usersMap[userName]; !ok {
+	if ru, ok = r.usersMap[user.name]; !ok {
 		r.mux.Unlock()
-		return errors.New("User '" + userName + "' is not in room '" + r.name + "'")
+		return errors.New("User '" + user.name + "' is not in room '" + r.name + "'")
 	}
 	ru.mux.Lock()
 	var uConn *userConn
@@ -316,7 +317,7 @@ func (r *Room) RemoveUser(user *User, connID string) error {
 	delete(ru.conns, connID)
 	// Remove user when no conns are left in room
 	if len(ru.conns) == 0 {
-		delete(r.usersMap, userName)
+		delete(r.usersMap, user.name)
 	}
 	ru.mux.Unlock()
 	userList := r.usersMap
@@ -325,7 +326,7 @@ func (r *Room) RemoveUser(user *User, connID string) error {
 	roomType := roomTypes[r.rType]
 
 	//DELETE THE ROOM IF THE OWNER LEFT AND UserRoomControl IS ENABLED
-	if deleteRoomOnLeave && userName == r.owner {
+	if deleteRoomOnLeave && user.name == r.owner {
 		deleteErr := r.Delete()
 		if deleteErr != nil {
 			return deleteErr
@@ -334,7 +335,7 @@ func (r *Room) RemoveUser(user *User, connID string) error {
 		//CONSTRUCT LEAVE MESSAGE
 		message := map[string]map[string]interface{}{
 			helpers.ServerActionUserLeave: {
-				"u": userName,
+				"u": user.name,
 			},
 		}
 

@@ -90,7 +90,7 @@ var (
 )
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////
-//   SERVER START-UP   ///////////////////////////////////////////////////////////////////////////////
+//   Server start-up   ///////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // Start will start the server. Call with a pointer to your `ServerSettings` (or nil for defaults) to start the server. The default
@@ -107,14 +107,14 @@ func Start(s *ServerSettings) {
 	serverStarted = true
 	fmt.Println("  _______                __\n |   _   |.-----..-----.|  |--..-----..----.\n |.  |___||. _  ||. _  ||.    ||. -__||.  _|\n |.  |   ||:. . ||:. __||: |: ||:    ||: |\n |:  |   |'-----'|: |   '--'--''-----''--'\n |::.. . |       '--' - Game Server -\n '-------'\n\n ")
 	fmt.Println("Starting server...")
-	//SET SERVER SETTINGS
+	// Set server settings
 	if s != nil {
 		if !s.verify() {
 			return
 		}
 		settings = s
 	} else {
-		//DEFAULT localhost SETTINGS
+		// Default localhost settings
 		fmt.Println("Using default settings...")
 		settings = &ServerSettings{
 			ServerName:     "!server!",
@@ -155,16 +155,16 @@ func Start(s *ServerSettings) {
 			AdminPassword: "password"}
 	}
 
-	//UPDATE SETTINGS IN users PACKAGE, THEN users WILL UPDATE SETTINGS FOR rooms PACKAGE
+	// Update package settings
 	core.SettingsSet((*settings).KickDupOnLogin, (*settings).ServerName, (*settings).RoomDeleteOnLeave, (*settings).EnableSqlFeatures,
 		(*settings).RememberMe, (*settings).MultiConnect, (*settings).MaxUserConns)
 
-	//NOTIFY PACKAGES OF SERVER START
+	// Notify packages of server start
 	core.SetServerStarted(true)
 	actions.SetServerStarted(true)
 	database.SetServerStarted(true)
 
-	//START UP DATABASE
+	// Start database
 	if (*settings).EnableSqlFeatures {
 		fmt.Println("Initializing database...")
 		dbErr := database.Init((*settings).SqlUser, (*settings).SqlPassword, (*settings).SqlDatabase,
@@ -178,29 +178,29 @@ func Start(s *ServerSettings) {
 		fmt.Println("Database initialized")
 	}
 
-	//RECOVER PREVIOUS SERVER STATE
+	// Recover state
 	if settings.EnableRecovery {
 		recoverState()
 	}
 
-	//START HTTP/SOCKET LISTENER
+	// Start socket listener
 	if settings.TLS {
 		httpServer = makeServer("/wss", settings.TLS)
 	} else {
 		httpServer = makeServer("/ws", settings.TLS)
 	}
 
-	//RUN START CALLBACK
+	// Run callback
 	if startCallback != nil {
 		startCallback()
 	}
 
-	//START MACRO COMMAND LISTENER
+	// Start macro listener
 	go macroListener()
 
 	fmt.Println("Startup complete")
 
-	//BLOCK UNTIL SERVER SHUT-DOWN
+	// Wait for server shutdown
 	doneErr := <-serverEndChan
 
 	if doneErr != http.ErrServerClosed {
@@ -209,12 +209,12 @@ func Start(s *ServerSettings) {
 		if !serverStopping {
 			fmt.Println("Disconnecting users...")
 
-			//PAUSE SERVER
+			// Pause server
 			core.Pause()
 			actions.Pause()
 			database.Pause()
 
-			//SAVE STATE
+			// Save state
 			if settings.EnableRecovery {
 				saveState()
 			}
@@ -251,7 +251,7 @@ func (settings *ServerSettings) verify() bool {
 		return false
 
 	} else if settings.EnableRecovery {
-		//CHECK IF INVALID LOCATION
+		// Check if invalid file location
 		if _, err := os.Stat(settings.RecoveryLocation); err != nil {
 			fmt.Println("RecoveryLocation error:", err)
 			fmt.Println("Shutting down...")
@@ -293,7 +293,7 @@ func makeServer(handleDir string, tls bool) *http.Server {
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////
-//   SERVER ACTIONS   ////////////////////////////////////////////////////////////////////////////////
+//   Server actions   ////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // Pause will log all Users off and prevent anyone from logging in. All rooms and their variables created by the server will remain in memory.
@@ -308,7 +308,7 @@ func Pause() {
 		actions.Pause()
 		database.Pause()
 
-		//RUN CALLBACK
+		// Run callback
 		if pauseCallback != nil {
 			pauseCallback()
 		}
@@ -330,7 +330,7 @@ func Resume() {
 		actions.Resume()
 		database.Resume()
 
-		//RUN CALLBACK
+		// Run callback
 		if resumeCallback != nil {
 			resumeCallback()
 		}
@@ -347,17 +347,17 @@ func ShutDown() error {
 		serverStopping = true
 		fmt.Println("Disconnecting users...")
 
-		//PAUSE SERVER
+		// Pause server
 		core.Pause()
 		actions.Pause()
 		database.Pause()
 
-		//SAVE STATE
+		// Save state
 		if settings.EnableRecovery {
 			saveState()
 		}
 
-		//SHUT DOWN SERVER
+		// Shut server down
 		fmt.Println("Shutting server down...")
 		shutdownErr := httpServer.Shutdown(context.Background())
 		if shutdownErr != http.ErrServerClosed {
@@ -369,7 +369,7 @@ func ShutDown() error {
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////
-//   SAVING AND RECOVERING STATE   ///////////////////////////////////////////////////////////////////
+//   Saving and recovery   ///////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 
 func saveState() {
@@ -383,7 +383,6 @@ func saveState() {
 }
 
 func writeState(stateObj serverRestore, saveFolder string) error {
-	//WRITE THE STATE
 	state, err := json.Marshal(stateObj)
 	if err != nil {
 		return err
@@ -393,7 +392,6 @@ func writeState(stateObj serverRestore, saveFolder string) error {
 		return err
 	}
 
-	//
 	return nil
 }
 
@@ -406,7 +404,7 @@ func getState() serverRestore {
 func recoverState() {
 	fmt.Println("Recovering previous state...")
 
-	//GET LATEST RECOVERY FILE
+	// Get last recovery file
 	files, fileErr := ioutil.ReadDir(settings.RecoveryLocation)
 	if fileErr != nil {
 		fmt.Println("Error recovering state:", fileErr)
@@ -430,14 +428,14 @@ func recoverState() {
 		}
 	}
 
-	//READ RECOVERY FILE
+	// Read file
 	r, err := ioutil.ReadFile(settings.RecoveryLocation + "/" + newestFile)
 	if err != nil {
 		fmt.Println("Error recovering state:", err)
 		return
 	}
 
-	//CONVERT JSON TO MAP
+	// Convert JSON
 	var recovery serverRestore
 	if err = json.Unmarshal(r, &recovery); err != nil {
 		fmt.Println("Error recovering state:", err)
@@ -449,7 +447,7 @@ func recoverState() {
 		return
 	}
 
-	//RECOVER ROOMS
+	// Recover rooms
 	for name, val := range recovery.R {
 		room, roomErr := core.NewRoom(name, val.T, val.P, val.M, val.O)
 		if roomErr != nil {

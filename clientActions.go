@@ -702,11 +702,6 @@ func clientActionPrivateMessage(params interface{}, user **core.User, connID str
 	if userName, ok = pMap["u"].(string); !ok {
 		return nil, false, helpers.NoError()
 	}
-	// Get current room
-	currRoom := userRef.RoomIn(connID)
-	if currRoom == nil || currRoom.Name() == "" {
-		return nil, false, helpers.NoError()
-	}
 	// Send chat message
 	userRef.PrivateMessage(userName, pMap["m"])
 	//
