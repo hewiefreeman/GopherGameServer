@@ -25,7 +25,9 @@ Moreover, Gopher has a built-in, fully customizable SQL client authentication me
  - Distributed load balancer and server coordinator
  - Distributed server broadcasts
  - GUI for administrating and monitoring servers
- - Integration with [GopherDB](https://github.com/hewiefreeman/GopherDB) when stable
+ - Integration with [GopherDB](https://github.com/hewiefreeman/GopherDB) when stable (\***1**)
+
+> (\***1**) MySQL isn't very scalable on it's own, and the SQL implementation for storing friend info is probably not the most efficient. Hence, it is recommended to put the friends table into a separate database cluster. GopherDB, on the other hand, is a very promising database project that will greatly increase server efficiency, and could possibly even outperform MySQL overall. It has a built-in authentication table type, which takes a substantial load off the game servers, and further secures your users' private information. It also supports nested values which are deep-validated through table schemas, so you can store complex information using a wide variety of data types and rules. You can follow the project and get more info with the link above!
 
 ### Change Log
 [CHANGE_LOG.md](https://github.com/hewiefreeman/GopherGameServer/blob/master/CHANGE_LOG.md)
@@ -107,3 +109,12 @@ Please read the following articles before submitting any contributions or filing
 
  - [Contribution Guidlines](https://github.com/hewiefreeman/GopherGameServer/blob/master/CONTRIBUTING.md)
  - [Code of Conduct](https://github.com/hewiefreeman/GopherGameServer/blob/master/CODE_OF_CONDUCT.md)
+
+<hr>
+
+<h6>GopherGameServer and all of it's contents Copyright 2020 Dominique Debergue
+<h6>Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at:
+
+  `http://www.apache.org/licenses/LICENSE-2.0`
+
+<h6>Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.</h6>
