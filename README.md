@@ -35,7 +35,6 @@ Moreover, Gopher has a built-in, fully customizable SQL client authentication me
 # :video_game: Client APIs
 
  - JavaScript: [GopherClientJS](https://github.com/hewiefreeman/GopherClientJS)
- - Java: ( **In development** )
  
  > If you want to make a client API in an unsupported language and want to know where to start and/or have any questions, feel free to [email me](mailto:dominiquedebergue@gmail.com?subject=[GitHub]%20Gopher%20Game%20Server)!
 
