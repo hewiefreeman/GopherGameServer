@@ -10,26 +10,24 @@ func setUp() error {
 	// Check if the users table has been created
 	_, checkErr := database.Exec("SELECT " + usersColumnName + " FROM " + tableUsers + " WHERE " + usersColumnID + "=1;")
 	if checkErr != nil {
-		fmt.Println("Making all tables...")
+		fmt.Println("Creating \"" + tableUsers + "\" table...")
 		// Make the users table
 		if cErr := createUserTableSQL(); cErr != nil {
 			return cErr
 		}
+	}
+	// Check for new custom AccountInfoColumn items
+	if newItemsErr := addNewCustomItemsSQL(); newItemsErr != nil {
+		return newItemsErr
+	}
 
-	} else {
-		// Check for new custom AccountInfoColumn items
-		if newItemsErr := addNewCustomItemsSQL(); newItemsErr != nil {
-			return newItemsErr
-		}
-
-		if rememberMe {
-			// Check if autologs table has been made
-			_, checkErr := database.Exec("SELECT " + autologsColumnID + " FROM " + tableAutologs + " WHERE " + autologsColumnID + "=1;")
-			if checkErr != nil {
-				fmt.Println("Making autologs table...")
-				if cErr := createAutologsTableSQL(); cErr != nil {
-					return cErr
-				}
+	if rememberMe {
+		// Check if autologs table has been made
+		_, checkErr := database.Exec("SELECT " + autologsColumnID + " FROM " + tableAutologs + " WHERE " + autologsColumnID + "=1;")
+		if checkErr != nil {
+			fmt.Println("Making autologs table...")
+			if cErr := createAutologsTableSQL(); cErr != nil {
+				return cErr
 			}
 		}
 	}
@@ -131,8 +129,8 @@ func addNewCustomItemsSQL() error {
 		checkRows.Next()
 		_, colsErr := checkRows.Columns()
 		if colsErr != nil {
-			fmt.Println("Adding AccountInfoColumn '" + key + "'...")
 			// The item doesn't exist yet...
+			fmt.Println("Adding AccountInfoColumn '" + key + "'...")
 			query = query + "ADD COLUMN " + key + " " + dataTypes[val.dataType]
 			if isSizeDataType(val.dataType) {
 				query = query + "(" + strconv.Itoa(val.maxSize) + ")"
