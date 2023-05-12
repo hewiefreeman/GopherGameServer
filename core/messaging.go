@@ -2,6 +2,9 @@ package core
 
 import (
 	"errors"
+	"fmt"
+	"html"
+
 	"github.com/gorilla/websocket"
 	"github.com/hewiefreeman/GopherGameServer/helpers"
 )
@@ -38,13 +41,14 @@ func (u *User) PrivateMessage(userName string, message interface{}) {
 	if userErr != nil {
 		return
 	}
-
+	outputstr := fmt.Sprintf("%v", message)
+	outputstr = html.EscapeString(outputstr)
 	//CONSTRUCT MESSAGE
 	theMessage := map[string]map[string]interface{}{
 		helpers.ServerActionPrivateMessage: {
 			"f": u.name,    // from
 			"t": user.name, // to
-			"m": message,
+			"m": outputstr,
 		},
 	}
 
@@ -181,7 +185,9 @@ func (r *Room) sendMessage(mt int, st int, rec []string, a string, m interface{}
 		message[helpers.ServerActionRoomMessage]["a"] = a
 	}
 	// The message
-	message[helpers.ServerActionRoomMessage]["m"] = m
+	outputstr := fmt.Sprintf("%v", m)
+	outputstr = html.EscapeString(outputstr)
+	message[helpers.ServerActionRoomMessage]["m"] = outputstr
 
 	//SEND MESSAGE TO USERS
 	if rec == nil || len(rec) == 0 {
@@ -256,9 +262,9 @@ func (r *Room) VoiceStream(userName string, userSocket *websocket.Conn, stream i
 // SetPrivateMessageCallback sets the callback function for when a *User sends a private message to another *User.
 // The function passed must have the same parameter types as the following example:
 //
-//    func onPrivateMessage(from *core.User, to *core.User, message interface{}) {
-//	     //code...
-//	 }
+//	   func onPrivateMessage(from *core.User, to *core.User, message interface{}) {
+//		     //code...
+//		 }
 func SetPrivateMessageCallback(cb func(*User, *User, interface{})) {
 	if !serverStarted {
 		privateMessageCallback = cb
@@ -270,9 +276,9 @@ func SetPrivateMessageCallback(cb func(*User, *User, interface{})) {
 // SetChatMessageCallback sets the callback function for when a *User sends a chat message to a *Room.
 // The function passed must have the same parameter types as the following example:
 //
-//    func onChatMessage(userName string, room *core.Room, message interface{}) {
-//	     //code...
-//	 }
+//	   func onChatMessage(userName string, room *core.Room, message interface{}) {
+//		     //code...
+//		 }
 func SetChatMessageCallback(cb func(string, *Room, interface{})) {
 	if !serverStarted {
 		chatMessageCallback = cb
@@ -283,9 +289,9 @@ func SetChatMessageCallback(cb func(string, *Room, interface{})) {
 // SetServerMessageCallback sets the callback function for when the server sends a message to a *Room.
 // The function passed must have the same parameter types as the following example:
 //
-//    func onServerMessage(room *core.Room, messageType int, message interface{}) {
-//	     //code...
-//	 }
+//	   func onServerMessage(room *core.Room, messageType int, message interface{}) {
+//		     //code...
+//		 }
 //
 // The messageType value can be one of: core.ServerMessageGame, core.ServerMessageNotice,
 // core.ServerMessageImportant, or a custom value you have set.
